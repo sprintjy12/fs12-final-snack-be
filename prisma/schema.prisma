@@ -6,3 +6,216 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// ==================== Enum 정의 ====================
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  WITHDRAWN
+}
+
+enum InvitationRole {
+  USER
+  ADMIN
+}
+
+enum OrderType {
+  REQUEST
+  DIRECT
+}
+
+enum OrderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// ==================== 모델 정의 ====================
+
+model Company {
+  id                   String        @id @default(uuid()) @db.VarChar
+  name                 String        @db.VarChar
+  businessNumber       String        @unique @db.VarChar
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  defaultMonthlyBudget Int           @default(0)
+
+  // 관계 설정
+  users                User[]
+  invitations          Invitation[]
+  products             Product[]
+  orders               Order[]
+  budgets              Budget[]
+
+  @@map("companies")
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.VarChar
+  companyId    String     @db.VarChar
+  name         String     @db.VarChar
+  email        String     @unique @db.VarChar
+  passwordHash String     @db.VarChar(256)
+  role         UserRole   @default(USER)
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  withdrawnAt  DateTime?
+
+  // 관계 설정
+  company          Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requestedOrders  Order[]         @relation("OrderRequester")
+  processedOrders  Order[]         @relation("OrderProcessor")
+  carts            Cart[]
+  refreshTokens    RefreshToken[]
+
+  @@map("users")
+}
+
+model Invitation {
+  id        Int            @id @default(autoincrement())
+  companyId String         @db.VarChar // Company의 id 타입이 UUID이므로 맞춤 (명세서의 INT는 스키마 구조상 UUID 관계를 위해 수정)
+  name      String         @db.VarChar
+  email     String         @db.VarChar
+  role      InvitationRole
+  token     String         @unique @db.VarChar
+  expiresAt DateTime
+  isUsed    Boolean        @default(false)
+  createdAt DateTime       @default(now())
+
+  // 관계 설정
+  company   Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("invitations")
+}
+
+model Category {
+  id       String     @id @default(uuid()) @db.VarChar
+  parentId String?    @db.VarChar
+  name     String     @db.VarChar
+  depth    Int        @default(1)
+
+  // 셀프 관계 (대분류-하위 카테고리) 및 상품 관계
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryHierarchy")
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(uuid()) @db.VarChar // 명세서의 식별자 기준 통일성을 위해 UUID 적용 (INT 필요시 autoincrement 변경 가능)
+  companyId   String   @db.VarChar
+  categoryId  String   @db.VarChar
+  name        String   @db.VarChar
+  price       Int
+  imageUrl    String?  @db.VarChar
+  stock       Int      @default(0)
+  productUrl  String?  @db.VarChar
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 관계 설정
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  category    Category    @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  carts       Cart[]
+
+  @@map("products")
+}
+
+model Order {
+  id              String      @id @default(uuid()) @db.VarChar
+  companyId       String      @db.VarChar
+  requesterId     String      @db.VarChar
+  processorId     String?     @db.VarChar
+  type            OrderType
+  status          OrderStatus @default(PENDING)
+  productAmount   Int
+  shippingFee     Int         @default(0)
+  totalPrice      Int
+  requestMessage  String?     @db.Text
+  responseMessage String?     @db.Text
+  approvedAt      DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // 관계 설정
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requester   User        @relation("OrderRequester", fields: [requesterId], references: [id])
+  processor   User?       @relation("OrderProcessor", fields: [processorId], references: [id])
+  orderItems  OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String   @id @default(uuid()) @db.VarChar
+  orderId      String   @db.VarChar
+  productId    String   @db.VarChar
+  unitPrice    Int
+  quantity     Int
+  subtotal     Int
+  productName  String   @db.VarChar
+  imageUrl     String?  @db.VarChar
+  categoryName String   @db.VarChar
+  createdAt    DateTime @default(now())
+
+  // 관계 설정
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product  @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Cart {
+  id        String   @id @default(uuid()) @db.VarChar
+  userId    String   @db.VarChar
+  productId String   @db.VarChar
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 관계 설정
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // 유저당 동일 상품은 장바구니에 1개만 담기도록 제약 조건 추가 가능
+  @@unique([userId, productId])
+  @@map("carts")
+}
+
+model Budget {
+  id        String   @id @default(uuid()) @db.VarChar
+  companyId String   @db.VarChar
+  yearMonth String   @db.VarChar // 예: "2026-07"
+  amount    Int      // Decimal 대신 Prisma에서 다루기 편한 Int 혹은 Decimal 타입 사용 가능 (여기서는 정수형 반영)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 관계 설정
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // 한 회사당 특정 연월의 예산은 1개만 존재하도록 설정
+  @@unique([companyId, yearMonth])
+  @@map("budgets")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.VarChar
+  userId    String   @db.VarChar
+  token     String   @db.Text
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // 관계 설정
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}

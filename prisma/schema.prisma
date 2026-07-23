@@ -40,7 +40,7 @@ enum OrderStatus {
 // ==================== 모델 정의 ====================
 
 model Company {
-  id                   String        @id @default(uuid()) @db.VarChar
+  id                   String        @id @default(uuid()) @db.Uuid
   name                 String        @db.VarChar
   businessNumber       String        @unique @db.VarChar
   createdAt            DateTime      @default(now())
@@ -54,12 +54,13 @@ model Company {
   orders               Order[]
   budgets              Budget[]
 
+  @@check(defaultMonthlyBudget >= 0)
   @@map("companies")
 }
 
 model User {
-  id           String     @id @default(uuid()) @db.VarChar
-  companyId    String     @db.VarChar
+  id           String     @id @default(uuid()) @db.Uuid
+  companyId    String     @db.Uuid
   name         String     @db.VarChar
   email        String     @unique @db.VarChar
   passwordHash String     @db.VarChar(256)
@@ -81,7 +82,7 @@ model User {
 
 model Invitation {
   id        Int            @id @default(autoincrement())
-  companyId String         @db.VarChar // Company의 id 타입이 UUID이므로 맞춤 (명세서의 INT는 스키마 구조상 UUID 관계를 위해 수정)
+  companyId String         @db.Uuid // Company의 id 타입이 UUID이므로 맞춤 (명세서의 INT는 스키마 구조상 UUID 관계를 위해 수정)
   name      String         @db.VarChar
   email     String         @db.VarChar
   role      InvitationRole
@@ -97,8 +98,8 @@ model Invitation {
 }
 
 model Category {
-  id       String     @id @default(uuid()) @db.VarChar
-  parentId String?    @db.VarChar
+  id       String     @id @default(uuid()) @db.Uuid
+  parentId String?    @db.Uuid
   name     String     @db.VarChar
   depth    Int        @default(1)
 
@@ -111,9 +112,9 @@ model Category {
 }
 
 model Product {
-  id          String   @id @default(uuid()) @db.VarChar // 명세서의 식별자 기준 통일성을 위해 UUID 적용 (INT 필요시 autoincrement 변경 가능)
-  companyId   String   @db.VarChar
-  categoryId  String   @db.VarChar
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @db.Uuid
+  categoryId  String   @db.Uuid
   name        String   @db.VarChar
   price       Int
   imageUrl    String?  @db.VarChar
@@ -132,10 +133,10 @@ model Product {
 }
 
 model Order {
-  id              String      @id @default(uuid()) @db.VarChar
-  companyId       String      @db.VarChar
-  requesterId     String      @db.VarChar
-  processorId     String?     @db.VarChar
+  id              String      @id @default(uuid()) @db.Uuid
+  companyId       String      @db.Uuid
+  requesterId     String      @db.Uuid
+  processorId     String?     @db.Uuid
   type            OrderType
   status          OrderStatus @default(PENDING)
   productAmount   Int
@@ -157,9 +158,9 @@ model Order {
 }
 
 model OrderItem {
-  id           String   @id @default(uuid()) @db.VarChar
-  orderId      String   @db.VarChar
-  productId    String   @db.VarChar
+  id           String   @id @default(uuid()) @db.Uuid
+  orderId      String   @db.Uuid
+  productId    String   @db.Uuid
   unitPrice    Int
   quantity     Int
   subtotal     Int
@@ -176,9 +177,9 @@ model OrderItem {
 }
 
 model Cart {
-  id        String   @id @default(uuid()) @db.VarChar
-  userId    String   @db.VarChar
-  productId String   @db.VarChar
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  productId String   @db.Uuid
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -186,16 +187,16 @@ model Cart {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  // 유저당 동일 상품은 장바구니에 1개만 담기도록 제약 조건 추가 가능
+  // 유저당 동일 상품은 장바구니에 1개만 담기도록 복합 유니크 유지
   @@unique([userId, productId])
   @@map("carts")
 }
 
 model Budget {
-  id        String   @id @default(uuid()) @db.VarChar
-  companyId String   @db.VarChar
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
   yearMonth String   @db.VarChar // 예: "2026-07"
-  amount    Int      // Decimal 대신 Prisma에서 다루기 편한 Int 혹은 Decimal 타입 사용 가능 (여기서는 정수형 반영)
+  amount    Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -208,8 +209,8 @@ model Budget {
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid()) @db.VarChar
-  userId    String   @db.VarChar
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
   token     String   @db.Text
   expiresAt DateTime
   createdAt DateTime @default(now())

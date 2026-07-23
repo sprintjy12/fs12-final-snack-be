@@ -187,8 +187,6 @@ model Cart {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  // 유저당 동일 상품은 장바구니에 1개만 담기도록 복합 유니크 유지
-  @@unique([userId, productId])
   @@map("carts")
 }
 

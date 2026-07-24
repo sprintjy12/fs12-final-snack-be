@@ -54,7 +54,6 @@ model Company {
   orders               Order[]
   budgets              Budget[]
 
-  @@check(defaultMonthlyBudget >= 0)
   @@map("companies")
 }
 
@@ -74,7 +73,7 @@ model User {
   company          Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   requestedOrders  Order[]         @relation("OrderRequester")
   processedOrders  Order[]         @relation("OrderProcessor")
-  carts            Cart[]
+  cartItems            CartItem[]
   refreshTokens    RefreshToken[]
 
   @@map("users")
@@ -128,7 +127,7 @@ model Product {
   company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   category    Category    @relation(fields: [categoryId], references: [id])
   orderItems  OrderItem[]
-  carts       Cart[]
+  cartItems CartItem[]
 
   @@map("products")
 }
@@ -177,7 +176,7 @@ model OrderItem {
   @@map("order_items")
 }
 
-model Cart {
+model CartItem {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @db.Uuid
   productId String   @db.Uuid
@@ -191,7 +190,7 @@ model Cart {
 
   // 유저당 동일 상품은 장바구니에 1개만 담기도록 복합 유니크 유지
   @@unique([userId, productId])
-  @@map("carts")
+  @@map("cart_items")
 }
 
 model Budget {
@@ -217,12 +216,9 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  // 관계 설정
-  user      User     @relation(
-    fields: [userId], 
-    references: [id], 
-    onDelete: Cascade
-    )
+ // 관계 설정 (한 줄로 깔끔하게 정리)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@map("refresh_tokens")
 }

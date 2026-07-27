@@ -1,0 +1,154 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: ko-KR
+
+tone_instructions: >
+  친절하고 이해하기 쉬운 한국어로 리뷰하세요.
+  사소한 취향 차이보다 실제 버그, 유지보수성, 타입 안정성, 보안 및 접근성을 우선하세요.
+  초급 개발자도 이해할 수 있도록 문제의 이유와 수정 방향을 짧고 구체적으로 설명하세요.
+  팀 컨벤션 위반은 공격적으로 표현하지 말고, 수정이 필요한 위치와 올바른 예시를 함께 제안하세요.
+
+reviews:
+  profile: chill
+  high_level_summary: true
+  poem: false
+  review_status: true
+  changed_files_summary: true
+  collapse_walkthrough: true
+  request_changes_workflow: false
+
+  auto_title_instructions: >
+    PR 제목은 '타입 : 제목' 형식으로 작성하세요.
+    허용 타입은 feat, add, fix, edit, refactor, design입니다.
+    예: 'feat : 로그인 기능 구현'
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - dev
+      - main
+    ignore_title_keywords:
+      - WIP
+      - DRAFT
+
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: >
+        PR 제목은 반드시 '타입 : 제목' 형식을 사용합니다.
+        허용 타입은 feat, add, fix, edit, refactor, design입니다.
+        콜론 앞뒤에는 공백을 하나씩 둡니다.
+        예: 'design : 공통 아이콘 추가'
+    description:
+      mode: warning
+    docstrings:
+      mode: off
+
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!**/coverage/**"
+    - "!**/package-lock.json"
+    - "!**/prisma/migrations/**/migration.sql"
+
+  path_instructions:
+    - path: "**/*.{ts,js}"
+      instructions: |
+        아래 팀 공통 컨벤션을 검토하세요.
+
+        [함수 작성]
+        - 일반 함수 표현식보다 화살표 함수 형식을 우선 사용합니다.
+          예: const createUser = async () => {};
+        - 중첩 조건문을 줄일 수 있다면 얼리 리턴을 우선 사용합니다.
+        - Express 및 라이브러리 요구사항상 다른 형태가 적절한 경우에는 불필요하게 지적하지 않습니다.
+
+        [이벤트 및 핸들러 함수명]
+        - 요청 처리나 이벤트 성격의 함수는 handle + 액션 형식을 우선합니다.
+          예: handleLogin, handleWebhook
+        - 서비스 함수처럼 이벤트 핸들러가 아닌 함수까지 handle 접두사를 강제하지 않습니다.
+
+        [콜백 매개변수 이름]
+        - map, filter, find 등의 콜백 매개변수는 실제 도메인 의미가 드러나는 이름을 사용합니다.
+        - 중첩 콜백에서는 바깥 변수명과 충돌하지 않는 직관적인 축약형을 허용합니다.
+        - 의미를 알기 어려운 한 글자 변수만 지적합니다.
+
+        [유효성 검사]
+        - req.body, req.params, req.query 등 외부 입력은 Zod로 검증하는지 확인합니다.
+        - 이메일, 비밀번호 길이, 숫자 변환, enum, 날짜 형식 등 요구사항과 스키마가 일치하는지 확인합니다.
+        - 이미 상위 계층에서 검증된 값을 중복 검증하라고 요구하지 않습니다.
+
+        [네이밍]
+        - 일반 유틸, 서비스, 훅과 로직 파일은 camelCase를 사용합니다.
+          예: notificationService.ts, authMiddleware.ts
+        - 클래스나 React 컴포넌트가 아닌 일반 파일에 PascalCase를 남용하지 않았는지 확인합니다.
+        - Express 라우트 경로 문자열은 kebab-case를 우선합니다.
+          예: /my-sales, /password-reset
+
+        [기본 품질]
+        - 실제 오류 가능성, 비동기 처리, 누락된 await, Promise 예외 처리를 우선 확인합니다.
+        - 불필요한 any, 타입 단언 남용, nullable 값 처리 누락을 확인합니다.
+        - 환경 변수 및 비밀값 노출, 입력값 검증 누락을 확인합니다.
+        - 단순한 취향 차이나 자동 포매터가 해결할 문제에는 코멘트하지 않습니다.
+
+    - path: "src/routes/**"
+      instructions: |
+        라우팅 계층을 검토하세요.
+        - URL 경로는 kebab-case인지 확인합니다.
+        - HTTP 메서드, 경로, 상태 코드가 의도와 일치하는지 확인합니다.
+        - 인증 및 권한 미들웨어가 필요한 경로에서 누락되지 않았는지 확인합니다.
+        - 비즈니스 로직이 라우터에 과도하게 들어가 있지 않은지 확인합니다.
+
+    - path: "src/controllers/**"
+      instructions: |
+        컨트롤러 계층을 검토하세요.
+        - 요청값은 Zod 등으로 검증되었는지 확인합니다.
+        - 숫자, 날짜, enum, nullable 값 변환이 안전한지 확인합니다.
+        - 서비스 계층 호출과 응답 반환 책임이 명확한지 확인합니다.
+        - try-catch 중복, next(error) 누락, 응답을 두 번 보내는 경로를 확인합니다.
+        - 올바른 HTTP 상태 코드와 일관된 에러 응답 형식을 확인합니다.
+
+    - path: "src/services/**"
+      instructions: |
+        서비스 파일명은 notificationService.ts처럼 camelCase인지 확인하세요.
+        비즈니스 로직과 트랜잭션 관점에서 검토하세요.
+        - 컨트롤러와 데이터 접근 계층의 책임이 섞이지 않았는지 확인합니다.
+        - 여러 DB 변경이 함께 성공해야 할 때 트랜잭션 누락을 확인합니다.
+        - 동시성 문제, 중복 요청, 데이터 무결성 위반 가능성을 확인합니다.
+
+    - path: "src/middlewares/**"
+      instructions: |
+        미들웨어 파일명은 authMiddleware.ts처럼 camelCase인지 확인하세요.
+        - next() 또는 next(error) 누락과 중복 호출을 확인합니다.
+        - JWT 검증, 사용자 권한 확인, 만료 및 잘못된 토큰 처리가 안전한지 확인합니다.
+        - 인증 실패와 권한 부족 상태 코드가 적절한지 확인합니다.
+        - 민감한 오류 정보가 응답으로 노출되지 않는지 확인합니다.
+
+    - path: "src/modules/**"
+      instructions: |
+        각 도메인 모듈의 책임 분리와 의존성 방향을 검토하세요.
+        - 라우터, 컨트롤러, 서비스, 데이터 접근 로직이 과도하게 섞이지 않았는지 확인합니다.
+        - 다른 도메인의 내부 구현에 직접 의존하는 결합을 확인합니다.
+        - 중복 비즈니스 로직과 누락된 권한 검사를 확인합니다.
+
+    - path: "prisma/**"
+      instructions: |
+        Prisma와 PostgreSQL 관점에서 검토하세요.
+        - 관계, optional 여부, unique 및 index 설정이 요구사항과 맞는지 확인합니다.
+        - N+1 쿼리, 불필요한 전체 조회, 과도한 include/select를 확인합니다.
+        - 삭제 정책과 onDelete 동작으로 인한 데이터 유실 가능성을 확인합니다.
+        - 마이그레이션과 스키마 변경으로 기존 데이터가 손상될 가능성을 확인합니다.
+        - 민감정보가 조회 또는 로그에 포함되지 않는지 확인합니다.
+
+    - path: "**/*Schema.{ts,js}"
+      instructions: |
+        Zod 스키마를 검토하세요.
+        - API 요구사항과 필수값, 이메일 형식, 문자열 길이, 숫자 범위가 일치하는지 확인합니다.
+        - transform 또는 coerce 사용으로 예상치 못한 값이 통과하지 않는지 확인합니다.
+        - 검증 오류가 일관된 에러 응답으로 변환되는지 확인합니다.
+
+    - path: "**/*.test.{ts,js}"
+      instructions: |
+        정상 흐름뿐 아니라 인증 실패, 권한 부족, 잘못된 입력, DB 오류 등
+        핵심 예외 경로가 검증되는지 확인합니다.

@@ -5,6 +5,7 @@ import cors from "cors";
 import express from "express";
 import productController from "./controllers/productController";
 import cartController from "./controllers/cartController";
+import orderRouter from "./routes/orderRouter";
 import errorHandler from "./middlewares/errorHandler";
 import AppError from "./utils/appError";
 
@@ -17,6 +18,7 @@ app.use(cookieParser());
 
 app.use("/products", productController);
 app.use("/carts", cartController);
+app.use("/orders", orderRouter);
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });

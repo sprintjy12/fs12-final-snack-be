@@ -1,5 +1,6 @@
 import express from "express";
 import productService from "../services/productService.js";
+import prisma from "../config/db";
 
 const productController = express.Router();
 
@@ -39,13 +40,22 @@ productController.post("/", async (req, res) => {
   try {
     const { name, price, categoryId, imageUrl, stock, productUrl } = req.body;
 
-    // auth 미들웨어 붙으면 req.user.companyId 사용
-    const companyId = req.user?.companyId;
-
-    if (!companyId) {
+    // auth 미들웨어는 userId만 넣고, companyId는 DB에서 조회
+    const userId = req.user?.id;
+    if (!userId) {
       res.status(401).json({ message: "인증이 필요합니다." });
       return;
     }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true },
+    });
+    if (!user) {
+      res.status(404).json({ message: "존재하지 않는 유저입니다." });
+      return;
+    }
+    const { companyId } = user;
 
     const product = await productService.createProduct({
       name,

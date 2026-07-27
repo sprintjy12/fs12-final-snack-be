@@ -1,11 +1,16 @@
+import { Request, Response } from "express";
 import express from "express";
 import productService from "../services/productService.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import AppError from "../utils/appError.js";
+import { ErrorCodes } from "../constants/errorCodes.js";
 
 const productController = express.Router();
 
 // 상품 목록 조회
-productController.get("/", async (req, res) => {
-  try {
+productController.get(
+  "/",
+  asyncHandler(async (req: Request, res: Response) => {
     const { categoryId, page = 1, limit = 8, sort = "latest" } = req.query;
 
     const pageNum = Number(page) || 1;
@@ -26,25 +31,21 @@ productController.get("/", async (req, res) => {
       data: result.products,
       pagination: result.pagination,
     });
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).json({ message: error.message });
-      return;
-    }
-    res.status(500).json({ message: "서버 오류" });
-  }
-});
+  }),
+);
+
 // 상품 등록
-productController.post("/", async (req, res) => {
-  try {
+productController.post(
+  "/",
+  asyncHandler(async (req: Request, res: Response) => {
     const { name, price, categoryId, imageUrl, stock, productUrl } = req.body;
 
-    // auth 미들웨어 붙으면 req.user.companyId 사용
+    // auth 미들웨어 붙으면 req.user.id / req.user.companyId 사용
+    const userId = req.user?.id;
     const companyId = req.user?.companyId;
 
-    if (!companyId) {
-      res.status(401).json({ message: "인증이 필요합니다." });
-      return;
+    if (!userId || !companyId) {
+      throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
     }
 
     const product = await productService.createProduct({
@@ -52,6 +53,7 @@ productController.post("/", async (req, res) => {
       price: Number(price),
       categoryId,
       companyId,
+      createdById: userId,
       imageUrl,
       stock: stock !== undefined ? Number(stock) : undefined,
       productUrl,
@@ -61,28 +63,40 @@ productController.post("/", async (req, res) => {
       message: "상품 등록 성공",
       data: product,
     });
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).json({ message: error.message });
-      return;
-    }
-    res.status(500).json({ message: "서버 오류" });
-  }
-});
+  }),
+);
 
-productController.get("/me", (req, res) => {
+//내가 등록한 상품 조회
+productController.get("/me", (req: Request, res: Response) => {
   return res.status(200).json({ message: "내가 등록한 상품 조회 성공" });
 });
 
-productController.delete("/:productId", (req, res) => {
-  return res.status(200).json({ message: "상품 삭제 성공" });
-});
+// 상품 삭제
+productController.delete(
+  "/:productId",
+  asyncHandler(async (req: Request, res: Response) => {
+    const { productId } = req.params;
 
-productController.patch("/:productId", (req, res) => {
+    // auth 미들웨어 붙으면 req.user.id 사용
+    const userId = req.user?.id;
+
+    if (!userId) {
+      throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
+    }
+
+    await productService.deleteProduct(productId, userId);
+
+    res.status(200).json({ message: "상품 삭제 성공" });
+  }),
+);
+
+//상품 수정
+productController.patch("/:productId", (req: Request, res: Response) => {
   return res.status(200).json({ message: "상품 수정 성공" });
 });
 
-productController.get("/:productId", (req, res) => {
+//상품 상세 조회
+productController.get("/:productId", (req: Request, res: Response) => {
   return res.status(200).json({ message: "상품 상세 조회 성공" });
 });
 

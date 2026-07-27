@@ -1,5 +1,7 @@
 import productRepository from "../repositories/productRepository.js";
 import { Prisma } from "@prisma/client";
+import AppError from "../utils/appError.js";
+import { ErrorCodes } from "../constants/errorCodes.js";
 
 interface CreateProductInput {
   companyId: string;
@@ -16,22 +18,26 @@ async function createProduct(input: CreateProductInput) {
   const { name, price, categoryId, companyId } = input;
 
   if (!name || !categoryId || !companyId) {
-    throw new Error("필수 항목이 누락되었습니다.");
+    throw new AppError(ErrorCodes.PRODUCT.MISSING_REQUIRED_FIELDS);
   }
 
   if (typeof name !== "string" || name.trim().length === 0) {
-    throw new Error("상품명이 올바르지 않습니다.");
+    throw new AppError(ErrorCodes.PRODUCT.INVALID_NAME);
   }
 
   if (!Number.isFinite(price) || price <= 0) {
-    throw new Error("가격은 0보다 큰 숫자여야 합니다.");
+    throw new AppError(ErrorCodes.PRODUCT.INVALID_PRICE);
+  }
+
+  if (!input.imageUrl || typeof input.imageUrl !== "string") {
+    throw new AppError(ErrorCodes.PRODUCT.INVALID_IMAGE_URL);
   }
 
   if (
     input.stock !== undefined &&
     (!Number.isFinite(input.stock) || input.stock < 0)
   ) {
-    throw new Error("재고 수량이 올바르지 않습니다.");
+    throw new AppError(ErrorCodes.PRODUCT.INVALID_STOCK);
   }
 
   return productRepository.create({
@@ -98,7 +104,27 @@ function getOrderBy(sort: string): Prisma.ProductOrderByWithRelationInput {
   }
 }
 
+//상품 삭제
+async function deleteProduct(productId: string, userId: string) {
+  const product = await productRepository.findById(productId);
+
+  if (!product) {
+    throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
+  }
+
+  if (product.createdById !== userId) {
+    throw new AppError(ErrorCodes.PRODUCT.UNAUTHORIZED_ACCESS);
+  }
+
+  if (product.orderItems.length > 0) {
+    throw new AppError(ErrorCodes.PRODUCT.HAS_ORDER_HISTORY);
+  }
+
+  await productRepository.deleteById(productId);
+}
+
 export default {
   createProduct,
   getProducts,
+  deleteProduct,
 };

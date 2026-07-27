@@ -11,6 +11,7 @@ interface CreateProductData {
   productUrl?: string;
 }
 
+// 상품 등록
 async function create(data: CreateProductData) {
   return prisma.product.create({
     data: {
@@ -48,8 +49,27 @@ async function count(where: Prisma.ProductWhereInput) {
   return prisma.product.count({ where });
 }
 
+// 상품 삭제하기 위해 id 찾기
+async function findById(productId: string) {
+  return prisma.product.findUnique({
+    where: { id: productId },
+    include: {
+      orderItems: { select: { id: true }, take: 1 }, // 주문 이력 존재 여부만 확인
+    },
+  });
+}
+
+// 상품 삭제
+async function deleteById(productId: string) {
+  return prisma.product.delete({
+    where: { id: productId },
+  });
+}
+
 export default {
   create,
   findMany,
   count,
+  findById,
+  deleteById,
 };

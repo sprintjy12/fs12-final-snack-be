@@ -54,4 +54,50 @@ export class OrderService {
       },
     };
   }
+
+  // 구매 상세 내역 조회 서비스 메서드
+  async getOrderDetail(orderId: string, userId: string) {
+    const companyId = await this.orderRepository.findCompanyIdByUserId(userId);
+    if (!companyId) {
+      throw new AppError(ErrorCodes.USER.NOT_FOUND);
+    }
+
+    const order = await this.orderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
+    }
+
+    if (order.companyId !== companyId) {
+      throw new AppError(ErrorCodes.ORDER.UNAUTHORIZED_ACCESS);
+    }
+
+    const items = order.orderItems.map((item) => ({
+      productName: item.productName,
+      imageUrl: item.imageUrl,
+      categoryName: item.categoryName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      subtotal: item.subtotal,              
+    }));
+
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+
+    return {
+      orderId: order.id,
+      type: order.type,
+      status: order.status,
+      productAmount: order.productAmount,     
+      shippingFee: order.shippingFee,         
+      totalPrice: order.totalPrice,         
+      totalQuantity,                         
+      requestMessage: order.requestMessage,   
+      responseMessage: order.responseMessage, 
+      requestedAt: order.createdAt,           
+      approvedAt: order.approvedAt,           
+      requesterName: order.requester?.name,   
+      processorName: order.processor?.name,   
+      items,                                  
+    };
+  }
 }

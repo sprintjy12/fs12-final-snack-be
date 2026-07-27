@@ -24,3 +24,17 @@ export const getOrderHistoryList = asyncHandler(async (req: Request, res: Respon
     ...result,
   });
 });
+
+export const getOrderHistoryDetail = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const orderId = req.params.orderId as string;
+
+  const data = await orderService.getOrderDetail(orderId, userId);
+
+  return res.status(200).json({
+    success: true,
+    message: "구매 내역 상세 조회 성공",
+    data,
+  });
+});
+ 

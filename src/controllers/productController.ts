@@ -1,83 +1,100 @@
-import express from "express";
+import { Request, Response } from "express";
 import productService from "../services/productService.js";
-
-const productController = express.Router();
+import AppError from "../utils/appError.js";
+import { ErrorCodes } from "../constants/errorCodes.js";
 
 // 상품 목록 조회
-productController.get("/", async (req, res) => {
-  try {
-    const { categoryId, page = 1, limit = 8, sort = "latest" } = req.query;
+async function getProducts(req: Request, res: Response) {
+  const { categoryId, page = 1, limit = 8, sort = "latest" } = req.query;
 
-    const pageNum = Number(page) || 1;
-    const safePage = pageNum < 1 ? 1 : pageNum;
+  const result = await productService.getProducts(
+    categoryId as string,
+    page as number,
+    limit as number,
+    sort as string,
+  );
 
-    const limitNum = Number(limit) || 8;
-    const safeLimit = limitNum < 1 ? 8 : Math.min(limitNum, 30);
+  res.status(200).json({
+    message: "상품 목록 조회 성공",
+    data: result.products,
+    pagination: result.pagination,
+  });
+}
 
-    const result = await productService.getProducts(
-      categoryId as string,
-      safePage,
-      safeLimit,
-      sort as string,
-    );
-
-    res.status(200).json({
-      message: "상품 목록 조회 성공",
-      data: result.products,
-      pagination: result.pagination,
-    });
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).json({ message: error.message });
-      return;
-    }
-    res.status(500).json({ message: "서버 오류" });
-  }
-});
 // 상품 등록
-productController.post("/", async (req, res) => {
-  try {
-    const { name, price, categoryId, imageUrl, stock, productUrl } = req.body;
+async function createProduct(req: Request, res: Response) {
+  const { name, price, categoryId, imageUrl, stock, productUrl } = req.body;
 
-    const { companyId } = req.user!;
-
-    const product = await productService.createProduct({
-      name,
-      price: Number(price),
-      categoryId,
-      companyId,
-      imageUrl,
-      stock: stock !== undefined ? Number(stock) : undefined,
-      productUrl,
-    });
-
-    res.status(201).json({
-      message: "상품 등록 성공",
-      data: product,
-    });
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).json({ message: error.message });
-      return;
-    }
-    res.status(500).json({ message: "서버 오류" });
+  // auth 미들웨어는 userId만 넣고, companyId는 DB에서 조회
+  const userId = req.user?.id;
+  if (!userId) {
+    res.status(401).json({ message: "인증이 필요합니다." });
+    return;
   }
-});
 
-productController.get("/me", (req, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { companyId: true },
+  });
+  if (!user) {
+    res.status(404).json({ message: "존재하지 않는 유저입니다." });
+    return;
+  }
+  const { companyId } = user;
+
+  const product = await productService.createProduct({
+    name,
+    price,
+    categoryId,
+    companyId,
+    createdById: userId,
+    imageUrl,
+    stock,
+    productUrl,
+  });
+
+  res.status(201).json({
+    message: "상품 등록 성공",
+    data: product,
+  });
+}
+
+// 내가 등록한 상품 조회
+async function getMyProducts(req: Request, res: Response) {
   return res.status(200).json({ message: "내가 등록한 상품 조회 성공" });
-});
+}
 
-productController.delete("/:productId", (req, res) => {
-  return res.status(200).json({ message: "상품 삭제 성공" });
-});
+// 상품 삭제
+async function deleteProduct(req: Request, res: Response) {
+  const { productId } = req.params;
 
-productController.patch("/:productId", (req, res) => {
+  // auth 미들웨어 붙으면 req.user.id 사용
+  const userId = req.user?.id;
+
+  if (!userId) {
+    throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
+  }
+
+  await productService.deleteProduct(productId, userId);
+
+  res.status(200).json({ message: "상품 삭제 성공" });
+}
+
+// 상품 수정
+async function updateProduct(req: Request, res: Response) {
   return res.status(200).json({ message: "상품 수정 성공" });
-});
+}
 
-productController.get("/:productId", (req, res) => {
+// 상품 상세 조회
+async function getProductById(req: Request, res: Response) {
   return res.status(200).json({ message: "상품 상세 조회 성공" });
-});
+}
 
-export default productController;
+export default {
+  getProducts,
+  createProduct,
+  getMyProducts,
+  deleteProduct,
+  updateProduct,
+  getProductById,
+};

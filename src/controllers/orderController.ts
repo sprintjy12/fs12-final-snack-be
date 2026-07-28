@@ -1,9 +1,6 @@
 import { Request, Response } from "express";
 import asyncHandler from "../utils/asyncHandler";
-import { OrderService } from "../services/orderService";
-import OrderRepository from "../repositories/orderRepository";
-
-const orderService = new OrderService(new OrderRepository());
+import orderService from "../services/orderService";
 
 export const getOrderHistoryList = asyncHandler(
   async (req: Request, res: Response) => {

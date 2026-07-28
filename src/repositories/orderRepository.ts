@@ -16,15 +16,6 @@ type OrderItemWithProduct = Prisma.OrderItemGetPayload<{
 }>;
 
 class OrderRepository {
-  async findCompanyIdByUserId(userId: string) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { companyId: true },
-    });
-
-    return user?.companyId ?? null;
-  }
-
   async findOrderByOrderId(orderId: string) {
     return await prisma.order.findUnique({
       where: { id: orderId },

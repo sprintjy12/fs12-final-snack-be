@@ -7,14 +7,14 @@ const orderService = new OrderService(new OrderRepository());
 
 export const getOrderHistoryList = asyncHandler(
   async (req: Request, res: Response) => {
-    const userId = req.user!.id;
+    const { companyId } = req.user!;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
     const sort =
       (req.query.sort as "latest" | "highPrice" | "lowPrice") || "latest";
 
     const result = await orderService.getOrderHistory({
-      userId,
+      companyId,
       page,
       limit,
       sort,
@@ -30,10 +30,10 @@ export const getOrderHistoryList = asyncHandler(
 
 export const getOrderHistoryDetail = asyncHandler(
   async (req: Request, res: Response) => {
-    const userId = req.user!.id;
+    const { companyId } = req.user!;
     const orderId = req.params.orderId as string;
 
-    const data = await orderService.getOrderDetail(orderId, userId);
+    const data = await orderService.getOrderDetail({ orderId, companyId });
 
     return res.status(200).json({
       success: true,

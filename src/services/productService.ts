@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import AppError from "../utils/appError.js";
 import { ErrorCodes } from "../constants/errorCodes.js";
 
-interface CreateProductInput {
+export interface CreateProductInput {
   companyId: string;
   categoryId: string;
   createdById: string;
@@ -106,6 +106,45 @@ function getOrderBy(sort: string): Prisma.ProductOrderByWithRelationInput {
   }
 }
 
+// 내가 등록한 상품 조회
+async function getMyProducts(userId: string, page = 1, limit = 8, sort = "latest") {
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(Math.max(1, limit), 30);
+
+  const orderBy = getOrderBy(sort);
+
+  const [products, total] = await Promise.all([
+    productRepository.findManyByUserId(
+      userId,
+      (safePage - 1) * safeLimit,
+      safeLimit,
+      orderBy,
+    ),
+    productRepository.countByUserId(userId),
+  ]);
+
+  return {
+    products,
+    pagination: {
+      page: safePage,
+      limit: safeLimit,
+      total,
+      totalPages: Math.ceil(total / safeLimit),
+    },
+  };
+}
+
+// 상품 상세 조회
+async function getProductById(productId: string) {
+  const product = await productRepository.findByIdWithDetail(productId);
+
+  if (!product) {
+    throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
+  }
+
+  return product;
+}
+
 //상품 삭제
 async function deleteProduct(productId: string, userId: string) {
   const product = await productRepository.findById(productId);
@@ -125,8 +164,44 @@ async function deleteProduct(productId: string, userId: string) {
   await productRepository.deleteById(productId);
 }
 
+//상품 수정
+async function updateProduct(
+  productId: string,
+  userId: string,
+  input: Partial<CreateProductInput>,
+) {
+  const product = await productRepository.findById(productId);
+
+  if (!product) {
+    throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
+  }
+
+  if (product.createdById !== userId) {
+    throw new AppError(ErrorCodes.PRODUCT.UNAUTHORIZED_ACCESS);
+  }
+
+  if (
+    input.price !== undefined &&
+    (!Number.isInteger(input.price) || input.price <= 0)
+  ) {
+    throw new AppError(ErrorCodes.PRODUCT.INVALID_PRICE);
+  }
+
+  if (
+    input.stock !== undefined &&
+    (!Number.isInteger(input.stock) || input.stock < 0)
+  ) {
+    throw new AppError(ErrorCodes.PRODUCT.INVALID_STOCK);
+  }
+
+  return productRepository.updateById(productId, input);
+}
+
 export default {
   createProduct,
   getProducts,
+  getMyProducts,
+  getProductById,
   deleteProduct,
+  updateProduct,
 };

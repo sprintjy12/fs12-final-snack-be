@@ -1,20 +1,17 @@
 import { Request, Response } from "express";
 import asyncHandler from "../utils/asyncHandler";
-import { OrderService } from "../services/orderService";
-import OrderRepository from "../repositories/orderRepository";
-
-const orderService = new OrderService(new OrderRepository());
+import orderService from "../services/orderService";
 
 export const getOrderHistoryList = asyncHandler(
   async (req: Request, res: Response) => {
-    const userId = req.user!.id;
+    const { companyId } = req.user!;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
     const sort =
       (req.query.sort as "latest" | "highPrice" | "lowPrice") || "latest";
 
     const result = await orderService.getOrderHistory({
-      userId,
+      companyId,
       page,
       limit,
       sort,
@@ -23,17 +20,17 @@ export const getOrderHistoryList = asyncHandler(
     return res.status(200).json({
       success: true,
       message: "구매 내역 리스트 조회 성공",
-      data: result,
+      ...result,
     });
   },
 );
 
 export const getOrderHistoryDetail = asyncHandler(
   async (req: Request, res: Response) => {
-    const userId = req.user!.id;
+    const { companyId } = req.user!;
     const orderId = req.params.orderId as string;
 
-    const data = await orderService.getOrderDetail(orderId, userId);
+    const data = await orderService.getOrderDetail({ orderId, companyId });
 
     return res.status(200).json({
       success: true,
@@ -42,3 +39,41 @@ export const getOrderHistoryDetail = asyncHandler(
     });
   },
 );
+
+export const approveOrder = asyncHandler(async (req: Request, res: Response) => {
+  const { id: userId, companyId } = req.user!;
+  const orderId = req.params.orderId as string;
+  const { responseMessage } = req.body;
+
+  const data = await orderService.approveOrder({
+    orderId,
+    userId,
+    companyId,
+    responseMessage,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "구매 요청 승인 성공",
+    data,
+  });
+});
+
+export const rejectOrder = asyncHandler(async (req: Request, res: Response) => {
+  const { id: userId, companyId } = req.user!;
+  const orderId = req.params.orderId as string;
+  const { responseMessage } = req.body;
+
+  const data = await orderService.rejectOrder({
+    orderId,
+    userId,
+    companyId,
+    responseMessage,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "구매 요청 반려 성공",
+    data,
+  });
+});

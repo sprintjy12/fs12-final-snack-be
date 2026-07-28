@@ -6,6 +6,7 @@ interface CreateProductData {
   price: number;
   categoryId: string;
   companyId: string;
+  createdById: string;
   imageUrl?: string;
   stock?: number;
   productUrl?: string;
@@ -22,6 +23,7 @@ async function create(data: CreateProductData) {
       productUrl: data.productUrl,
       category: { connect: { id: data.categoryId } },
       company: { connect: { id: data.companyId } },
+      createdById: data.createdById,
     },
     include: {
       category: true,

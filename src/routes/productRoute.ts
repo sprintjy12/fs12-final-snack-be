@@ -5,10 +5,10 @@ import { authMiddleware } from "../middlewares/authMiddleware.js";
 
 const productRoutes = express.Router();
 
-// 상품 전체 조회
+// 상품 전체 조회 -
 productRoutes.get("/", asyncHandler(productController.getProducts));
 
-// 상품 등록
+// 상품 등록 -
 productRoutes.post(
   "/",
   authMiddleware,
@@ -34,9 +34,10 @@ productRoutes.patch(
   asyncHandler(productController.updateProduct),
 );
 
-// 상품 삭제
+// 상품 삭제 -
 productRoutes.delete(
   "/:productId",
+  authMiddleware,
   asyncHandler(productController.deleteProduct),
 );
 

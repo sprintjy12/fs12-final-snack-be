@@ -6,18 +6,19 @@ import { ErrorCodes } from "../constants/errorCodes.js";
 interface CreateProductInput {
   companyId: string;
   categoryId: string;
+  createdById: string;
   name: string;
   price: number;
-  imageUrl?: string;
+  imageUrl: string;
   stock?: number;
   productUrl?: string;
 }
 
 // 상품 등록
 async function createProduct(input: CreateProductInput) {
-  const { name, price, categoryId, companyId } = input;
+  const { name, price, categoryId, companyId, createdById } = input;
 
-  if (!name || !categoryId || !companyId) {
+  if (!name || !categoryId || !companyId || !createdById) {
     throw new AppError(ErrorCodes.PRODUCT.MISSING_REQUIRED_FIELDS);
   }
 
@@ -25,7 +26,7 @@ async function createProduct(input: CreateProductInput) {
     throw new AppError(ErrorCodes.PRODUCT.INVALID_NAME);
   }
 
-  if (!Number.isFinite(price) || price <= 0) {
+  if (!Number.isInteger(price) || price <= 0) {
     throw new AppError(ErrorCodes.PRODUCT.INVALID_PRICE);
   }
 
@@ -35,7 +36,7 @@ async function createProduct(input: CreateProductInput) {
 
   if (
     input.stock !== undefined &&
-    (!Number.isFinite(input.stock) || input.stock < 0)
+    (!Number.isInteger(input.stock) || input.stock < 0)
   ) {
     throw new AppError(ErrorCodes.PRODUCT.INVALID_STOCK);
   }
@@ -48,6 +49,7 @@ async function createProduct(input: CreateProductInput) {
     productUrl: input.productUrl,
     categoryId,
     companyId,
+    createdById,
   });
 }
 

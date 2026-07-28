@@ -84,20 +84,56 @@ async function snapshotOrderItems(
   tx: Prisma.TransactionClient,
   orderItems: OrderItemWithProduct[],
 ) {
-  for (const item of orderItems) {
-    const category = item.product.category;
-    const categoryName = category.parent
-      ? `${category.parent.name}>${category.name}`
-      : category.name;
+  await Promise.all(
+    orderItems.map((item) => {
+      const category = item.product.category;
+      const categoryName = category.parent
+        ? `${category.parent.name}>${category.name}`
+        : category.name;
 
-    await tx.orderItem.update({
-      where: { id: item.id },
+      return tx.orderItem.update({
+        where: { id: item.id },
+        data: {
+          productName: item.product.name,
+          imageUrl: item.product.imageUrl,
+          categoryName,
+        },
+      });
+    }),
+  );
+}
+
+// PENDING 상태일 때만 갱신되도록 원자적으로 처리하고, 이미 처리된 주문이면 null 반환
+async function updatePendingOrderStatus(
+  tx: Prisma.TransactionClient,
+  params: {
+    orderId: string;
+    status: OrderStatus;
+    processorId: string;
+    responseMessage?: string;
+  },
+) {
+  const { orderId, status, processorId, responseMessage } = params;
+
+  try {
+    return await tx.order.update({
+      where: { id: orderId, status: OrderStatus.PENDING },
       data: {
-        productName: item.product.name,
-        imageUrl: item.product.imageUrl,
-        categoryName,
+        status,
+        processorId,
+        approvedAt: new Date(),
+        responseMessage,
       },
     });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return null;
+    }
+
+    throw error;
   }
 }
 
@@ -109,35 +145,40 @@ async function updateOrderToApproved(params: {
 }) {
   const { orderId, processorId, responseMessage } = params;
 
-  return prisma.$transaction(async (tx) => {
-    const orderItems = await tx.orderItem.findMany({
-      where: { orderId },
-      include: orderItemWithProductInclude,
-    });
-
-    const order = await tx.order.update({
-      where: { id: orderId },
-      data: {
+  return prisma.$transaction(
+    async (tx) => {
+      const order = await updatePendingOrderStatus(tx, {
+        orderId,
         status: OrderStatus.APPROVED,
         processorId,
-        approvedAt: new Date(),
         responseMessage,
-      },
-    });
-
-    await snapshotOrderItems(tx, orderItems);
-
-    for (const item of orderItems) {
-      await tx.product.update({
-        where: { id: item.productId },
-        data: {
-          purchaseCount: { increment: item.quantity },
-        },
       });
-    }
 
-    return order;
-  });
+      if (!order) {
+        return null;
+      }
+
+      const orderItems = await tx.orderItem.findMany({
+        where: { orderId },
+        include: orderItemWithProductInclude,
+      });
+
+      await Promise.all([
+        snapshotOrderItems(tx, orderItems),
+        ...orderItems.map((item) =>
+          tx.product.update({
+            where: { id: item.productId },
+            data: {
+              purchaseCount: { increment: item.quantity },
+            },
+          }),
+        ),
+      ]);
+
+      return order;
+    },
+    { timeout: 10000 },
+  );
 }
 
 // 구매 반려
@@ -148,26 +189,30 @@ async function updateOrderToRejected(params: {
 }) {
   const { orderId, processorId, responseMessage } = params;
 
-  return prisma.$transaction(async (tx) => {
-    const orderItems = await tx.orderItem.findMany({
-      where: { orderId },
-      include: orderItemWithProductInclude,
-    });
-
-    const order = await tx.order.update({
-      where: { id: orderId },
-      data: {
+  return prisma.$transaction(
+    async (tx) => {
+      const order = await updatePendingOrderStatus(tx, {
+        orderId,
         status: OrderStatus.REJECTED,
         processorId,
-        approvedAt: new Date(),
         responseMessage,
-      },
-    });
+      });
 
-    await snapshotOrderItems(tx, orderItems);
+      if (!order) {
+        return null;
+      }
 
-    return order;
-  });
+      const orderItems = await tx.orderItem.findMany({
+        where: { orderId },
+        include: orderItemWithProductInclude,
+      });
+
+      await snapshotOrderItems(tx, orderItems);
+
+      return order;
+    },
+    { timeout: 10000 },
+  );
 }
 
 export default {

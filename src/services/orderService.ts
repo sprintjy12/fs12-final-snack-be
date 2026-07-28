@@ -28,7 +28,8 @@ async function getOrderHistory(params: {
       processorName: order.processor?.name,
       createdAt: order.createdAt,
       itemsSummary: {
-        firstProductName: itemCount > 0 ? order.orderItems[0].productName : null,
+        firstProductName:
+          itemCount > 0 ? order.orderItems[0].productName : null,
         itemCount,
       },
     };
@@ -94,7 +95,10 @@ async function getOrderDetail(params: { orderId: string; companyId: string }) {
   };
 }
 
-async function getProcessablePurchaseRequest(orderId: string, companyId: string) {
+async function getProcessablePurchaseRequest(
+  orderId: string,
+  companyId: string,
+) {
   const order = await orderRepository.findOrderByOrderId(orderId);
   if (!order) {
     throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
@@ -125,11 +129,18 @@ async function approveOrder(params: {
   const { orderId, userId, companyId, responseMessage } = params;
   const order = await getProcessablePurchaseRequest(orderId, companyId);
 
-  return orderRepository.updateOrderToApproved({
+  const approvedOrder = await orderRepository.updateOrderToApproved({
     orderId: order.id,
     processorId: userId,
     responseMessage,
   });
+
+  // 검증 이후 다른 요청이 먼저 처리했다면 갱신 대상이 없다
+  if (!approvedOrder) {
+    throw new AppError(ErrorCodes.ORDER.INVALID_ORDER_STATUS);
+  }
+
+  return approvedOrder;
 }
 
 // 구매 반려
@@ -142,11 +153,18 @@ async function rejectOrder(params: {
   const { orderId, userId, companyId, responseMessage } = params;
   const order = await getProcessablePurchaseRequest(orderId, companyId);
 
-  return orderRepository.updateOrderToRejected({
+  const rejectedOrder = await orderRepository.updateOrderToRejected({
     orderId: order.id,
     processorId: userId,
     responseMessage,
   });
+
+  // 검증 이후 다른 요청이 먼저 처리했다면 갱신 대상이 없다
+  if (!rejectedOrder) {
+    throw new AppError(ErrorCodes.ORDER.INVALID_ORDER_STATUS);
+  }
+
+  return rejectedOrder;
 }
 
 export default {

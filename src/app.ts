@@ -3,9 +3,9 @@ import "dotenv/config";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
-import productController from "./controllers/productController";
 import cartController from "./controllers/cartController";
 import orderRouter from "./routes/orderRouter";
+import productRoute from "./routes/productRoute";
 import errorHandler from "./middlewares/errorHandler";
 import AppError from "./utils/appError";
 
@@ -16,7 +16,7 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
-app.use("/products", productController);
+app.use("/products", productRoute);
 app.use("/carts", cartController);
 app.use("/orders", orderRouter);
 

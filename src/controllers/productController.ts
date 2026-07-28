@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import productService from "../services/productService.js";
-import AppError from "../utils/appError.js";
-import { ErrorCodes } from "../constants/errorCodes.js";
+import productService from "../services/productService";
+import AppError from "../utils/appError";
+import { ErrorCodes } from "../constants/errorCodes";
 
 // 상품 목록 조회
 async function getProducts(req: Request, res: Response) {
@@ -57,7 +57,7 @@ async function getMyProducts(req: Request, res: Response) {
 
 // 상품 삭제
 async function deleteProduct(req: Request, res: Response) {
-  const { productId } = req.params;
+  const productId = req.params.productId as string;
 
   // auth 미들웨어 붙으면 req.user.id 사용
   const userId = req.user?.id;

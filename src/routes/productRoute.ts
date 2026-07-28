@@ -1,9 +1,9 @@
 import express from "express";
-import productController from "../controllers/productController.js";
-import asyncHandler from "../utils/asyncHandler.js";
-import { authMiddleware } from "../middlewares/authMiddleware.js";
+import productController from "../controllers/productController";
+import asyncHandler from "../utils/asyncHandler";
+import { authenticate } from "../middlewares/authenticate";
 import { z } from "zod";
-import { validate } from "../middlewares/zodValidate.js";
+import { validate } from "../middlewares/zodValidate";
 
 const productRoutes = express.Router();
 
@@ -53,7 +53,7 @@ productRoutes.get(
 // 상품 등록
 productRoutes.post(
   "/",
-  authMiddleware,
+  authenticate,
   validate(createProductSchema, "body"),
   asyncHandler(productController.createProduct),
 );
@@ -61,7 +61,7 @@ productRoutes.post(
 // 내가 등록한 상품 조회
 productRoutes.get(
   "/me",
-  authMiddleware,
+  authenticate,
   asyncHandler(productController.getMyProducts),
 );
 
@@ -75,7 +75,7 @@ productRoutes.get(
 // 상품 수정
 productRoutes.patch(
   "/:productId",
-  authMiddleware,
+  authenticate,
   validate(productIdParamSchema, "params"),
   validate(updateProductSchema, "body"),
   asyncHandler(productController.updateProduct),
@@ -84,7 +84,7 @@ productRoutes.patch(
 // 상품 삭제
 productRoutes.delete(
   "/:productId",
-  authMiddleware,
+  authenticate,
   validate(productIdParamSchema, "params"),
   asyncHandler(productController.deleteProduct),
 );

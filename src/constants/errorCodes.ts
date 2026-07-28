@@ -5,6 +5,32 @@ export const ErrorCodes = {
       statusCode: 401,
       message: "인증되지 않은 사용자입니다.",
     },
+    ACCESS_TOKEN_REQUIRED: {
+      code: "AUTH_ACCESS_TOKEN_REQUIRED",
+      statusCode: 401,
+      message: "액세스 토큰이 필요합니다.",
+    },
+    INVALID_ACCESS_TOKEN: {
+      code: "AUTH_INVALID_ACCESS_TOKEN",
+      statusCode: 401,
+      message: "유효하지 않은 액세스 토큰입니다.",
+    },
+    ACCESS_TOKEN_EXPIRED: {
+      code: "AUTH_ACCESS_TOKEN_EXPIRED",
+      statusCode: 401,
+      message: "액세스 토큰이 만료되었습니다.",
+    },
+    FORBIDDEN: {
+      code: "AUTH_FORBIDDEN",
+      statusCode: 403,
+      message: "해당 요청을 수행할 권한이 없습니다.",
+    },
+    INACTIVE_USER: {
+      code: "AUTH_INACTIVE_USER",
+      statusCode: 401,
+      message: "이용할 수 없는 계정입니다.",
+    },
+  
     INVALID_CREDENTIALS: {
       code: "AUTH_INVALID_CREDENTIALS",
       statusCode: 400,

@@ -5,7 +5,9 @@ import cors from "cors";
 import express from "express";
 import productController from "./controllers/productController";
 import cartController from "./controllers/cartController";
+import orderRouter from "./routes/orderRouter";
 import errorHandler from "./middlewares/errorHandler";
+import AppError from "./utils/appError";
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
@@ -16,9 +18,14 @@ app.use(cookieParser());
 
 app.use("/products", productController);
 app.use("/carts", cartController);
+app.use("/orders", orderRouter);
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
+});
+
+app.use((_req, _res, next) => {
+  next(new AppError("요청한 리소스를 찾을 수 없습니다.", 404, "NOT_FOUND"));
 });
 
 app.use(errorHandler);

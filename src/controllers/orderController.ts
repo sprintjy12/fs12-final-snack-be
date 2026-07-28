@@ -23,7 +23,7 @@ export const getOrderHistoryList = asyncHandler(
     return res.status(200).json({
       success: true,
       message: "구매 내역 리스트 조회 성공",
-      data: result,
+      ...result,
     });
   },
 );
@@ -42,3 +42,41 @@ export const getOrderHistoryDetail = asyncHandler(
     });
   },
 );
+
+export const approveOrder = asyncHandler(async (req: Request, res: Response) => {
+  const { id: userId, companyId } = req.user!;
+  const orderId = req.params.orderId as string;
+  const { responseMessage } = req.body;
+
+  const data = await orderService.approveOrder({
+    orderId,
+    userId,
+    companyId,
+    responseMessage,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "구매 요청 승인 성공",
+    data,
+  });
+});
+
+export const rejectOrder = asyncHandler(async (req: Request, res: Response) => {
+  const { id: userId, companyId } = req.user!;
+  const orderId = req.params.orderId as string;
+  const { responseMessage } = req.body;
+
+  const data = await orderService.rejectOrder({
+    orderId,
+    userId,
+    companyId,
+    responseMessage,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "구매 요청 반려 성공",
+    data,
+  });
+});

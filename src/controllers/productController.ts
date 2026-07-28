@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
-import productService from "../services/productService.js";
+import productService, {
+  CreateProductInput,
+} from "../services/productService.js";
 import AppError from "../utils/appError.js";
 import { ErrorCodes } from "../constants/errorCodes.js";
 
@@ -61,7 +63,25 @@ async function createProduct(req: Request, res: Response) {
 
 // 내가 등록한 상품 조회
 async function getMyProducts(req: Request, res: Response) {
-  return res.status(200).json({ message: "내가 등록한 상품 조회 성공" });
+  const userId = req.user?.id;
+
+  if (!userId) {
+    throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
+  }
+
+  const { page, limit, sort } = req.query as unknown as {
+    page: number;
+    limit: number;
+    sort: string;
+  };
+
+  const result = await productService.getMyProducts(userId, page, limit, sort);
+
+  res.status(200).json({
+    message: "내가 등록한 상품 조회 성공",
+    data: result.products,
+    pagination: result.pagination,
+  });
 }
 
 // 상품 삭제
@@ -75,19 +95,40 @@ async function deleteProduct(req: Request, res: Response) {
     throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
   }
 
-  await productService.deleteProduct(productId, userId);
+  await productService.deleteProduct(productId as string, userId);
 
   res.status(200).json({ message: "상품 삭제 성공" });
 }
 
 // 상품 수정
 async function updateProduct(req: Request, res: Response) {
-  return res.status(200).json({ message: "상품 수정 성공" });
+  const { productId } = req.params as { productId: string };
+  const input = req.body as Partial<CreateProductInput>;
+
+  const userId = req.user?.id;
+
+  if (!userId) {
+    throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
+  }
+
+  const product = await productService.updateProduct(productId, userId, input);
+
+  res.status(200).json({
+    message: "상품 수정 성공",
+    data: product,
+  });
 }
 
 // 상품 상세 조회
 async function getProductById(req: Request, res: Response) {
-  return res.status(200).json({ message: "상품 상세 조회 성공" });
+  const { productId } = req.params as { productId: string };
+
+  const product = await productService.getProductById(productId);
+
+  res.status(200).json({
+    message: "상품 상세 조회 성공",
+    data: product,
+  });
 }
 
 export default {

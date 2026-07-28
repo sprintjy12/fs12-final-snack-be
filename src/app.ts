@@ -3,8 +3,7 @@ import "dotenv/config";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
-import productController from "./controllers/productController";
-import cartController from "./controllers/cartController";
+import productRouter from "./routes/productRouter";
 import orderRouter from "./routes/orderRouter";
 import errorHandler from "./middlewares/errorHandler";
 import AppError from "./utils/appError";
@@ -16,8 +15,7 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
-app.use("/products", productController);
-app.use("/carts", cartController);
+app.use("/products", productRouter);
 app.use("/orders", orderRouter);
 
 app.get("/health", (_req, res) => {

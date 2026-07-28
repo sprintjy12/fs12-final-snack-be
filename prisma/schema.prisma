@@ -75,6 +75,7 @@ model User {
   processedOrders  Order[]         @relation("OrderProcessor")
   cartItems            CartItem[]
   refreshTokens    RefreshToken[]
+  createdProducts  Product[]      @relation("ProductCreator")
 
   @@map("users")
 }
@@ -114,6 +115,7 @@ model Product {
   id          String   @id @default(uuid()) @db.Uuid
   companyId   String   @db.Uuid
   categoryId  String   @db.Uuid
+  createdById String   @db.Uuid
   name        String   @db.VarChar
   price       Int
   purchaseCount Int    @default(0)
@@ -126,6 +128,7 @@ model Product {
   // 관계 설정
   company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   category    Category    @relation(fields: [categoryId], references: [id])
+  createdBy   User        @relation("ProductCreator", fields: [createdById], references: [id])
   orderItems  OrderItem[]
   cartItems CartItem[]
 

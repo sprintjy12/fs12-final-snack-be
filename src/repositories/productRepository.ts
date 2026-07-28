@@ -21,9 +21,21 @@ async function create(data: CreateProductData) {
       imageUrl: data.imageUrl,
       stock: data.stock,
       productUrl: data.productUrl,
-      category: { connect: { id: data.categoryId } },
-      company: { connect: { id: data.companyId } },
-      createdById: data.createdById,
+      company: {
+        connect: {
+          id: data.companyId,
+        },
+      },
+      category: {
+        connect: {
+          id: data.categoryId,
+        },
+      },
+      createdBy: {
+        connect: {
+          id: data.createdById,
+        },
+      },
     },
     include: {
       category: true,

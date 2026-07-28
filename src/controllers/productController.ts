@@ -7,16 +7,10 @@ import { ErrorCodes } from "../constants/errorCodes.js";
 async function getProducts(req: Request, res: Response) {
   const { categoryId, page = 1, limit = 8, sort = "latest" } = req.query;
 
-  const pageNum = Number(page) || 1;
-  const safePage = pageNum < 1 ? 1 : pageNum;
-
-  const limitNum = Number(limit) || 8;
-  const safeLimit = limitNum < 1 ? 8 : Math.min(limitNum, 30);
-
   const result = await productService.getProducts(
     categoryId as string,
-    safePage,
-    safeLimit,
+    page as number,
+    limit as number,
     sort as string,
   );
 
@@ -41,12 +35,12 @@ async function createProduct(req: Request, res: Response) {
 
   const product = await productService.createProduct({
     name,
-    price: Number(price),
+    price,
     categoryId,
     companyId,
     createdById: userId,
     imageUrl,
-    stock: stock !== undefined ? Number(stock) : undefined,
+    stock,
     productUrl,
   });
 

@@ -15,48 +15,41 @@ type OrderItemWithProduct = Prisma.OrderItemGetPayload<{
   include: typeof orderItemWithProductInclude;
 }>;
 
-async function findOrderByOrderId(orderId: string) {
+async function findOrderById(orderId: string) {
   return prisma.order.findUnique({
     where: { id: orderId },
   });
 }
 
-// 구매 내역 조회
-async function findOrderHistoryList(params: {
-  companyId: string;
-  page: number;
-  limit: number;
-  sort?: string;
+// 구매 내역 목록 조회
+async function findOrderHistory(params: {
+  where: Prisma.OrderWhereInput;
+  skip: number;
+  take: number;
+  orderBy: Prisma.OrderOrderByWithRelationInput;
 }) {
-  const { companyId, page, limit, sort = "latest" } = params;
-  const skip = (page - 1) * limit;
+  const { where, skip, take, orderBy } = params;
 
-  let orderBy: Prisma.OrderOrderByWithRelationInput = { createdAt: "desc" };
-  if (sort === "highPrice") orderBy = { totalPrice: "desc" };
-  if (sort === "lowPrice") orderBy = { totalPrice: "asc" };
+  return prisma.order.findMany({
+    where,
+    include: {
+      requester: { select: { name: true } },
+      processor: { select: { name: true } },
+      orderItems: { select: { productName: true } },
+    },
+    orderBy,
+    skip,
+    take,
+  });
+}
 
-  const whereCondition = { companyId, status: OrderStatus.APPROVED };
-
-  const [totalCount, orders] = await Promise.all([
-    prisma.order.count({ where: whereCondition }),
-    prisma.order.findMany({
-      where: whereCondition,
-      include: {
-        requester: { select: { name: true } },
-        processor: { select: { name: true } },
-        orderItems: { select: { productName: true } },
-      },
-      orderBy,
-      skip,
-      take: limit,
-    }),
-  ]);
-
-  return { totalCount, orders };
+// 구매 내역 개수 조회
+async function countOrderHistory(where: Prisma.OrderWhereInput) {
+  return prisma.order.count({ where });
 }
 
 // 구매 내역 상세 조회
-async function findOrderById(orderId: string) {
+async function findOrderDetailById(orderId: string) {
   return prisma.order.findUnique({
     where: { id: orderId },
     include: {
@@ -216,9 +209,10 @@ async function updateOrderToRejected(params: {
 }
 
 export default {
-  findOrderByOrderId,
-  findOrderHistoryList,
   findOrderById,
+  findOrderHistory,
+  countOrderHistory,
+  findOrderDetailById,
   updateOrderToApproved,
   updateOrderToRejected,
 };

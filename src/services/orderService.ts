@@ -1,7 +1,20 @@
 import orderRepository from "../repositories/orderRepository";
 import AppError from "../utils/appError";
 import { ErrorCodes } from "../constants/errorCodes";
-import { OrderStatus, OrderType } from "@prisma/client";
+import { OrderStatus, OrderType, Prisma } from "@prisma/client";
+
+// 정렬
+function getOrderBy(sort?: string): Prisma.OrderOrderByWithRelationInput {
+  switch (sort) {
+    case "highPrice":
+      return { totalPrice: "desc" };
+    case "lowPrice":
+      return { totalPrice: "asc" };
+    case "latest":
+    default:
+      return { createdAt: "desc" };
+  }
+}
 
 async function getOrderHistory(params: {
   companyId: string;
@@ -11,12 +24,18 @@ async function getOrderHistory(params: {
 }) {
   const { companyId, page, limit, sort } = params;
 
-  const { totalCount, orders } = await orderRepository.findOrderHistoryList({
-    companyId,
-    page,
-    limit,
-    sort,
-  });
+  // 구매 내역은 승인된 주문만 노출
+  const where = { companyId, status: OrderStatus.APPROVED };
+
+  const [totalCount, orders] = await Promise.all([
+    orderRepository.countOrderHistory(where),
+    orderRepository.findOrderHistory({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: getOrderBy(sort),
+    }),
+  ]);
 
   const data = orders.map((order) => {
     const itemCount = order.orderItems.length;
@@ -52,7 +71,7 @@ async function getOrderHistory(params: {
 // 구매 상세 내역 조회
 async function getOrderDetail(params: { orderId: string; companyId: string }) {
   const { orderId, companyId } = params;
-  const order = await orderRepository.findOrderById(orderId);
+  const order = await orderRepository.findOrderDetailById(orderId);
 
   if (!order) {
     throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
@@ -99,7 +118,7 @@ async function getProcessablePurchaseRequest(
   orderId: string,
   companyId: string,
 ) {
-  const order = await orderRepository.findOrderByOrderId(orderId);
+  const order = await orderRepository.findOrderById(orderId);
   if (!order) {
     throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
   }

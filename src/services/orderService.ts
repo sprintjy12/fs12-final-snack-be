@@ -16,6 +16,41 @@ function getOrderBy(sort?: string): Prisma.OrderOrderByWithRelationInput {
   }
 }
 
+type OrderDetail = NonNullable<
+  Awaited<ReturnType<typeof orderRepository.findOrderDetailById>>
+>;
+
+// 상세 응답 형태 (구매 내역 / 구매 요청 공용)
+function toOrderDetailResponse(order: OrderDetail) {
+  const items = order.orderItems.map((item) => ({
+    productName: item.productName,
+    imageUrl: item.imageUrl,
+    categoryName: item.categoryName,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    subtotal: item.subtotal,
+  }));
+
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  return {
+    orderId: order.id,
+    type: order.type,
+    status: order.status,
+    productAmount: order.productAmount,
+    shippingFee: order.shippingFee,
+    totalPrice: order.totalPrice,
+    totalQuantity,
+    requestMessage: order.requestMessage,
+    responseMessage: order.responseMessage,
+    requestedAt: order.createdAt,
+    approvedAt: order.approvedAt,
+    requesterName: order.requester?.name ?? null,
+    processorName: order.processor?.name ?? null,
+    items,
+  };
+}
+
 async function getOrderHistory(params: {
   companyId: string;
   page: number;
@@ -28,8 +63,8 @@ async function getOrderHistory(params: {
   const where = { companyId, status: OrderStatus.APPROVED };
 
   const [totalCount, orders] = await Promise.all([
-    orderRepository.countOrderHistory(where),
-    orderRepository.findOrderHistory({
+    orderRepository.countOrders(where),
+    orderRepository.findOrders({
       where,
       skip: (page - 1) * limit,
       take: limit,
@@ -43,8 +78,8 @@ async function getOrderHistory(params: {
       id: order.id,
       approvedAt: order.approvedAt,
       totalPrice: order.totalPrice,
-      requesterName: order.requester?.name,
-      processorName: order.processor?.name,
+      requesterName: order.requester?.name ?? null,
+      processorName: order.processor?.name ?? null,
       createdAt: order.createdAt,
       itemsSummary: {
         firstProductName:
@@ -85,33 +120,84 @@ async function getOrderDetail(params: { orderId: string; companyId: string }) {
     throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
   }
 
-  const items = order.orderItems.map((item) => ({
-    productName: item.productName,
-    imageUrl: item.imageUrl,
-    categoryName: item.categoryName,
-    quantity: item.quantity,
-    unitPrice: item.unitPrice,
-    subtotal: item.subtotal,
-  }));
+  return toOrderDetailResponse(order);
+}
 
-  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+// 구매 요청 목록 조회 (대기 중인 요청만)
+async function getPurchaseRequestList(params: {
+  companyId: string;
+  page: number;
+  limit: number;
+  sort?: string;
+}) {
+  const { companyId, page, limit, sort } = params;
+
+  const where = {
+    companyId,
+    type: OrderType.REQUEST,
+    status: OrderStatus.PENDING,
+  };
+
+  const [totalCount, orders] = await Promise.all([
+    orderRepository.countOrders(where),
+    orderRepository.findOrders({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: getOrderBy(sort),
+    }),
+  ]);
+
+  const data = orders.map((order) => {
+    const itemCount = order.orderItems.length;
+    return {
+      id: order.id,
+      requestedAt: order.createdAt,
+      totalPrice: order.totalPrice,
+      requesterName: order.requester?.name ?? null,
+      itemsSummary: {
+        firstProductName:
+          itemCount > 0 ? order.orderItems[0].productName : null,
+        itemCount,
+      },
+    };
+  });
+
+  const totalPages = Math.ceil(totalCount / limit);
 
   return {
-    orderId: order.id,
-    type: order.type,
-    status: order.status,
-    productAmount: order.productAmount,
-    shippingFee: order.shippingFee,
-    totalPrice: order.totalPrice,
-    totalQuantity,
-    requestMessage: order.requestMessage,
-    responseMessage: order.responseMessage,
-    requestedAt: order.createdAt,
-    approvedAt: order.approvedAt,
-    requesterName: order.requester?.name,
-    processorName: order.processor?.name,
-    items,
+    data,
+    pagination: {
+      totalCount,
+      totalPages,
+      currentPage: page,
+      limit,
+      hasNextPage: page < totalPages,
+    },
   };
+}
+
+// 구매 요청 상세 조회
+async function getPurchaseRequestDetail(params: {
+  orderId: string;
+  companyId: string;
+}) {
+  const { orderId, companyId } = params;
+  const order = await orderRepository.findOrderDetailById(orderId);
+
+  if (!order) {
+    throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
+  }
+
+  if (order.companyId !== companyId) {
+    throw new AppError(ErrorCodes.ORDER.UNAUTHORIZED_ACCESS);
+  }
+
+  if (order.type !== OrderType.REQUEST) {
+    throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
+  }
+
+  return toOrderDetailResponse(order);
 }
 
 async function getProcessablePurchaseRequest(
@@ -189,6 +275,8 @@ async function rejectOrder(params: {
 export default {
   getOrderHistory,
   getOrderDetail,
+  getPurchaseRequestList,
+  getPurchaseRequestDetail,
   approveOrder,
   rejectOrder,
 };

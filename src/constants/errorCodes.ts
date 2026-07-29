@@ -154,7 +154,7 @@ export const ErrorCodes = {
     },
     INVALID_ORDER_STATUS: {
       code: "ORDER_INVALID_ORDER_STATUS",
-      statusCode: 400,
+      statusCode: 409,
       message: "변경할 수 없는 주문 상태입니다.",
     },
     UNAUTHORIZED_ACCESS: {

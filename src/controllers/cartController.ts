@@ -1,25 +1,26 @@
-import express from "express";
+import { Request, Response } from "express";
+import cartService from "../services/cartService";
 
-const cartController = express.Router();
+// 장바구니 조회
+async function getCart(req: Request, res: Response) {
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new Error("인증이 필요합니다.");
+  }
 
-cartController.get("/", (req, res) => {
-  return res.status(200).json({ message: "장바구니 조회 성공" });
-});
+  const result = await cartService.getCart(userId);
 
-cartController.post("/", (req, res) => {
-  return res.status(200).json({ message: "장바구니 추가 성공" });
-});
+  res.status(200).json({
+    message: "장바구니 조회 성공",
+    data: result,
+  });
+}
 
-cartController.patch("/:cartId", (req, res) => {
-  return res.status(200).json({ message: "장바구니 수량 수정 성공" });
-});
+// 장바구니 추가
+// 장바구니 수량 수정
+// 장바구니 개별 삭제
+// 장바구니 전체 삭제
 
-cartController.delete("/:cartId", (req, res) => {
-  return res.status(200).json({ message: "장바구니 삭제 성공" });
-});
-
-cartController.delete("/", (req, res) => {
-  return res.status(200).json({ message: "장바구니 전체 삭제 성공" });
-});
-
-export default cartController;
+export default {
+  getCart,
+};

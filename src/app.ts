@@ -7,6 +7,7 @@ import productRouter from "./routes/productRouter";
 import orderRouter from "./routes/orderRouter";
 import errorHandler from "./middlewares/errorHandler";
 import AppError from "./utils/appError";
+import cartRouter from "./routes/cartRouter";
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
@@ -17,6 +18,8 @@ app.use(cookieParser());
 
 app.use("/products", productRouter);
 app.use("/orders", orderRouter);
+app.use("/cart", cartRouter);
+
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });

@@ -107,7 +107,12 @@ function getOrderBy(sort: string): Prisma.ProductOrderByWithRelationInput {
 }
 
 // 내가 등록한 상품 조회
-async function getMyProducts(userId: string, page = 1, limit = 8, sort = "latest") {
+async function getMyProducts(
+  userId: string,
+  page = 1,
+  limit = 8,
+  sort = "latest",
+) {
   const safePage = Math.max(1, page);
   const safeLimit = Math.min(Math.max(1, limit), 30);
 
@@ -194,7 +199,19 @@ async function updateProduct(
     throw new AppError(ErrorCodes.PRODUCT.INVALID_STOCK);
   }
 
-  return productRepository.updateById(productId, input);
+  // categoryId를 Prisma.ProductUpdateInput 형태로 변환합니다.
+  // ProductUpdateInput은 categoryId 필드를 직접 허용하지 않으므로
+  // category: { connect: { id } } 관계 연결 형식으로 매핑해야 합니다.
+  const { categoryId, ...rest } = input;
+
+  const updateData: Prisma.ProductUpdateInput = {
+    ...rest,
+    ...(categoryId !== undefined && {
+      category: { connect: { id: categoryId } },
+    }),
+  };
+
+  return productRepository.updateById(productId, updateData);
 }
 
 export default {

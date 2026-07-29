@@ -1,10 +1,11 @@
 import express from "express";
 import cartController from "../controllers/cartController";
+import { authenticate } from "../middlewares/authenticate";
 
 const cartRouter = express.Router();
 
 // 장바구니 조회
-cartRouter.get("/", cartController.getCart);
+cartRouter.get("/", authenticate, cartController.getCart);
 
 // 장바구니 추가
 cartRouter.post("/", (req, res) => {

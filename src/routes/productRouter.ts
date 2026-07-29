@@ -8,12 +8,14 @@ import {
   updateProductSchema,
   productIdParamSchema,
 } from "../schemas/productSchema.js";
+import { authenticate } from "../middlewares/authenticate";
 
 const productRouter = express.Router();
 
 // 상품 전체 조회 -
 productRouter.get(
   "/",
+  authenticate,
   validate(getProductsQuerySchema, "query"),
   asyncHandler(productController.getProducts),
 );
@@ -21,6 +23,7 @@ productRouter.get(
 // 상품 등록 -
 productRouter.post(
   "/",
+  authenticate,
   validate(createProductSchema, "body"),
   asyncHandler(productController.createProduct),
 );
@@ -28,6 +31,7 @@ productRouter.post(
 // 내가 등록한 상품 조회 -
 productRouter.get(
   "/me",
+  authenticate,
   validate(getProductsQuerySchema, "query"),
   asyncHandler(productController.getMyProducts),
 );
@@ -35,6 +39,7 @@ productRouter.get(
 // 상품 상세 조회 -
 productRouter.get(
   "/:productId",
+  authenticate,
   validate(productIdParamSchema, "params"),
   asyncHandler(productController.getProductById),
 );
@@ -42,6 +47,7 @@ productRouter.get(
 // 상품 수정 -
 productRouter.patch(
   "/:productId",
+  authenticate,
   validate(productIdParamSchema, "params"),
   validate(updateProductSchema, "body"),
   asyncHandler(productController.updateProduct),
@@ -50,6 +56,7 @@ productRouter.patch(
 // 상품 삭제 -
 productRouter.delete(
   "/:productId",
+  authenticate,
   validate(productIdParamSchema, "params"),
   asyncHandler(productController.deleteProduct),
 );

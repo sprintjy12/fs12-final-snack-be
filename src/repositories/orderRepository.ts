@@ -73,6 +73,26 @@ async function findOrderDetailById(orderId: string) {
   });
 }
 
+// 승인된 주문의 지출 합계 (기간은 서비스에서 결정, 직구매 포함)
+async function sumApprovedOrderTotal(params: {
+  companyId: string;
+  from: Date;
+  to: Date;
+}) {
+  const { companyId, from, to } = params;
+
+  const result = await prisma.order.aggregate({
+    where: {
+      companyId,
+      status: OrderStatus.APPROVED,
+      approvedAt: { gte: from, lt: to },
+    },
+    _sum: { totalPrice: true },
+  });
+
+  return result._sum.totalPrice ?? 0;
+}
+
 async function snapshotOrderItems(
   tx: Prisma.TransactionClient,
   orderItems: OrderItemWithProduct[],
@@ -213,6 +233,7 @@ export default {
   findOrders,
   countOrders,
   findOrderDetailById,
+  sumApprovedOrderTotal,
   updateOrderToApproved,
   updateOrderToRejected,
 };

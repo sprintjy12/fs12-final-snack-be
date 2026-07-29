@@ -29,8 +29,7 @@ export const ErrorCodes = {
       code: "AUTH_INACTIVE_USER",
       statusCode: 401,
       message: "이용할 수 없는 계정입니다.",
-    },
-  
+    },  
     INVALID_CREDENTIALS: {
       code: "AUTH_INVALID_CREDENTIALS",
       statusCode: 400,

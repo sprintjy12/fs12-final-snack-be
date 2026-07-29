@@ -34,10 +34,7 @@ async function createProduct(req: Request, res: Response) {
     return;
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { companyId: true },
-  });
+  const user = await authRepository.findUserForAuthentication(userId);
   if (!user) {
     res.status(404).json({ message: "존재하지 않는 유저입니다." });
     return;

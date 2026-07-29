@@ -1,3 +1,4 @@
+import prisma from "../config/db";
 import { Request, Response } from "express";
 import productService, {
   CreateProductInput,
@@ -34,7 +35,10 @@ async function createProduct(req: Request, res: Response) {
     return;
   }
 
-  const user = await authRepository.findUserForAuthentication(userId);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { companyId: true },
+  });
   if (!user) {
     res.status(404).json({ message: "존재하지 않는 유저입니다." });
     return;
@@ -83,7 +87,7 @@ async function getMyProducts(req: Request, res: Response) {
 
 // 상품 삭제
 async function deleteProduct(req: Request, res: Response) {
-  const productId = req.params.productId as string;
+  const { productId } = req.params;
 
   // auth 미들웨어 붙으면 req.user.id 사용
   const userId = req.user?.id;

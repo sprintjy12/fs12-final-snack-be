@@ -40,19 +40,19 @@ enum OrderStatus {
 // ==================== 모델 정의 ====================
 
 model Company {
-  id                   String        @id @default(uuid()) @db.Uuid
-  name                 String        @db.VarChar
-  businessNumber       String        @unique @db.VarChar
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-  defaultMonthlyBudget Int           @default(0)
+  id                   String   @id @default(uuid()) @db.Uuid
+  name                 String   @db.VarChar
+  businessNumber       String   @unique @db.VarChar
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  defaultMonthlyBudget Int      @default(0)
 
   // 관계 설정
-  users                User[]
-  invitations          Invitation[]
-  products             Product[]
-  orders               Order[]
-  budgets              Budget[]
+  users       User[]
+  invitations Invitation[]
+  products    Product[]
+  orders      Order[]
+  budgets     Budget[]
 
   @@map("companies")
 }
@@ -70,12 +70,12 @@ model User {
   withdrawnAt  DateTime?
 
   // 관계 설정
-  company          Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  requestedOrders  Order[]         @relation("OrderRequester")
-  processedOrders  Order[]         @relation("OrderProcessor")
-  cartItems            CartItem[]
-  refreshTokens    RefreshToken[]
-  createdProducts  Product[]      @relation("ProductCreator")
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requestedOrders Order[]        @relation("OrderRequester")
+  processedOrders Order[]        @relation("OrderProcessor")
+  cartItems       CartItem[]
+  refreshTokens   RefreshToken[]
+  createdProducts Product[]      @relation("ProductCreator")
 
   @@map("users")
 }
@@ -86,22 +86,22 @@ model Invitation {
   name      String         @db.VarChar
   email     String         @db.VarChar
   role      InvitationRole
-  tokenHash String @unique @db.VarChar(256)
+  tokenHash String         @unique @db.VarChar(256)
   expiresAt DateTime
   isUsed    Boolean        @default(false)
   createdAt DateTime       @default(now())
 
   // 관계 설정
-  company   Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@map("invitations")
 }
 
 model Category {
-  id       String     @id @default(uuid()) @db.Uuid
-  parentId String?    @db.Uuid
-  name     String     @db.VarChar
-  depth    Int        @default(1)
+  id       String  @id @default(uuid()) @db.Uuid
+  parentId String? @db.Uuid
+  name     String  @db.VarChar
+  depth    Int     @default(1)
 
   // 셀프 관계 (대분류-하위 카테고리) 및 상품 관계
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
@@ -112,25 +112,25 @@ model Category {
 }
 
 model Product {
-  id          String   @id @default(uuid()) @db.Uuid
-  companyId   String   @db.Uuid
-  categoryId  String   @db.Uuid
-  createdById String   @db.Uuid
-  name        String   @db.VarChar
-  price       Int
-  purchaseCount Int    @default(0)
-  imageUrl    String?  @db.VarChar
-  stock       Int      @default(0)
-  productUrl  String?  @db.VarChar
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(uuid()) @db.Uuid
+  companyId     String   @db.Uuid
+  categoryId    String   @db.Uuid
+  createdById   String   @db.Uuid
+  name          String   @db.VarChar
+  price         Int
+  purchaseCount Int      @default(0)
+  imageUrl      String?  @db.VarChar
+  stock         Int      @default(0)
+  productUrl    String?  @db.VarChar
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // 관계 설정
-  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  category    Category    @relation(fields: [categoryId], references: [id])
-  createdBy   User        @relation("ProductCreator", fields: [createdById], references: [id])
-  orderItems  OrderItem[]
-  cartItems CartItem[]
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  category   Category    @relation(fields: [categoryId], references: [id])
+  createdBy  User        @relation("ProductCreator", fields: [createdById], references: [id])
+  orderItems OrderItem[]
+  cartItems  CartItem[]
 
   @@map("products")
 }
@@ -152,10 +152,10 @@ model Order {
   updatedAt       DateTime    @updatedAt
 
   // 관계 설정
-  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  requester   User        @relation("OrderRequester", fields: [requesterId], references: [id])
-  processor   User?       @relation("OrderProcessor", fields: [processorId], references: [id])
-  orderItems  OrderItem[]
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requester  User        @relation("OrderRequester", fields: [requesterId], references: [id])
+  processor  User?       @relation("OrderProcessor", fields: [processorId], references: [id])
+  orderItems OrderItem[]
 
   @@map("orders")
 }
@@ -173,8 +173,8 @@ model OrderItem {
   createdAt    DateTime @default(now())
 
   // 관계 설정
-  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product      Product  @relation(fields: [productId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
 
   @@map("order_items")
 }
@@ -188,8 +188,8 @@ model CartItem {
   updatedAt DateTime @updatedAt
 
   // 관계 설정
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   // 유저당 동일 상품은 장바구니에 1개만 담기도록 복합 유니크 유지
   @@unique([userId, productId])
@@ -205,7 +205,7 @@ model Budget {
   updatedAt DateTime @updatedAt
 
   // 관계 설정
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   // 한 회사당 특정 연월의 예산은 1개만 존재하도록 설정
   @@unique([companyId, yearMonth])
@@ -219,8 +219,8 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
- // 관계 설정 (한 줄로 깔끔하게 정리)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 관계 설정 (한 줄로 깔끔하게 정리)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("refresh_tokens")

@@ -1,3 +1,4 @@
+import prisma from "../config/db";
 import { Request, Response } from "express";
 import productService, {
   CreateProductInput,

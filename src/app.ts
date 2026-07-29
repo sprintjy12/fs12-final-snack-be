@@ -17,7 +17,6 @@ app.use(cookieParser());
 
 app.use("/products", productRouter);
 app.use("/orders", orderRouter);
-
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });

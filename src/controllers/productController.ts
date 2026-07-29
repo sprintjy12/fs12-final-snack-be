@@ -5,6 +5,7 @@ import productService, {
 } from "../services/productService.js";
 import AppError from "../utils/appError.js";
 import { ErrorCodes } from "../constants/errorCodes.js";
+import prisma from "../config/db";
 
 // 상품 목록 조회
 async function getProducts(req: Request, res: Response) {

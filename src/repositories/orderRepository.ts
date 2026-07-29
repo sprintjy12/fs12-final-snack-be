@@ -21,8 +21,8 @@ async function findOrderById(orderId: string) {
   });
 }
 
-// 구매 내역 목록 조회
-async function findOrderHistory(params: {
+// 주문 목록 조회 (구매 내역 / 구매 요청 공용, 조건은 서비스에서 결정)
+async function findOrders(params: {
   where: Prisma.OrderWhereInput;
   skip: number;
   take: number;
@@ -43,12 +43,12 @@ async function findOrderHistory(params: {
   });
 }
 
-// 구매 내역 개수 조회
-async function countOrderHistory(where: Prisma.OrderWhereInput) {
+// 주문 개수 조회
+async function countOrders(where: Prisma.OrderWhereInput) {
   return prisma.order.count({ where });
 }
 
-// 구매 내역 상세 조회
+// 주문 상세 조회 (요청자/처리자, 주문 상품 포함)
 async function findOrderDetailById(orderId: string) {
   return prisma.order.findUnique({
     where: { id: orderId },
@@ -210,8 +210,8 @@ async function updateOrderToRejected(params: {
 
 export default {
   findOrderById,
-  findOrderHistory,
-  countOrderHistory,
+  findOrders,
+  countOrders,
   findOrderDetailById,
   updateOrderToApproved,
   updateOrderToRejected,

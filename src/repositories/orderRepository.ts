@@ -1,5 +1,6 @@
 import prisma from "../config/db";
 import { OrderStatus, Prisma } from "@prisma/client";
+import budgetRepository from "./budgetRepository";
 
 const orderItemWithProductInclude = {
   product: {
@@ -73,15 +74,13 @@ async function findOrderDetailById(orderId: string) {
   });
 }
 
-// 승인된 주문의 지출 합계 (기간은 서비스에서 결정, 직구매 포함)
-async function sumApprovedOrderTotal(params: {
-  companyId: string;
-  from: Date;
-  to: Date;
-}) {
+async function sumApprovedTotal(
+  client: Prisma.TransactionClient,
+  params: { companyId: string; from: Date; to: Date },
+) {
   const { companyId, from, to } = params;
 
-  const result = await prisma.order.aggregate({
+  const result = await client.order.aggregate({
     where: {
       companyId,
       status: OrderStatus.APPROVED,
@@ -91,6 +90,30 @@ async function sumApprovedOrderTotal(params: {
   });
 
   return result._sum.totalPrice ?? 0;
+}
+
+// 승인된 주문의 지출 합계 (기간은 서비스에서 결정, 직구매 포함)
+async function sumApprovedOrderTotal(params: {
+  companyId: string;
+  from: Date;
+  to: Date;
+}) {
+  return sumApprovedTotal(prisma, params);
+}
+
+// 같은 회사의 승인을 직렬화해 예산 검증이 경쟁 조건에 뚫리지 않게 한다
+async function lockCompanyForApproval(
+  tx: Prisma.TransactionClient,
+  companyId: string,
+) {
+  const rows = await tx.$queryRaw<{ defaultMonthlyBudget: number }[]>`
+    SELECT "defaultMonthlyBudget"
+    FROM companies
+    WHERE id = ${companyId}::uuid
+    FOR UPDATE
+  `;
+
+  return rows[0]?.defaultMonthlyBudget ?? 0;
 }
 
 async function snapshotOrderItems(
@@ -150,16 +173,52 @@ async function updatePendingOrderStatus(
   }
 }
 
-// 구매 승인
+// 구매 승인 (월 예산 검증 포함)
 async function updateOrderToApproved(params: {
   orderId: string;
+  companyId: string;
   processorId: string;
   responseMessage?: string;
+  monthRange: { yearMonth: string; from: Date; to: Date };
 }) {
-  const { orderId, processorId, responseMessage } = params;
+  const { orderId, companyId, processorId, responseMessage, monthRange } =
+    params;
 
   return prisma.$transaction(
     async (tx) => {
+      const defaultMonthlyBudget = await lockCompanyForApproval(tx, companyId);
+
+      const pendingOrder = await tx.order.findUnique({
+        where: { id: orderId },
+        select: { totalPrice: true, status: true },
+      });
+
+      if (!pendingOrder || pendingOrder.status !== OrderStatus.PENDING) {
+        return { status: "ALREADY_PROCESSED" as const };
+      }
+
+      // 해당 월 예산이 없으면 회사 기본 월 예산을 기준으로 삼는다
+      const monthlyBudget =
+        (await budgetRepository.findBudgetAmountInTx(
+          tx,
+          companyId,
+          monthRange.yearMonth,
+        )) ?? defaultMonthlyBudget;
+
+      const spent = await sumApprovedTotal(tx, {
+        companyId,
+        from: monthRange.from,
+        to: monthRange.to,
+      });
+
+      if (spent + pendingOrder.totalPrice > monthlyBudget) {
+        return {
+          status: "BUDGET_EXCEEDED" as const,
+          budget: monthlyBudget,
+          spent,
+        };
+      }
+
       const order = await updatePendingOrderStatus(tx, {
         orderId,
         status: OrderStatus.APPROVED,
@@ -168,7 +227,7 @@ async function updateOrderToApproved(params: {
       });
 
       if (!order) {
-        return null;
+        return { status: "ALREADY_PROCESSED" as const };
       }
 
       const orderItems = await tx.orderItem.findMany({
@@ -188,7 +247,7 @@ async function updateOrderToApproved(params: {
         ),
       ]);
 
-      return order;
+      return { status: "APPROVED" as const, order };
     },
     { timeout: 10000 },
   );

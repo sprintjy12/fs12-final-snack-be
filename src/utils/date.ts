@@ -24,3 +24,12 @@ export function kstMonthStart({ year, month }: YearMonth): Date {
 export function formatYearMonth({ year, month }: YearMonth): string {
   return `${year}-${String(month + 1).padStart(2, "0")}`;
 }
+
+// 집계에 필요한 한 달 구간(끝은 미포함)과 예산 조회 키를 함께 반환
+export function getKstMonthRange(yearMonth: YearMonth) {
+  return {
+    yearMonth: formatYearMonth(yearMonth),
+    from: kstMonthStart(yearMonth),
+    to: kstMonthStart(shiftMonth(yearMonth, 1)),
+  };
+}

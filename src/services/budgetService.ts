@@ -1,7 +1,7 @@
 import budgetRepository from "../repositories/budgetRepository";
 import orderRepository from "../repositories/orderRepository";
 import {
-  formatYearMonth,
+  getKstMonthRange,
   kstMonthStart,
   shiftMonth,
   toKstYearMonth,
@@ -10,18 +10,19 @@ import {
 // 예산/지출 현황 조회
 async function getBudgetSummary(companyId: string) {
   const currentMonth = toKstYearMonth(new Date());
-  const previousMonth = shiftMonth(currentMonth, -1);
-  const nextMonth = shiftMonth(currentMonth, 1);
+
+  const currentMonthRange = getKstMonthRange(currentMonth);
+  const previousMonthRange = getKstMonthRange(shiftMonth(currentMonth, -1));
 
   const currentYearStart = kstMonthStart({ year: currentMonth.year, month: 0 });
   const previousYearStart = kstMonthStart({
     year: currentMonth.year - 1,
     month: 0,
   });
-  const nextYearStart = kstMonthStart({ year: currentMonth.year + 1, month: 0 });
-
-  const currentYearMonth = formatYearMonth(currentMonth);
-  const previousYearMonth = formatYearMonth(previousMonth);
+  const nextYearStart = kstMonthStart({
+    year: currentMonth.year + 1,
+    month: 0,
+  });
 
   const [
     currentMonthSpent,
@@ -29,16 +30,17 @@ async function getBudgetSummary(companyId: string) {
     currentYearSpent,
     previousYearSpent,
     budgets,
+    defaultMonthlyBudget,
   ] = await Promise.all([
     orderRepository.sumApprovedOrderTotal({
       companyId,
-      from: kstMonthStart(currentMonth),
-      to: kstMonthStart(nextMonth),
+      from: currentMonthRange.from,
+      to: currentMonthRange.to,
     }),
     orderRepository.sumApprovedOrderTotal({
       companyId,
-      from: kstMonthStart(previousMonth),
-      to: kstMonthStart(currentMonth),
+      from: previousMonthRange.from,
+      to: previousMonthRange.to,
     }),
     orderRepository.sumApprovedOrderTotal({
       companyId,
@@ -51,31 +53,34 @@ async function getBudgetSummary(companyId: string) {
       to: currentYearStart,
     }),
     budgetRepository.findBudgetsByYearMonths(companyId, [
-      currentYearMonth,
-      previousYearMonth,
+      currentMonthRange.yearMonth,
+      previousMonthRange.yearMonth,
     ]),
+    budgetRepository.findDefaultMonthlyBudget(companyId),
   ]);
 
   const budgetByYearMonth = new Map(
     budgets.map((budget) => [budget.yearMonth, budget.amount]),
   );
 
-  // 예산이 설정되지 않은 달은 0으로 보고, 지출이 있으면 남은 예산이 음수가 된다
-  const currentMonthBudget = budgetByYearMonth.get(currentYearMonth) ?? 0;
-  const previousMonthBudget = budgetByYearMonth.get(previousYearMonth) ?? 0;
+  // 해당 월 예산이 따로 없으면 회사 기본 월 예산을 적용한다
+  const currentMonthBudget =
+    budgetByYearMonth.get(currentMonthRange.yearMonth) ?? defaultMonthlyBudget;
+  const previousMonthBudget =
+    budgetByYearMonth.get(previousMonthRange.yearMonth) ?? defaultMonthlyBudget;
 
   const currentMonthRemaining = currentMonthBudget - currentMonthSpent;
   const previousMonthRemaining = previousMonthBudget - previousMonthSpent;
 
   return {
     currentMonth: {
-      yearMonth: currentYearMonth,
+      yearMonth: currentMonthRange.yearMonth,
       budget: currentMonthBudget,
       spent: currentMonthSpent,
       remaining: currentMonthRemaining,
     },
     previousMonth: {
-      yearMonth: previousYearMonth,
+      yearMonth: previousMonthRange.yearMonth,
       budget: previousMonthBudget,
       spent: previousMonthSpent,
       remaining: previousMonthRemaining,

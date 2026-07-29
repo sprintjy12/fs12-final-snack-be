@@ -7,6 +7,32 @@ import {
   toKstYearMonth,
 } from "../utils/date";
 
+// 이번달 예산/지출 현황
+async function getCurrentMonthBudget(companyId: string) {
+  const currentMonthRange = getKstMonthRange(toKstYearMonth(new Date()));
+
+  const [spent, budgets, defaultMonthlyBudget] = await Promise.all([
+    orderRepository.sumApprovedOrderTotal({
+      companyId,
+      from: currentMonthRange.from,
+      to: currentMonthRange.to,
+    }),
+    budgetRepository.findBudgetsByYearMonths(companyId, [
+      currentMonthRange.yearMonth,
+    ]),
+    budgetRepository.findDefaultMonthlyBudget(companyId),
+  ]);
+
+  const budget = budgets[0]?.amount ?? defaultMonthlyBudget;
+
+  return {
+    yearMonth: currentMonthRange.yearMonth,
+    budget,
+    spent,
+    remaining: budget - spent,
+  };
+}
+
 // 예산/지출 현황 조회
 async function getBudgetSummary(companyId: string) {
   const currentMonth = toKstYearMonth(new Date());
@@ -102,5 +128,6 @@ async function getBudgetSummary(companyId: string) {
 }
 
 export default {
+  getCurrentMonthBudget,
   getBudgetSummary,
 };

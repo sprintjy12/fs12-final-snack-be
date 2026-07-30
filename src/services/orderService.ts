@@ -2,6 +2,7 @@ import orderRepository from "../repositories/orderRepository";
 import AppError from "../utils/appError";
 import { ErrorCodes } from "../constants/errorCodes";
 import { OrderStatus, OrderType, Prisma } from "@prisma/client";
+import { getKstMonthRange, toKstYearMonth } from "../utils/date";
 
 // 정렬
 function getOrderBy(sort?: string): Prisma.OrderOrderByWithRelationInput {
@@ -234,18 +235,27 @@ async function approveOrder(params: {
   const { orderId, userId, companyId, responseMessage } = params;
   const order = await getProcessablePurchaseRequest(orderId, companyId);
 
-  const approvedOrder = await orderRepository.updateOrderToApproved({
+  // 승인 시점이 속한 달의 예산과 지출을 기준으로 검증한다
+  const monthRange = getKstMonthRange(toKstYearMonth(new Date()));
+
+  const result = await orderRepository.updateOrderToApproved({
     orderId: order.id,
+    companyId,
     processorId: userId,
     responseMessage,
+    monthRange,
   });
 
   // 검증 이후 다른 요청이 먼저 처리했다면 갱신 대상이 없다
-  if (!approvedOrder) {
+  if (result.status === "ALREADY_PROCESSED") {
     throw new AppError(ErrorCodes.ORDER.INVALID_ORDER_STATUS);
   }
 
-  return approvedOrder;
+  if (result.status === "BUDGET_EXCEEDED") {
+    throw new AppError(ErrorCodes.BUDGET.INSUFFICIENT_MONTHLY_BUDGET);
+  }
+
+  return result.order;
 }
 
 // 구매 반려

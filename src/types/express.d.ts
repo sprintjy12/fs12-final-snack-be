@@ -1,7 +1,7 @@
 export type AuthUser = {
   id: string;
   companyId: string;
-  role?: string;
+  role: UserRole;
 };
 
 declare global {

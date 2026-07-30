@@ -1,4 +1,12 @@
 export const ErrorCodes = {
+  COMMON: {
+    VALIDATION_ERROR: {
+      code: "COMMON_VALIDATION_ERROR",
+      statusCode: 400,
+      message: "요청 값이 올바르지 않습니다.",
+    },
+  },
+
   AUTH: {
     UNAUTHORIZED: {
       code: "AUTH_UNAUTHORIZED",

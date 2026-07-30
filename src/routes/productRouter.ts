@@ -15,7 +15,6 @@ const productRouter = express.Router();
 // 상품 전체 조회 -
 productRouter.get(
   "/",
-  authenticate,
   validate(getProductsQuerySchema, "query"),
   asyncHandler(productController.getProducts),
 );
@@ -39,7 +38,6 @@ productRouter.get(
 // 상품 상세 조회 -
 productRouter.get(
   "/:productId",
-  authenticate,
   validate(productIdParamSchema, "params"),
   asyncHandler(productController.getProductById),
 );

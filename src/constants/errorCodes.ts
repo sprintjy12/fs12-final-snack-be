@@ -116,7 +116,7 @@ export const ErrorCodes = {
     UNAUTHORIZED_ACCESS: {
       code: "PRODUCT_UNAUTHORIZED_ACCESS",
       statusCode: 403,
-      message: "본인이 등록한 상품만 삭제할 수 있습니다.",
+      message: "본인이 등록한 상품만 수정/삭제할 수 있습니다.",
     },
     HAS_ORDER_HISTORY: {
       code: "PRODUCT_HAS_ORDER_HISTORY",

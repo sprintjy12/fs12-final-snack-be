@@ -16,7 +16,7 @@ export type CartItemWithProduct = Prisma.CartItemGetPayload<{
 }>;
 
 // userId로 장바구니 목록 조회 (상품 정보 포함)
-async function findByUserId(userId: string) {
+async function findByUserId(userId: string): Promise<CartItemWithProduct[]> {
   return prisma.cartItem.findMany({
     where: { userId },
     include: {

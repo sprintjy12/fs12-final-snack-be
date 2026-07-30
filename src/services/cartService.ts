@@ -1,16 +1,17 @@
 import cartRepository from "../repositories/cartRepository";
+import { CartItemWithProduct } from "../repositories/cartRepository";
 
 //장바구니 조회
 async function getCart(userId: string) {
-  const cartItems = await cartRepository.findByUserId(userId);
+  const cartItems: CartItemWithProduct[] = await cartRepository.findByUserId(userId);
 
   const totalQuantity = cartItems.reduce(
-    (sum: number, item: any) => sum + item.quantity,
+    (sum, item) => sum + item.quantity,
     0,
   );
 
   const totalPrice = cartItems.reduce(
-    (sum: number, item: any) => sum + item.product.price * item.quantity,
+    (sum, item) => sum + item.product.price * item.quantity,
     0,
   );
 

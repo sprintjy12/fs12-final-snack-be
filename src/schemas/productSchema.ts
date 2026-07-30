@@ -14,20 +14,17 @@ export const getProductsQuerySchema = z.object({
 // 상품 등록 body
 export const createProductSchema = z.object({
   name: z.string().trim().min(1, "상품명을 입력해주세요."),
-  price: z
+  price: z.coerce
     .number()
     .int("가격은 정수여야 합니다.")
-    .positive("가격은 0보다 큰 정수여야 합니다.")
-    .refine((v) => !Number.isNaN(v), "가격이 올바르지 않습니다."),
+    .positive("가격은 0보다 큰 정수여야 합니다."),
   categoryId: z.string().uuid("카테고리 ID가 올바르지 않습니다."),
   imageUrl: z.string().url("이미지 URL이 올바르지 않습니다."),
-  stock: z
+  stock: z.coerce
     .number()
     .int("재고는 정수여야 합니다.")
-    .min(0, "재고는 0개 이상이어야 합니다.")
-    .refine((v) => !Number.isNaN(v), "재고 값이 올바르지 않습니다.")
-    .optional(),
-  productUrl: z.string().url("상품 페이지 URL이 올바르지 않습니다.").optional(),
+    .positive("재고는 1개 이상이어야 합니다."),
+  productUrl: z.string().url("상품 페이지 URL이 올바르지 않습니다."),
 });
 
 // 상품 수정 body (등록 스키마 재사용, 전부 optional)

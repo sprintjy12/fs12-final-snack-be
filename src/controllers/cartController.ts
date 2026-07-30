@@ -1,11 +1,13 @@
 import { Request, Response } from "express";
+import AppError from "../utils/appError";
+import { ErrorCodes } from "../constants/errorCodes";
 import cartService from "../services/cartService";
 
 // 장바구니 조회
 async function getCart(req: Request, res: Response) {
   const userId = req.user?.id;
   if (!userId) {
-    throw new Error("인증이 필요합니다.");
+    throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
   }
 
   const result = await cartService.getCart(userId);

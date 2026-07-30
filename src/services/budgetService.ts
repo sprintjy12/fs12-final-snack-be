@@ -1,6 +1,7 @@
 import budgetRepository from "../repositories/budgetRepository";
 import orderRepository from "../repositories/orderRepository";
 import {
+  formatYearMonth,
   getKstMonthRange,
   kstMonthStart,
   shiftMonth,
@@ -31,6 +32,44 @@ async function getCurrentMonthBudget(companyId: string) {
     spent,
     remaining: budget - spent,
   };
+}
+
+// 예산 관리 페이지용 설정값 조회
+async function getBudgetSettings(companyId: string) {
+  const yearMonth = formatYearMonth(toKstYearMonth(new Date()));
+
+  const [monthlyBudget, defaultMonthlyBudget] = await Promise.all([
+    budgetRepository.findBudgetAmount(companyId, yearMonth),
+    budgetRepository.findDefaultMonthlyBudget(companyId),
+  ]);
+
+  return {
+    defaultMonthlyBudget,
+    currentMonth: {
+      yearMonth,
+      // 이번달만 따로 설정한 값이 없으면 null (화면에서 빈 칸으로 두고 기본 예산을 따른다)
+      amount: monthlyBudget,
+    },
+  };
+}
+
+// 이번달 예산과 기본 월 예산 저장
+async function updateBudgetSettings(params: {
+  companyId: string;
+  defaultMonthlyBudget?: number;
+  monthlyBudget?: number | null;
+}) {
+  const { companyId, defaultMonthlyBudget, monthlyBudget } = params;
+  const yearMonth = formatYearMonth(toKstYearMonth(new Date()));
+
+  await budgetRepository.updateBudgetSettings({
+    companyId,
+    yearMonth,
+    defaultMonthlyBudget,
+    monthlyBudget,
+  });
+
+  return getBudgetSettings(companyId);
 }
 
 // 예산/지출 현황 조회
@@ -129,5 +168,7 @@ async function getBudgetSummary(companyId: string) {
 
 export default {
   getCurrentMonthBudget,
+  getBudgetSettings,
+  updateBudgetSettings,
   getBudgetSummary,
 };

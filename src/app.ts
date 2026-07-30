@@ -3,7 +3,6 @@ import "dotenv/config";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
-import { UserRole } from "@prisma/client";
 import productRouter from "./routes/productRouter";
 import orderRouter from "./routes/orderRouter";
 import budgetRouter from "./routes/budgetRouter";

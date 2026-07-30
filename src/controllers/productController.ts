@@ -28,22 +28,12 @@ async function getProducts(req: Request, res: Response) {
 async function createProduct(req: Request, res: Response) {
   const { name, price, categoryId, imageUrl, stock, productUrl } = req.body;
 
-  // auth 미들웨어는 userId만 넣고, companyId는 DB에서 조회
   const userId = req.user?.id;
   if (!userId) {
-    res.status(401).json({ message: "인증이 필요합니다." });
-    return;
+    throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { companyId: true },
-  });
-  if (!user) {
-    res.status(404).json({ message: "존재하지 않는 유저입니다." });
-    return;
-  }
-  const { companyId } = user;
+  const companyId = req.user!.companyId;
 
   const product = await productService.createProduct({
     name,
@@ -89,7 +79,6 @@ async function getMyProducts(req: Request, res: Response) {
 async function deleteProduct(req: Request, res: Response) {
   const { productId } = req.params;
 
-  // auth 미들웨어 붙으면 req.user.id 사용
   const userId = req.user?.id;
 
   if (!userId) {

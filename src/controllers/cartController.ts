@@ -39,7 +39,7 @@ async function addToCart(req: Request, res: Response) {
 // 장바구니 개별 삭제
 
 // 장바구니 전체 삭제
-async function deleteCart(req: Request, res: Response) {
+async function handleDeleteCart(req: Request, res: Response) {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
@@ -56,6 +56,6 @@ async function deleteCart(req: Request, res: Response) {
 export default {
   getCart,
   addToCart,
-  deleteCart,
+  handleDeleteCart,
 };
   

@@ -12,7 +12,7 @@ const PASSWORD_SPECIAL_CHARACTER =
 export const superAdminSignupSchema = z.object({
   name: z
     .string({
-      message: "이름을 입력해주세요.",
+      error: "이름을 입력해주세요.",
     })
     .trim()
     .min(1, "이름을 입력해주세요.")
@@ -20,17 +20,21 @@ export const superAdminSignupSchema = z.object({
 
   email: z
     .string({
-      message: "이메일을 입력해주세요.",
+      error: "이메일을 입력해주세요.",
     })
     .trim()
     .min(1, "이메일을 입력해주세요.")
     .max(254, "이메일은 254자 이하로 입력해주세요.")
-    .email("올바른 이메일 형식이 아닙니다.")
-    .transform((email) => email.toLowerCase()),
+    .toLowerCase()
+    .pipe(
+      z.email({
+        error: "올바른 이메일 형식이 아닙니다.",
+      }),
+    ),
 
   password: z
     .string({
-      message: "비밀번호를 입력해주세요.",
+      error: "비밀번호를 입력해주세요.",
     })
     .min(
       PASSWORD_MIN_LENGTH,
@@ -53,7 +57,7 @@ export const superAdminSignupSchema = z.object({
 
   companyName: z
     .string({
-      message: "회사명을 입력해주세요.",
+      error: "회사명을 입력해주세요.",
     })
     .trim()
     .min(1, "회사명을 입력해주세요.")
@@ -61,7 +65,7 @@ export const superAdminSignupSchema = z.object({
 
   businessNumber: z
     .string({
-      message: "사업자등록번호를 입력해주세요.",
+      error: "사업자등록번호를 입력해주세요.",
     })
     .trim()
     .regex(

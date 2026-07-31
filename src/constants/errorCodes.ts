@@ -32,8 +32,8 @@ export const ErrorCodes = {
     },  
     INVALID_CREDENTIALS: {
       code: "AUTH_INVALID_CREDENTIALS",
-      statusCode: 400,
-      message: "아이디 또는 비밀번호가 일치하지 않습니다.",
+      statusCode: 401,
+      message: "이메일 또는 비밀번호가 일치하지 않습니다.",
     },
     DUPLICATE_EMAIL: {
       code: "AUTH_DUPLICATE_EMAIL",

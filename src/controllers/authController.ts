@@ -31,6 +31,6 @@ const handleSignupSuperAdmin = asyncHandler(
     },
   );
 
-export default {
+export default {    
   handleSignupSuperAdmin,
 };

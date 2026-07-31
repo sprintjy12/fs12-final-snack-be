@@ -45,6 +45,28 @@ export const findUserByEmail = async (email: string) => {
 };
 
 /**
+ * 로그인용 유저 조회
+ * @param email 이메일
+ * @returns 로그인에 필요한 유저 정보
+ */
+export const findUserForLogin = async (email: string) => {
+  return prisma.user.findUnique({
+    where: {
+      email,
+    },
+    select: {
+      id: true,
+      companyId: true,
+      name: true,
+      email: true,
+      passwordHash: true,
+      role: true,
+      status: true,
+    },
+  });
+};
+
+/**
  * 사업자 번호로 회사 조회
  * @param businessNumber 사업자 번호
  * @returns 회사 정보

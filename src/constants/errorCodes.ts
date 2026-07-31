@@ -6,7 +6,6 @@ export const ErrorCodes = {
       message: "요청 값이 올바르지 않습니다.",
     },
   },
-
   AUTH: {
     UNAUTHORIZED: {
       code: "AUTH_UNAUTHORIZED",

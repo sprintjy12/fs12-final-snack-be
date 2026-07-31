@@ -6,6 +6,7 @@ import express from "express";
 import productRouter from "./routes/productRouter";
 import orderRouter from "./routes/orderRouter";
 import budgetRouter from "./routes/budgetRouter";
+import authRouter from "./routes/authRouter";
 import errorHandler from "./middlewares/errorHandler";
 import AppError from "./utils/appError";
 import cartRouter from "./routes/cartRouter";
@@ -20,7 +21,7 @@ app.use("/products", productRouter);
 app.use("/orders", orderRouter);
 app.use("/budgets", budgetRouter);
 app.use("/cart", cartRouter);
-
+app.use("/auth", authRouter);
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });

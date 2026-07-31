@@ -81,6 +81,25 @@ export const getPurchaseRequestDetail = asyncHandler(
   },
 );
 
+export const createDirectOrder = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id: userId, companyId } = req.user!;
+    const { cartItemIds } = req.body;
+
+    const data = await orderService.createDirectOrder({
+      userId,
+      companyId,
+      cartItemIds,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "즉시구매 성공",
+      data,
+    });
+  },
+);
+
 export const approveOrder = asyncHandler(async (req: Request, res: Response) => {
   const { id: userId, companyId } = req.user!;
   const orderId = req.params.orderId as string;

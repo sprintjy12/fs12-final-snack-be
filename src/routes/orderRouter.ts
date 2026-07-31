@@ -8,6 +8,8 @@ import {
   approveOrder,
   rejectOrder,
 } from "../controllers/orderController";
+import { validate } from "../middlewares/zodValidate";
+import { createDirectOrderSchema } from "../schemas/orderSchema";
 
 const orderRouter = express.Router();
 
@@ -16,9 +18,11 @@ orderRouter.get("/requests", getPurchaseRequestList);
 orderRouter.get("/requests/:orderId", getPurchaseRequestDetail);
 
 // TODO: 인가 미들웨어 연결 시 관리자 이상으로 제한
-// TODO: 검증 미들웨어 연결
-// validate(createDirectOrderSchema, "body")
-orderRouter.post("/direct", createDirectOrder);
+orderRouter.post(
+  "/direct",
+  validate(createDirectOrderSchema, "body"),
+  createDirectOrder,
+);
 
 orderRouter.get("/", getOrderHistoryList);
 orderRouter.get("/:orderId", getOrderHistoryDetail);

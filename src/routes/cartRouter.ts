@@ -22,13 +22,11 @@ cartRouter.post(
 cartRouter.patch("/:cartId", (req, res) => {
   return res.status(200).json({ message: "장바구니 수량 수정 성공" });
 });
-
+  
 // 장바구니  개별 삭제
-cartRouter.delete("/:cartId", (req, res) => {
-  return res.status(200).json({ message: "장바구니 삭제 성공" });
-});
+cartRouter.delete("/:cartId", authenticate, asyncHandler(cartController.deleteCartItem));
 
 // 장바구니 전체 삭제
-cartRouter.delete("/", authenticate, asyncHandler(cartController.handleDeleteCart));
+cartRouter.delete("/", authenticate, asyncHandler(cartController.deleteCart));
 
 export default cartRouter;

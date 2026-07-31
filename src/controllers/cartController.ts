@@ -37,9 +37,24 @@ async function addToCart(req: Request, res: Response) {
 
 // 장바구니 수량 수정
 // 장바구니 개별 삭제
+async function deleteCartItem(req: Request, res: Response) {
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
+  }
+
+  const { cartItemId } = req.params as { cartItemId: string };
+
+  const result = await cartService.deleteCartItem(userId, cartItemId);
+
+  res.status(200).json({
+    message: "장바구니 개별 삭제 성공",
+    data: result,
+  });
+}
 
 // 장바구니 전체 삭제
-async function handleDeleteCart(req: Request, res: Response) {
+async function deleteCart(req: Request, res: Response) {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
@@ -56,6 +71,7 @@ async function handleDeleteCart(req: Request, res: Response) {
 export default {
   getCart,
   addToCart,
-  handleDeleteCart,
+  deleteCart,
+  deleteCartItem
 };
   

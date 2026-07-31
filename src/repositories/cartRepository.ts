@@ -75,10 +75,18 @@ async function deleteAll(userId: string) {
   });
 }
 
+// 유저의 장바구니 개별 삭제
+async function deleteById( cartItemId: string) {
+  return prisma.cartItem.delete({
+    where: { id: cartItemId },
+  });
+}
+
 export default {
   findByUserId,
   findByUserAndProduct,
   create,
   updateQuantity,
   deleteAll,
+  deleteById,
 };

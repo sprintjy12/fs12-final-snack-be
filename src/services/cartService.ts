@@ -61,8 +61,23 @@ async function deleteCart(userId: string) {
   return cartRepository.deleteAll(userId);
 }
 
+// 장바구니 개별 삭제
+async function deleteCartItem(userId: string, cartItemId: string) {
+  const item = await prisma.cartItem.findUnique({
+    where: { id: cartItemId },
+  });
+  if (!item) {
+    throw new AppError(ErrorCodes.CART.ITEM_NOT_FOUND);
+  }
+  if (item.userId !== userId) {
+    throw new AppError(ErrorCodes.AUTH.FORBIDDEN);
+  }
+  return cartRepository.deleteById(cartItemId);
+  }
+
 export default {
   getCart,
   addToCart,
   deleteCart,
+  deleteCartItem,
 };

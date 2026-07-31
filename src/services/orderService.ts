@@ -1,4 +1,5 @@
 import orderRepository from "../repositories/orderRepository";
+import budgetService from "./budgetService";
 import AppError from "../utils/appError";
 import { ErrorCodes } from "../constants/errorCodes";
 import { OrderStatus, OrderType, Prisma } from "@prisma/client";
@@ -184,7 +185,12 @@ async function getPurchaseRequestDetail(params: {
   companyId: string;
 }) {
   const { orderId, companyId } = params;
-  const order = await orderRepository.findOrderDetailById(orderId);
+
+  // 승인 여부 판단에 필요한 예산 정보를 함께 내려준다
+  const [order, budget] = await Promise.all([
+    orderRepository.findOrderDetailById(orderId),
+    budgetService.getCurrentMonthBudget(companyId),
+  ]);
 
   if (!order) {
     throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
@@ -198,7 +204,10 @@ async function getPurchaseRequestDetail(params: {
     throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
   }
 
-  return toOrderDetailResponse(order);
+  return {
+    ...toOrderDetailResponse(order),
+    budget,
+  };
 }
 
 async function getProcessablePurchaseRequest(

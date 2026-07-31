@@ -36,8 +36,79 @@ async function findBudgetAmountInTx(
   return budget?.amount ?? null;
 }
 
+// 해당 연월의 예산 (설정하지 않았으면 null)
+async function findBudgetAmount(companyId: string, yearMonth: string) {
+  const budget = await prisma.budget.findUnique({
+    where: { companyId_yearMonth: { companyId, yearMonth } },
+    select: { amount: true },
+  });
+
+  return budget?.amount ?? null;
+}
+
+// 기본 월 예산과 이번달 예산 저장 (값이 그대로면 쓰지 않는다)
+async function updateBudgetSettings(params: {
+  companyId: string;
+  yearMonth: string;
+  defaultMonthlyBudget?: number;
+  monthlyBudget?: number | null;
+}) {
+  const { companyId, yearMonth, defaultMonthlyBudget, monthlyBudget } = params;
+
+  return prisma.$transaction(async (tx) => {
+    const [company, budget] = await Promise.all([
+      tx.company.findUnique({
+        where: { id: companyId },
+        select: { defaultMonthlyBudget: true },
+      }),
+      tx.budget.findUnique({
+        where: { companyId_yearMonth: { companyId, yearMonth } },
+        select: { amount: true },
+      }),
+    ]);
+
+    const previousDefault = company?.defaultMonthlyBudget ?? 0;
+    // 이번달 예산은 레코드가 있는지로만 판단한다 (없으면 기본 월 예산을 따르는 상태)
+    const previousAmount = budget?.amount ?? null;
+
+    if (
+      defaultMonthlyBudget !== undefined &&
+      defaultMonthlyBudget !== previousDefault
+    ) {
+      await tx.company.update({
+        where: { id: companyId },
+        data: { defaultMonthlyBudget },
+      });
+    }
+
+    if (monthlyBudget === null) {
+      // 이번달 예산을 비우면 기본 월 예산을 따르도록 레코드를 지운다
+      if (budget) {
+        await tx.budget.delete({
+          where: { companyId_yearMonth: { companyId, yearMonth } },
+        });
+      }
+
+      return;
+    }
+
+    // 값이 그대로면 불필요하게 쓰지 않는다
+    if (monthlyBudget === undefined || monthlyBudget === previousAmount) {
+      return;
+    }
+
+    await tx.budget.upsert({
+      where: { companyId_yearMonth: { companyId, yearMonth } },
+      create: { companyId, yearMonth, amount: monthlyBudget },
+      update: { amount: monthlyBudget },
+    });
+  });
+}
+
 export default {
   findBudgetsByYearMonths,
   findDefaultMonthlyBudget,
+  findBudgetAmount,
   findBudgetAmountInTx,
+  updateBudgetSettings,
 };

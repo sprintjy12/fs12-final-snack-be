@@ -29,8 +29,6 @@ cartRouter.delete("/:cartId", (req, res) => {
 });
 
 // 장바구니 전체 삭제
-cartRouter.delete("/", (req, res) => {
-  return res.status(200).json({ message: "장바구니 전체 삭제 성공" });
-});
+cartRouter.delete("/", authenticate, asyncHandler(cartController.deleteCart));
 
 export default cartRouter;

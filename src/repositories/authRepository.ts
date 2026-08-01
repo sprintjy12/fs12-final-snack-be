@@ -9,6 +9,12 @@ type CreateSuperAdminWithCompanyData = {
   businessNumber: string;
 };
 
+type CreateRefreshTokenData = {
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+};
+
 /**
  * 유저 인증 정보 조회
  * @param userId 유저 ID
@@ -40,6 +46,28 @@ export const findUserByEmail = async (email: string) => {
     },
     select: {
       id: true,
+    },
+  });
+};
+
+/**
+ * 로그인용 유저 조회
+ * @param email 이메일
+ * @returns 로그인에 필요한 유저 정보
+ */
+export const findUserForLogin = async (email: string) => {
+  return prisma.user.findUnique({
+    where: {
+      email,
+    },
+    select: {
+      id: true,
+      companyId: true,
+      name: true,
+      email: true,
+      passwordHash: true,
+      role: true,
+      status: true,
     },
   });
 };
@@ -118,4 +146,31 @@ export const createSuperAdminWithCompany = async ({
       };
     },
   );
+};
+
+/**
+ * 리프레시 토큰 정보 저장
+ * @param userId 유저 ID
+ * @param tokenHash 리프레시 토큰 해시
+ * @param expiresAt 리프레시 토큰 만료 시각
+ * @returns 저장된 리프레시 토큰 정보
+ */
+export const createRefreshTokenRecord = async ({
+  userId,
+  tokenHash,
+  expiresAt,
+}: CreateRefreshTokenData) => {
+  return prisma.refreshToken.create({
+    data: {
+      userId,
+      tokenHash,
+      expiresAt,
+    },
+    select: {
+      id: true,
+      userId: true,
+      expiresAt: true,
+      createdAt: true,
+    },
+  });
 };

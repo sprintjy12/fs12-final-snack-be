@@ -100,6 +100,26 @@ export const createDirectOrder = asyncHandler(
   },
 );
 
+export const createPurchaseRequest = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id: userId, companyId } = req.user!;
+    const { cartItemIds, requestMessage } = req.body;
+
+    const data = await orderService.createPurchaseRequest({
+      userId,
+      companyId,
+      cartItemIds,
+      requestMessage,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "구매 요청 성공",
+      data,
+    });
+  },
+);
+
 export const approveOrder = asyncHandler(async (req: Request, res: Response) => {
   const { id: userId, companyId } = req.user!;
   const orderId = req.params.orderId as string;

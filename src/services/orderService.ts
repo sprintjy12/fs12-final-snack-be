@@ -250,6 +250,58 @@ async function createDirectOrder(params: {
   return result.order;
 }
 
+// 구매 요청 생성 (완료 페이지용 요약 포함)
+async function createPurchaseRequest(params: {
+  userId: string;
+  companyId: string;
+  cartItemIds: string[];
+  requestMessage?: string;
+}) {
+  const { userId, companyId, cartItemIds, requestMessage } = params;
+
+  if (!Array.isArray(cartItemIds) || cartItemIds.length === 0) {
+    throw new AppError(ErrorCodes.ORDER.EMPTY_ITEMS);
+  }
+
+  const uniqueCartItemIds = [...new Set(cartItemIds)];
+
+  const result = await orderRepository.createPurchaseRequest({
+    userId,
+    companyId,
+    cartItemIds: uniqueCartItemIds,
+    requestMessage,
+  });
+
+  if (result.status === "CART_ITEM_NOT_FOUND") {
+    throw new AppError(ErrorCodes.CART.ITEM_NOT_FOUND);
+  }
+
+  if (result.status === "PRODUCT_NOT_FOUND") {
+    throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
+  }
+
+  const { order } = result;
+  const totalQuantity = order.orderItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
+  const firstItem = order.orderItems[0];
+
+  return {
+    orderId: order.id,
+    status: order.status,
+    productAmount: order.productAmount,
+    shippingFee: order.shippingFee,
+    totalPrice: order.totalPrice,
+    totalQuantity,
+    requestMessage: order.requestMessage,
+    requestedAt: order.createdAt,
+    // 완료 페이지: 대표 상품명·카테고리 + 총 수량·총 금액
+    firstProductName: firstItem?.productName ?? null,
+    categoryName: firstItem?.categoryName ?? null,
+  };
+}
+
 async function getProcessablePurchaseRequest(
   orderId: string,
   companyId: string,
@@ -337,6 +389,7 @@ export default {
   getPurchaseRequestList,
   getPurchaseRequestDetail,
   createDirectOrder,
+  createPurchaseRequest,
   approveOrder,
   rejectOrder,
 };

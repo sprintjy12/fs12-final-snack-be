@@ -1,20 +1,34 @@
 import express from "express";
+import { UserRole } from "@prisma/client";
 import {
   getOrderHistoryList,
   getOrderHistoryDetail,
   getPurchaseRequestList,
   getPurchaseRequestDetail,
   createDirectOrder,
+  createPurchaseRequest,
   approveOrder,
   rejectOrder,
 } from "../controllers/orderController";
+import { authenticate } from "../middlewares/authenticate";
+import { authorize } from "../middlewares/authorize";
 import { validate } from "../middlewares/zodValidate";
-import { createDirectOrderSchema } from "../schemas/orderSchema";
+import {
+  createDirectOrderSchema,
+  createPurchaseRequestSchema,
+} from "../schemas/orderSchema";
 
 const orderRouter = express.Router();
 
 // "/requests"가 "/:orderId"로 잡히지 않도록 먼저 등록
 orderRouter.get("/requests", getPurchaseRequestList);
+orderRouter.post(
+  "/requests",
+  authenticate,
+  authorize(UserRole.USER),
+  validate(createPurchaseRequestSchema, "body"),
+  createPurchaseRequest,
+);
 orderRouter.get("/requests/:orderId", getPurchaseRequestDetail);
 
 // TODO: 인가 미들웨어 연결 시 관리자 이상으로 제한

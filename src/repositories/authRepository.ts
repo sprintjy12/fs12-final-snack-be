@@ -9,6 +9,12 @@ type CreateSuperAdminWithCompanyData = {
   businessNumber: string;
 };
 
+type CreateRefreshTokenData = {
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+};
+
 /**
  * 유저 인증 정보 조회
  * @param userId 유저 ID
@@ -140,12 +146,6 @@ export const createSuperAdminWithCompany = async ({
       };
     },
   );
-};
-
-type CreateRefreshTokenData = {
-  userId: string;
-  tokenHash: string;
-  expiresAt: Date;
 };
 
 /**

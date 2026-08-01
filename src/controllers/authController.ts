@@ -71,7 +71,7 @@ const handleLogin = asyncHandler(
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         maxAge: REFRESH_TOKEN_MAX_AGE,
-        path: "/auth",
+        path: "/api/auth/",
       },
     );
 

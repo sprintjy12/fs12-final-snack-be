@@ -210,6 +210,46 @@ async function getPurchaseRequestDetail(params: {
   };
 }
 
+// 즉시구매 (장바구니에서 고른 항목을 바로 구매 확정)
+async function createDirectOrder(params: {
+  userId: string;
+  companyId: string;
+  cartItemIds: string[];
+}) {
+  const { userId, companyId, cartItemIds } = params;
+
+  if (!Array.isArray(cartItemIds) || cartItemIds.length === 0) {
+    throw new AppError(ErrorCodes.ORDER.EMPTY_ITEMS);
+  }
+
+  // 같은 항목을 두 번 보내도 한 번만 구매되도록 정리한다
+  const uniqueCartItemIds = [...new Set(cartItemIds)];
+
+  // 구매 시점이 속한 달의 예산과 지출을 기준으로 검증한다
+  const monthRange = getKstMonthRange(toKstYearMonth(new Date()));
+
+  const result = await orderRepository.createDirectOrder({
+    userId,
+    companyId,
+    cartItemIds: uniqueCartItemIds,
+    monthRange,
+  });
+
+  if (result.status === "CART_ITEM_NOT_FOUND") {
+    throw new AppError(ErrorCodes.CART.ITEM_NOT_FOUND);
+  }
+
+  if (result.status === "PRODUCT_NOT_FOUND") {
+    throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
+  }
+
+  if (result.status === "BUDGET_EXCEEDED") {
+    throw new AppError(ErrorCodes.BUDGET.INSUFFICIENT_MONTHLY_BUDGET);
+  }
+
+  return result.order;
+}
+
 async function getProcessablePurchaseRequest(
   orderId: string,
   companyId: string,
@@ -296,6 +336,7 @@ export default {
   getOrderDetail,
   getPurchaseRequestList,
   getPurchaseRequestDetail,
+  createDirectOrder,
   approveOrder,
   rejectOrder,
 };

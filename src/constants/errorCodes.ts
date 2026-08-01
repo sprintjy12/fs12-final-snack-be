@@ -162,12 +162,22 @@ export const ErrorCodes = {
       statusCode: 403,
       message: "주문에 대한 권한이 없습니다.",
     },
+    EMPTY_ITEMS: {
+      code: "ORDER_EMPTY_ITEMS",
+      statusCode: 400,
+      message: "구매할 상품을 선택해주세요.",
+    },
   },
   CART: {
     ITEM_NOT_FOUND: {
       code: "CART_ITEM_NOT_FOUND",
       statusCode: 404,
       message: "장바구니에서 상품을 찾을 수 없습니다.",
+    },
+    INSUFFICIENT_STOCK: {
+      code: "CART_INSUFFICIENT_STOCK",
+      statusCode: 400,
+      message: "상품 재고가 부족합니다.",
     },
   },
   BUDGET: {

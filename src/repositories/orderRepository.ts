@@ -1,6 +1,7 @@
 import prisma from "../config/db";
-import { OrderStatus, Prisma } from "@prisma/client";
+import { OrderStatus, OrderType, Prisma } from "@prisma/client";
 import budgetRepository from "./budgetRepository";
+import { SHIPPING_FEE } from "../constants/order";
 
 const orderItemWithProductInclude = {
   product: {
@@ -15,6 +16,18 @@ const orderItemWithProductInclude = {
 type OrderItemWithProduct = Prisma.OrderItemGetPayload<{
   include: typeof orderItemWithProductInclude;
 }>;
+
+type MonthRange = { yearMonth: string; from: Date; to: Date };
+
+// 카테고리 스냅샷은 "상위>하위" 형태로 저장한다
+function formatCategoryName(category: {
+  name: string;
+  parent: { name: string } | null;
+}) {
+  return category.parent
+    ? `${category.parent.name}>${category.name}`
+    : category.name;
+}
 
 async function findOrderById(orderId: string) {
   return prisma.order.findUnique({
@@ -101,7 +114,7 @@ async function sumApprovedOrderTotal(params: {
   return sumApprovedTotal(prisma, params);
 }
 
-// 같은 회사의 승인을 직렬화해 예산 검증이 경쟁 조건에 뚫리지 않게 한다
+// 같은 회사의 지출 확정을 직렬화해 예산 검증이 경쟁 조건에 뚫리지 않게 한다
 async function lockCompanyForApproval(
   tx: Prisma.TransactionClient,
   companyId: string,
@@ -116,26 +129,64 @@ async function lockCompanyForApproval(
   return rows[0]?.defaultMonthlyBudget ?? 0;
 }
 
+// 확정하려는 금액이 해당 월 예산에 들어가는지 검사 (승인/즉시구매 공용)
+async function checkMonthlyBudget(
+  tx: Prisma.TransactionClient,
+  params: {
+    companyId: string;
+    monthRange: MonthRange;
+    amount: number;
+    defaultMonthlyBudget: number;
+  },
+) {
+  const { companyId, monthRange, amount, defaultMonthlyBudget } = params;
+
+  // 해당 월 예산이 없으면 회사 기본 월 예산을 기준으로 삼는다
+  const budget =
+    (await budgetRepository.findBudgetAmountInTx(
+      tx,
+      companyId,
+      monthRange.yearMonth,
+    )) ?? defaultMonthlyBudget;
+
+  const spent = await sumApprovedTotal(tx, {
+    companyId,
+    from: monthRange.from,
+    to: monthRange.to,
+  });
+
+  return { withinBudget: spent + amount <= budget, budget, spent };
+}
+
+async function incrementPurchaseCounts(
+  tx: Prisma.TransactionClient,
+  items: { productId: string; quantity: number }[],
+) {
+  await Promise.all(
+    items.map((item) =>
+      tx.product.update({
+        where: { id: item.productId },
+        data: { purchaseCount: { increment: item.quantity } },
+      }),
+    ),
+  );
+}
+
 async function snapshotOrderItems(
   tx: Prisma.TransactionClient,
   orderItems: OrderItemWithProduct[],
 ) {
   await Promise.all(
-    orderItems.map((item) => {
-      const category = item.product.category;
-      const categoryName = category.parent
-        ? `${category.parent.name}>${category.name}`
-        : category.name;
-
-      return tx.orderItem.update({
+    orderItems.map((item) =>
+      tx.orderItem.update({
         where: { id: item.id },
         data: {
           productName: item.product.name,
           imageUrl: item.product.imageUrl,
-          categoryName,
+          categoryName: formatCategoryName(item.product.category),
         },
-      });
-    }),
+      }),
+    ),
   );
 }
 
@@ -179,7 +230,7 @@ async function updateOrderToApproved(params: {
   companyId: string;
   processorId: string;
   responseMessage?: string;
-  monthRange: { yearMonth: string; from: Date; to: Date };
+  monthRange: MonthRange;
 }) {
   const { orderId, companyId, processorId, responseMessage, monthRange } =
     params;
@@ -197,26 +248,15 @@ async function updateOrderToApproved(params: {
         return { status: "ALREADY_PROCESSED" as const };
       }
 
-      // 해당 월 예산이 없으면 회사 기본 월 예산을 기준으로 삼는다
-      const monthlyBudget =
-        (await budgetRepository.findBudgetAmountInTx(
-          tx,
-          companyId,
-          monthRange.yearMonth,
-        )) ?? defaultMonthlyBudget;
-
-      const spent = await sumApprovedTotal(tx, {
+      const { withinBudget, budget, spent } = await checkMonthlyBudget(tx, {
         companyId,
-        from: monthRange.from,
-        to: monthRange.to,
+        monthRange,
+        amount: pendingOrder.totalPrice,
+        defaultMonthlyBudget,
       });
 
-      if (spent + pendingOrder.totalPrice > monthlyBudget) {
-        return {
-          status: "BUDGET_EXCEEDED" as const,
-          budget: monthlyBudget,
-          spent,
-        };
+      if (!withinBudget) {
+        return { status: "BUDGET_EXCEEDED" as const, budget, spent };
       }
 
       const order = await updatePendingOrderStatus(tx, {
@@ -237,17 +277,91 @@ async function updateOrderToApproved(params: {
 
       await Promise.all([
         snapshotOrderItems(tx, orderItems),
-        ...orderItems.map((item) =>
-          tx.product.update({
-            where: { id: item.productId },
-            data: {
-              purchaseCount: { increment: item.quantity },
-            },
-          }),
-        ),
+        incrementPurchaseCounts(tx, orderItems),
       ]);
 
       return { status: "APPROVED" as const, order };
+    },
+    { timeout: 10000 },
+  );
+}
+
+// 즉시구매 (장바구니 항목으로 주문을 만들고 바로 확정, 월 예산 검증 포함)
+async function createDirectOrder(params: {
+  userId: string;
+  companyId: string;
+  cartItemIds: string[];
+  monthRange: MonthRange;
+}) {
+  const { userId, companyId, cartItemIds, monthRange } = params;
+
+  return prisma.$transaction(
+    async (tx) => {
+      const defaultMonthlyBudget = await lockCompanyForApproval(tx, companyId);
+
+      // 본인 장바구니에 담긴 항목만 구매할 수 있다
+      const cartItems = await tx.cartItem.findMany({
+        where: { id: { in: cartItemIds }, userId },
+        include: {
+          product: { include: { category: { include: { parent: true } } } },
+        },
+      });
+
+      if (cartItems.length !== cartItemIds.length) {
+        return { status: "CART_ITEM_NOT_FOUND" as const };
+      }
+
+      // 다른 회사 상품이 섞이면 지출 집계가 어긋나므로 막는다
+      if (cartItems.some((item) => item.product.companyId !== companyId)) {
+        return { status: "PRODUCT_NOT_FOUND" as const };
+      }
+
+      // 금액은 구매 시점의 상품 가격으로 확정한다
+      const items = cartItems.map((item) => ({
+        productId: item.productId,
+        unitPrice: item.product.price,
+        quantity: item.quantity,
+        subtotal: item.product.price * item.quantity,
+        productName: item.product.name,
+        imageUrl: item.product.imageUrl,
+        categoryName: formatCategoryName(item.product.category),
+      }));
+
+      const productAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
+      const totalPrice = productAmount + SHIPPING_FEE;
+
+      const { withinBudget, budget, spent } = await checkMonthlyBudget(tx, {
+        companyId,
+        monthRange,
+        amount: totalPrice,
+        defaultMonthlyBudget,
+      });
+
+      if (!withinBudget) {
+        return { status: "BUDGET_EXCEEDED" as const, budget, spent };
+      }
+
+      const order = await tx.order.create({
+        data: {
+          companyId,
+          requesterId: userId,
+          processorId: userId,
+          type: OrderType.DIRECT,
+          status: OrderStatus.APPROVED,
+          productAmount,
+          shippingFee: SHIPPING_FEE,
+          totalPrice,
+          approvedAt: new Date(),
+          orderItems: { create: items },
+        },
+      });
+
+      await Promise.all([
+        incrementPurchaseCounts(tx, items),
+        tx.cartItem.deleteMany({ where: { id: { in: cartItemIds }, userId } }),
+      ]);
+
+      return { status: "CREATED" as const, order };
     },
     { timeout: 10000 },
   );
@@ -293,6 +407,7 @@ export default {
   countOrders,
   findOrderDetailById,
   sumApprovedOrderTotal,
+  createDirectOrder,
   updateOrderToApproved,
   updateOrderToRejected,
 };

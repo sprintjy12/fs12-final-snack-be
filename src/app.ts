@@ -17,11 +17,11 @@ const port = Number(process.env.PORT) || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
-app.use("/products", productRouter);
-app.use("/orders", orderRouter);
-app.use("/budgets", budgetRouter);
-app.use("/cart", cartRouter);
-app.use("/auth", authRouter);
+app.use("/api/products", productRouter);
+app.use("/api/orders", orderRouter);
+app.use("/api/budgets", budgetRouter);
+app.use("/api/cart", cartRouter);
+app.use("/api/auth", authRouter);
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });

@@ -43,9 +43,9 @@ async function deleteCartItem(req: Request, res: Response) {
     throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
   }
 
-  const { cartItemId } = req.params as { cartItemId: string };
+  const { cartId } = req.params as { cartId: string };
 
-  const result = await cartService.deleteCartItem(userId, cartItemId);
+  const result = await cartService.deleteCartItem(userId, cartId);
 
   res.status(200).json({
     message: "장바구니 개별 삭제 성공",

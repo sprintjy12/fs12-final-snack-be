@@ -2,7 +2,7 @@ import express from "express";
 import cartController from "../controllers/cartController.js";
 import { authenticate } from "../middlewares/authenticate.js";
 import { validate } from "../middlewares/zodValidate.js";
-import { addToCartSchema } from "../schemas/cartSchema.js";
+import { addToCartSchema, cartIdParamSchema } from "../schemas/cartSchema.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 const cartRouter = express.Router();
@@ -24,7 +24,7 @@ cartRouter.patch("/:cartId", (req, res) => {
 });
   
 // 장바구니  개별 삭제
-cartRouter.delete("/:cartId", authenticate, asyncHandler(cartController.deleteCartItem));
+cartRouter.delete("/:cartId", authenticate, validate(cartIdParamSchema, "params"), asyncHandler(cartController.deleteCartItem));
 
 // 장바구니 전체 삭제
 cartRouter.delete("/", authenticate, asyncHandler(cartController.deleteCart));

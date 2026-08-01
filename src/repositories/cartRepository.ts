@@ -76,9 +76,12 @@ async function deleteAll(userId: string) {
 }
 
 // 유저의 장바구니 개별 삭제
-async function deleteById( cartItemId: string) {
-  return prisma.cartItem.delete({
-    where: { id: cartItemId },
+async function deleteById(cartItemId: string, userId: string) {
+  return prisma.cartItem.deleteMany({
+    where: {
+      id: cartItemId,
+      userId,
+    },
   });
 }
 

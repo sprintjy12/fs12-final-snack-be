@@ -23,3 +23,24 @@ export const createPurchaseRequestSchema = z.object({
     .max(1000, "요청 메시지는 1000자 이하여야 합니다.")
     .optional(),
 });
+
+// 승인/반려 body
+export const processOrderSchema = z.object({
+  responseMessage: z
+    .string()
+    .trim()
+    .min(10, "처리 메시지는 10자 이상이어야 합니다.")
+    .max(100, "처리 메시지는 100자 이하여야 합니다."),
+});
+
+// 목록 조회 쿼리
+export const getOrdersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+  sort: z.enum(["latest", "highPrice", "lowPrice"]).default("latest"),
+});
+
+// :orderId 파라미터
+export const orderIdParamSchema = z.object({
+  orderId: z.string().uuid("주문 ID 형식이 올바르지 않습니다."),
+});

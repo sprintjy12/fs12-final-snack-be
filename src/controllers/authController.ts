@@ -1,9 +1,18 @@
 import { Request, Response } from "express";
 import type { ParamsDictionary } from "express-serve-static-core";
 
-import { SuperAdminSignupInput } from "../schemas/authSchema.js";
-import { signupSuperAdmin } from "../services/authService.js";
-import asyncHandler from "../utils/asyncHandler.js";
+import {
+  LoginInput,
+  SuperAdminSignupInput,
+} from "../schemas/authSchema";
+import {
+  login,
+  signupSuperAdmin,
+} from "../services/authService";
+import asyncHandler from "../utils/asyncHandler";
+
+const REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
+const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * 최고 관리자 회원가입
@@ -31,6 +40,52 @@ const handleSignupSuperAdmin = asyncHandler(
     },
   );
 
+/**
+ * 로그인
+ * @param req 요청
+ * @param res 응답
+ * @returns 로그인 성공 메시지
+ */
+const handleLogin = asyncHandler(
+  async (
+    req: Request<
+      ParamsDictionary,
+      unknown,
+      LoginInput
+    >,
+    res: Response,
+  ) => {
+    const loginData = req.body;
+
+    const {
+      accessToken,
+      refreshToken,
+      user,
+    } = await login(loginData);
+
+    res.cookie(
+      REFRESH_TOKEN_COOKIE_NAME,
+      refreshToken,
+      {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: REFRESH_TOKEN_MAX_AGE,
+        path: "/api/auth/",
+      },
+    );
+
+    res.status(200).json({
+      message: "로그인에 성공했습니다.",
+      data: {
+        accessToken,
+        user,
+      },
+    });
+  },
+);
+
 export default {
-  handleSignupSuperAdmin,
+  signupSuperAdmin: handleSignupSuperAdmin,
+  login: handleLogin,
 };

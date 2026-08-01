@@ -280,12 +280,7 @@ async function createPurchaseRequest(params: {
     throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
   }
 
-  const { order } = result;
-  const totalQuantity = order.orderItems.reduce(
-    (sum, item) => sum + item.quantity,
-    0,
-  );
-  const firstItem = order.orderItems[0];
+  const { order, firstItem, totalQuantity } = result;
 
   return {
     orderId: order.id,
@@ -296,9 +291,9 @@ async function createPurchaseRequest(params: {
     totalQuantity,
     requestMessage: order.requestMessage,
     requestedAt: order.createdAt,
-    // 완료 페이지: 대표 상품명·카테고리 + 총 수량·총 금액
-    firstProductName: firstItem?.productName ?? null,
-    categoryName: firstItem?.categoryName ?? null,
+    // 완료 페이지: 요청 배열 첫 상품을 대표로 사용
+    firstProductName: firstItem.productName,
+    categoryName: firstItem.categoryName,
   };
 }
 

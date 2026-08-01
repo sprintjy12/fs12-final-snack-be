@@ -309,8 +309,12 @@ async function resolveCartItemsToOrderItems(
     return { status: "PRODUCT_NOT_FOUND" as const };
   }
 
+  // findMany 결과는 순서가 없으므로 요청한 cartItemIds 순서를 유지한다
+  const cartItemById = new Map(cartItems.map((item) => [item.id, item]));
+  const orderedCartItems = cartItemIds.map((id) => cartItemById.get(id)!);
+
   // 금액·스냅샷은 요청/구매 시점의 상품 정보로 확정한다
-  const items = cartItems.map((item) => ({
+  const items = orderedCartItems.map((item) => ({
     productId: item.productId,
     unitPrice: item.product.price,
     quantity: item.quantity,
@@ -439,20 +443,20 @@ async function createPurchaseRequest(params: {
             requestMessage,
             orderItems: { create: items },
           },
-          include: {
-            orderItems: {
-              select: {
-                productName: true,
-                categoryName: true,
-                quantity: true,
-                unitPrice: true,
-                subtotal: true,
-              },
-            },
-          },
         });
 
-        return { status: "CREATED" as const, order };
+        // 대표 상품은 DB include 순서가 아니라 요청 배열 첫 항목을 사용한다
+        const firstItem = items[0];
+
+        return {
+          status: "CREATED" as const,
+          order,
+          firstItem: {
+            productName: firstItem.productName,
+            categoryName: firstItem.categoryName,
+          },
+          totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
+        };
       },
       { timeout: 10000 },
     );

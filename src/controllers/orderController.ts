@@ -120,6 +120,25 @@ export const createPurchaseRequest = asyncHandler(
   },
 );
 
+export const cancelPurchaseRequest = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id: userId, companyId } = req.user!;
+    const orderId = req.params.orderId as string;
+
+    const data = await orderService.cancelPurchaseRequest({
+      orderId,
+      userId,
+      companyId,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "구매 요청 취소 성공",
+      data,
+    });
+  },
+);
+
 export const approveOrder = asyncHandler(async (req: Request, res: Response) => {
   const { id: userId, companyId } = req.user!;
   const orderId = req.params.orderId as string;

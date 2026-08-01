@@ -7,6 +7,7 @@ import {
   getPurchaseRequestDetail,
   createDirectOrder,
   createPurchaseRequest,
+  cancelPurchaseRequest,
   approveOrder,
   rejectOrder,
 } from "../controllers/orderController";
@@ -30,6 +31,12 @@ orderRouter.post(
   createPurchaseRequest,
 );
 orderRouter.get("/requests/:orderId", getPurchaseRequestDetail);
+orderRouter.patch(
+  "/requests/:orderId/cancel",
+  authenticate,
+  authorize(UserRole.USER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  cancelPurchaseRequest,
+);
 
 // TODO: 인가 미들웨어 연결 시 관리자 이상으로 제한
 orderRouter.post(

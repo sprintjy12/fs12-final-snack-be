@@ -326,6 +326,46 @@ async function getProcessablePurchaseRequest(
   return order;
 }
 
+// 구매 요청 취소
+async function cancelPurchaseRequest(params: {
+  orderId: string;
+  userId: string;
+  companyId: string;
+}) {
+  const { orderId, userId, companyId } = params;
+
+  const order = await orderRepository.findOrderById(orderId);
+
+  if (!order || order.companyId !== companyId) {
+    throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
+  }
+
+  if (order.type !== OrderType.REQUEST) {
+    throw new AppError(ErrorCodes.ORDER.INVALID_ORDER_TYPE);
+  }
+
+  if (order.requesterId !== userId) {
+    throw new AppError(ErrorCodes.ORDER.UNAUTHORIZED_ACCESS);
+  }
+
+  if (order.status !== OrderStatus.PENDING) {
+    throw new AppError(ErrorCodes.ORDER.INVALID_ORDER_STATUS);
+  }
+
+  const cancelledOrder = await orderRepository.cancelPurchaseRequest({
+    orderId,
+    userId,
+    companyId,
+  });
+
+  // 검증 이후 다른 요청이 먼저 처리했다면 갱신 대상이 없다
+  if (!cancelledOrder) {
+    throw new AppError(ErrorCodes.ORDER.INVALID_ORDER_STATUS);
+  }
+
+  return cancelledOrder;
+}
+
 // 구매 승인
 async function approveOrder(params: {
   orderId: string;
@@ -390,6 +430,7 @@ export default {
   getPurchaseRequestDetail,
   createDirectOrder,
   createPurchaseRequest,
+  cancelPurchaseRequest,
   approveOrder,
   rejectOrder,
 };

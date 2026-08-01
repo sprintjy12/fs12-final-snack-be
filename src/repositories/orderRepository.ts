@@ -447,6 +447,38 @@ async function createPurchaseRequest(params: {
   );
 }
 
+// 구매 요청 취소 (PENDING → CANCELLED, 상태만 변경)
+async function cancelPurchaseRequest(params: {
+  orderId: string;
+  userId: string;
+  companyId: string;
+}) {
+  const { orderId, userId, companyId } = params;
+
+  try {
+    // 본인이 올린 대기 중 구매 요청만 취소할 수 있다
+    return await prisma.order.update({
+      where: {
+        id: orderId,
+        companyId,
+        requesterId: userId,
+        type: OrderType.REQUEST,
+        status: OrderStatus.PENDING,
+      },
+      data: { status: OrderStatus.CANCELLED },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 // 구매 반려
 async function updateOrderToRejected(params: {
   orderId: string;
@@ -489,6 +521,7 @@ export default {
   sumApprovedOrderTotal,
   createDirectOrder,
   createPurchaseRequest,
+  cancelPurchaseRequest,
   updateOrderToApproved,
   updateOrderToRejected,
 };

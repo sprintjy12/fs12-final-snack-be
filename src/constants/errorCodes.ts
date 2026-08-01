@@ -162,6 +162,11 @@ export const ErrorCodes = {
       statusCode: 403,
       message: "주문에 대한 권한이 없습니다.",
     },
+    EMPTY_ITEMS: {
+      code: "ORDER_EMPTY_ITEMS",
+      statusCode: 400,
+      message: "구매할 상품을 선택해주세요.",
+    },
   },
   CART: {
     ITEM_NOT_FOUND: {

@@ -61,8 +61,20 @@ async function deleteCart(userId: string) {
   return cartRepository.deleteAll(userId);
 }
 
+// 장바구니 개별 삭제
+async function deleteCartItem(userId: string, cartItemId: string) {
+  const result = await cartRepository.deleteById(cartItemId, userId);
+
+  if (result.count === 0) {
+    throw new AppError(ErrorCodes.CART.ITEM_NOT_FOUND);
+  }
+
+  return result;
+}
+
 export default {
   getCart,
   addToCart,
   deleteCart,
+  deleteCartItem,
 };

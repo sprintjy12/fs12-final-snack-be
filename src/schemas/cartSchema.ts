@@ -14,3 +14,7 @@ export const addToCartSchema = z.object({
     .optional()
     .default(1),
 });
+
+export const cartIdParamSchema = z.object({
+  cartId: z.string().uuid("올바른 장바구니 ID가 아닙니다."),
+});

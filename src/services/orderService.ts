@@ -250,6 +250,53 @@ async function createDirectOrder(params: {
   return result.order;
 }
 
+// 구매 요청 생성 (완료 페이지용 요약 포함)
+async function createPurchaseRequest(params: {
+  userId: string;
+  companyId: string;
+  cartItemIds: string[];
+  requestMessage?: string;
+}) {
+  const { userId, companyId, cartItemIds, requestMessage } = params;
+
+  if (!Array.isArray(cartItemIds) || cartItemIds.length === 0) {
+    throw new AppError(ErrorCodes.ORDER.EMPTY_ITEMS);
+  }
+
+  const uniqueCartItemIds = [...new Set(cartItemIds)];
+
+  const result = await orderRepository.createPurchaseRequest({
+    userId,
+    companyId,
+    cartItemIds: uniqueCartItemIds,
+    requestMessage,
+  });
+
+  if (result.status === "CART_ITEM_NOT_FOUND") {
+    throw new AppError(ErrorCodes.CART.ITEM_NOT_FOUND);
+  }
+
+  if (result.status === "PRODUCT_NOT_FOUND") {
+    throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
+  }
+
+  const { order, firstItem, totalQuantity } = result;
+
+  return {
+    orderId: order.id,
+    status: order.status,
+    productAmount: order.productAmount,
+    shippingFee: order.shippingFee,
+    totalPrice: order.totalPrice,
+    totalQuantity,
+    requestMessage: order.requestMessage,
+    requestedAt: order.createdAt,
+    // 완료 페이지: 요청 배열 첫 상품을 대표로 사용
+    firstProductName: firstItem.productName,
+    categoryName: firstItem.categoryName,
+  };
+}
+
 async function getProcessablePurchaseRequest(
   orderId: string,
   companyId: string,
@@ -272,6 +319,46 @@ async function getProcessablePurchaseRequest(
   }
 
   return order;
+}
+
+// 구매 요청 취소
+async function cancelPurchaseRequest(params: {
+  orderId: string;
+  userId: string;
+  companyId: string;
+}) {
+  const { orderId, userId, companyId } = params;
+
+  const order = await orderRepository.findOrderById(orderId);
+
+  if (!order || order.companyId !== companyId) {
+    throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
+  }
+
+  if (order.type !== OrderType.REQUEST) {
+    throw new AppError(ErrorCodes.ORDER.INVALID_ORDER_TYPE);
+  }
+
+  if (order.requesterId !== userId) {
+    throw new AppError(ErrorCodes.ORDER.UNAUTHORIZED_ACCESS);
+  }
+
+  if (order.status !== OrderStatus.PENDING) {
+    throw new AppError(ErrorCodes.ORDER.INVALID_ORDER_STATUS);
+  }
+
+  const cancelledOrder = await orderRepository.cancelPurchaseRequest({
+    orderId,
+    userId,
+    companyId,
+  });
+
+  // 검증 이후 다른 요청이 먼저 처리했다면 갱신 대상이 없다
+  if (!cancelledOrder) {
+    throw new AppError(ErrorCodes.ORDER.INVALID_ORDER_STATUS);
+  }
+
+  return cancelledOrder;
 }
 
 // 구매 승인
@@ -337,6 +424,8 @@ export default {
   getPurchaseRequestList,
   getPurchaseRequestDetail,
   createDirectOrder,
+  createPurchaseRequest,
+  cancelPurchaseRequest,
   approveOrder,
   rejectOrder,
 };

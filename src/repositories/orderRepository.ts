@@ -286,6 +286,47 @@ async function updateOrderToApproved(params: {
   );
 }
 
+// 본인 장바구니 항목을 읽고 주문 항목(스냅샷 포함)으로 변환한다
+async function resolveCartItemsToOrderItems(
+  tx: Prisma.TransactionClient,
+  params: { userId: string; companyId: string; cartItemIds: string[] },
+) {
+  const { userId, companyId, cartItemIds } = params;
+
+  const cartItems = await tx.cartItem.findMany({
+    where: { id: { in: cartItemIds }, userId },
+    include: {
+      product: { include: { category: { include: { parent: true } } } },
+    },
+  });
+
+  if (cartItems.length !== cartItemIds.length) {
+    return { status: "CART_ITEM_NOT_FOUND" as const };
+  }
+
+  // 다른 회사 상품이 섞이면 지출 집계가 어긋나므로 막는다
+  if (cartItems.some((item) => item.product.companyId !== companyId)) {
+    return { status: "PRODUCT_NOT_FOUND" as const };
+  }
+
+  // findMany 결과는 순서가 없으므로 요청한 cartItemIds 순서를 유지한다
+  const cartItemById = new Map(cartItems.map((item) => [item.id, item]));
+  const orderedCartItems = cartItemIds.map((id) => cartItemById.get(id)!);
+
+  // 금액·스냅샷은 요청/구매 시점의 상품 정보로 확정한다
+  const items = orderedCartItems.map((item) => ({
+    productId: item.productId,
+    unitPrice: item.product.price,
+    quantity: item.quantity,
+    subtotal: item.product.price * item.quantity,
+    productName: item.product.name,
+    imageUrl: item.product.imageUrl,
+    categoryName: formatCategoryName(item.product.category),
+  }));
+
+  return { status: "OK" as const, items };
+}
+
 // 즉시구매 (장바구니 항목으로 주문을 만들고 바로 확정, 월 예산 검증 포함)
 async function createDirectOrder(params: {
   userId: string;
@@ -299,34 +340,17 @@ async function createDirectOrder(params: {
     async (tx) => {
       const defaultMonthlyBudget = await lockCompanyForApproval(tx, companyId);
 
-      // 본인 장바구니에 담긴 항목만 구매할 수 있다
-      const cartItems = await tx.cartItem.findMany({
-        where: { id: { in: cartItemIds }, userId },
-        include: {
-          product: { include: { category: { include: { parent: true } } } },
-        },
+      const resolved = await resolveCartItemsToOrderItems(tx, {
+        userId,
+        companyId,
+        cartItemIds,
       });
 
-      if (cartItems.length !== cartItemIds.length) {
-        return { status: "CART_ITEM_NOT_FOUND" as const };
+      if (resolved.status !== "OK") {
+        return resolved;
       }
 
-      // 다른 회사 상품이 섞이면 지출 집계가 어긋나므로 막는다
-      if (cartItems.some((item) => item.product.companyId !== companyId)) {
-        return { status: "PRODUCT_NOT_FOUND" as const };
-      }
-
-      // 금액은 구매 시점의 상품 가격으로 확정한다
-      const items = cartItems.map((item) => ({
-        productId: item.productId,
-        unitPrice: item.product.price,
-        quantity: item.quantity,
-        subtotal: item.product.price * item.quantity,
-        productName: item.product.name,
-        imageUrl: item.product.imageUrl,
-        categoryName: formatCategoryName(item.product.category),
-      }));
-
+      const { items } = resolved;
       const productAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
       const totalPrice = productAmount + SHIPPING_FEE;
 
@@ -365,6 +389,116 @@ async function createDirectOrder(params: {
     },
     { timeout: 10000 },
   );
+}
+
+// 구매 요청 생성 (PENDING, 예산 검증·purchaseCount 없음, 생성 시 스냅샷)
+async function createPurchaseRequest(params: {
+  userId: string;
+  companyId: string;
+  cartItemIds: string[];
+  requestMessage?: string;
+}) {
+  const { userId, companyId, cartItemIds, requestMessage } = params;
+
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
+        const resolved = await resolveCartItemsToOrderItems(tx, {
+          userId,
+          companyId,
+          cartItemIds,
+        });
+
+        if (resolved.status !== "OK") {
+          return resolved;
+        }
+
+        // 주문을 만들기 전에 장바구니를 선점한다.
+        // 삭제 개수가 부족하면 다른 요청이 먼저 가져간 것이므로 중단한다.
+        const deleted = await tx.cartItem.deleteMany({
+          where: { id: { in: cartItemIds }, userId },
+        });
+
+        if (deleted.count !== cartItemIds.length) {
+          // 일부만 지워진 채 커밋되지 않도록 롤백한다
+          throw new Error("CART_ITEM_CLAIM_CONFLICT");
+        }
+
+        const { items } = resolved;
+        const productAmount = items.reduce(
+          (sum, item) => sum + item.subtotal,
+          0,
+        );
+        const totalPrice = productAmount + SHIPPING_FEE;
+
+        const order = await tx.order.create({
+          data: {
+            companyId,
+            requesterId: userId,
+            type: OrderType.REQUEST,
+            status: OrderStatus.PENDING,
+            productAmount,
+            shippingFee: SHIPPING_FEE,
+            totalPrice,
+            requestMessage,
+            orderItems: { create: items },
+          },
+        });
+
+        // 대표 상품은 DB include 순서가 아니라 요청 배열 첫 항목을 사용한다
+        const firstItem = items[0];
+
+        return {
+          status: "CREATED" as const,
+          order,
+          firstItem: {
+            productName: firstItem.productName,
+            categoryName: firstItem.categoryName,
+          },
+          totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
+        };
+      },
+      { timeout: 10000 },
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message === "CART_ITEM_CLAIM_CONFLICT") {
+      return { status: "CART_ITEM_NOT_FOUND" as const };
+    }
+
+    throw error;
+  }
+}
+
+// 구매 요청 취소 (PENDING → CANCELLED, 상태만 변경)
+async function cancelPurchaseRequest(params: {
+  orderId: string;
+  userId: string;
+  companyId: string;
+}) {
+  const { orderId, userId, companyId } = params;
+
+  try {
+    // 본인이 올린 대기 중 구매 요청만 취소할 수 있다
+    return await prisma.order.update({
+      where: {
+        id: orderId,
+        companyId,
+        requesterId: userId,
+        type: OrderType.REQUEST,
+        status: OrderStatus.PENDING,
+      },
+      data: { status: OrderStatus.CANCELLED },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 // 구매 반려
@@ -408,6 +542,8 @@ export default {
   findOrderDetailById,
   sumApprovedOrderTotal,
   createDirectOrder,
+  createPurchaseRequest,
+  cancelPurchaseRequest,
   updateOrderToApproved,
   updateOrderToRejected,
 };

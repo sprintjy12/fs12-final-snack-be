@@ -72,9 +72,53 @@ async function deleteCartItem(userId: string, cartItemId: string) {
   return result;
 }
 
+// 장바구니 선택 삭제
+async function deleteSelectedCartItems(userId: string, cartItemIds: string[]) {
+  const result = await cartRepository.deleteManyByIds(cartItemIds, userId);
+
+  if (result.count === 0) {
+    throw new AppError(ErrorCodes.CART.ITEM_NOT_FOUND);
+  }
+
+  return result;
+}
+
+async function updateCartItem(userId: string, cartItemId: string, delta: number) {
+  return prisma.$transaction(async (tx) => {
+    const cartItem = await cartRepository.findByIdAndUser(cartItemId, userId, tx);
+    if (!cartItem) {
+      throw new AppError(ErrorCodes.CART.ITEM_NOT_FOUND);
+    }
+
+    const newQuantity = cartItem.quantity + delta;
+
+    // 0 이하가 되면 삭제하고 종료
+    if (newQuantity <= 0) {
+      await cartRepository.deleteById(cartItemId, userId, tx);
+      return { deleted: true, item: null };
+    }
+
+    const [product] = await tx.$queryRaw<{ stock: number }[]>`
+      SELECT stock FROM "Product" WHERE id = ${cartItem.productId} FOR UPDATE
+    `;
+    if (!product) {
+      throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
+    }
+
+    if (product.stock < newQuantity) {
+      throw new AppError(ErrorCodes.CART.INSUFFICIENT_STOCK);
+    }
+
+    const updated = await cartRepository.updateQuantity(cartItemId, newQuantity, tx);
+    return { deleted: false, item: updated };
+  });
+}
+
 export default {
   getCart,
   addToCart,
   deleteCart,
   deleteCartItem,
+  deleteSelectedCartItems,
+  updateCartItem,
 };

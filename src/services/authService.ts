@@ -96,12 +96,19 @@ export const signupSuperAdmin = async (
  * @param loginData 로그인 데이터
  * @returns 로그인 결과
  */
+// 사용자가 없을 때도 bcrypt.compare 처리 시간을 동일하게 유지하기 위한 더미 해시
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync(
+  "dummy-password",
+  PASSWORD_HASH_ROUNDS,
+);
+
 export const login = async (loginData: LoginInput) => {
   const { email, password } = loginData;
 
   const user = await findUserForLogin(email);
 
   if (!user) {
+    await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
     throw new AppError(
       ErrorCodes.AUTH.INVALID_CREDENTIALS,
     );

@@ -85,6 +85,7 @@ export const loginSchema = z.object({
     })
     .trim()
     .min(1, "이메일을 입력해주세요.")
+    .max(254, "이메일은 254자 이하로 입력해주세요.")
     .toLowerCase()
     .pipe(
       z.email({
@@ -96,7 +97,11 @@ export const loginSchema = z.object({
     .string({
       error: "비밀번호를 입력해주세요.",
     })
-    .min(1, "비밀번호를 입력해주세요."),
+    .min(1, "비밀번호를 입력해주세요.")
+    .max(
+      PASSWORD_MAX_LENGTH,
+      `비밀번호는 ${PASSWORD_MAX_LENGTH}자 이하여야 합니다.`,
+    ),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

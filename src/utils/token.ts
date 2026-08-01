@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import jwt, {
   JwtPayload,
   JsonWebTokenError,
@@ -147,4 +147,35 @@ export const verifyAccessToken = (
 
     throw error;
   }
+};
+
+/**
+ * 토큰 해시 생성
+ * @param token 토큰 원문
+ * @returns SHA-256 해시값
+ */
+export const hashToken = (token: string) => {
+  return createHash("sha256").update(token).digest("hex");
+};
+
+/**
+ * 리프레시 토큰 만료 시각 조회
+ * @param token 리프레시 토큰
+ * @returns 리프레시 토큰 만료 시각
+ */
+export const getRefreshTokenExpirationDate = (
+  token: string,
+) => {
+  const decoded = jwt.decode(token);
+
+  if (
+    typeof decoded === "string" ||
+    !decoded?.exp
+  ) {
+    throw new Error(
+      "리프레시 토큰의 만료 시각을 확인할 수 없습니다.",
+    );
+  }
+
+  return new Date(decoded.exp * 1000);
 };

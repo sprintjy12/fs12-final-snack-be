@@ -1,13 +1,24 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, UserStatus } from "@prisma/client";
 import bcrypt from "bcrypt";
 
 import { ErrorCodes } from "../constants/errorCodes";
 import {
+  createRefreshTokenRecord,
   createSuperAdminWithCompany,
   findCompanyByBusinessNumber,
   findUserByEmail,
+  findUserForLogin,
 } from "../repositories/authRepository";
-import { SuperAdminSignupInput } from "../schemas/authSchema";
+import {
+  LoginInput,
+  SuperAdminSignupInput,
+} from "../schemas/authSchema";
+import {
+  createAccessToken,
+  createRefreshToken,
+  getRefreshTokenExpirationDate,
+  hashToken,
+} from "../utils/token";
 import AppError from "../utils/appError";
 
 const PASSWORD_HASH_ROUNDS = 12;
@@ -78,4 +89,69 @@ export const signupSuperAdmin = async (
 
     throw error;
   }
+};
+
+/**
+ * 로그인
+ * @param loginData 로그인 데이터
+ * @returns 로그인 결과
+ */
+export const login = async (loginData: LoginInput) => {
+  const { email, password } = loginData;
+
+  const user = await findUserForLogin(email);
+
+  if (!user) {
+    throw new AppError(
+      ErrorCodes.AUTH.INVALID_CREDENTIALS,
+    );
+  }
+
+  const isPasswordValid = await bcrypt.compare(
+    password,
+    user.passwordHash,
+  );
+
+  if (!isPasswordValid) {
+    throw new AppError(
+      ErrorCodes.AUTH.INVALID_CREDENTIALS,
+    );
+  }
+
+  if (user.status !== UserStatus.ACTIVE) {
+    throw new AppError(
+      ErrorCodes.AUTH.INACTIVE_USER,
+    );
+  }
+
+  const accessToken = createAccessToken({
+    userId: user.id,
+    companyId: user.companyId,
+    role: user.role,
+  });
+
+  const refreshToken = createRefreshToken(user.id);
+  const refreshTokenHash = hashToken(refreshToken);
+
+  const refreshTokenExpiresAt =
+    getRefreshTokenExpirationDate(refreshToken);
+
+  await createRefreshTokenRecord({
+    userId: user.id,
+    tokenHash: refreshTokenHash,
+    expiresAt: refreshTokenExpiresAt,
+  });
+
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      companyId: user.companyId,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+    },
+  };
 };

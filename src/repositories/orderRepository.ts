@@ -396,55 +396,73 @@ async function createPurchaseRequest(params: {
 }) {
   const { userId, companyId, cartItemIds, requestMessage } = params;
 
-  return prisma.$transaction(
-    async (tx) => {
-      const resolved = await resolveCartItemsToOrderItems(tx, {
-        userId,
-        companyId,
-        cartItemIds,
-      });
-
-      if (resolved.status !== "OK") {
-        return resolved;
-      }
-
-      const { items } = resolved;
-      const productAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
-      const totalPrice = productAmount + SHIPPING_FEE;
-
-      const order = await tx.order.create({
-        data: {
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
+        const resolved = await resolveCartItemsToOrderItems(tx, {
+          userId,
           companyId,
-          requesterId: userId,
-          type: OrderType.REQUEST,
-          status: OrderStatus.PENDING,
-          productAmount,
-          shippingFee: SHIPPING_FEE,
-          totalPrice,
-          requestMessage,
-          orderItems: { create: items },
-        },
-        include: {
-          orderItems: {
-            select: {
-              productName: true,
-              categoryName: true,
-              quantity: true,
-              unitPrice: true,
-              subtotal: true,
+          cartItemIds,
+        });
+
+        if (resolved.status !== "OK") {
+          return resolved;
+        }
+
+        // 주문을 만들기 전에 장바구니를 선점한다.
+        // 삭제 개수가 부족하면 다른 요청이 먼저 가져간 것이므로 중단한다.
+        const deleted = await tx.cartItem.deleteMany({
+          where: { id: { in: cartItemIds }, userId },
+        });
+
+        if (deleted.count !== cartItemIds.length) {
+          // 일부만 지워진 채 커밋되지 않도록 롤백한다
+          throw new Error("CART_ITEM_CLAIM_CONFLICT");
+        }
+
+        const { items } = resolved;
+        const productAmount = items.reduce(
+          (sum, item) => sum + item.subtotal,
+          0,
+        );
+        const totalPrice = productAmount + SHIPPING_FEE;
+
+        const order = await tx.order.create({
+          data: {
+            companyId,
+            requesterId: userId,
+            type: OrderType.REQUEST,
+            status: OrderStatus.PENDING,
+            productAmount,
+            shippingFee: SHIPPING_FEE,
+            totalPrice,
+            requestMessage,
+            orderItems: { create: items },
+          },
+          include: {
+            orderItems: {
+              select: {
+                productName: true,
+                categoryName: true,
+                quantity: true,
+                unitPrice: true,
+                subtotal: true,
+              },
             },
           },
-        },
-      });
+        });
 
-      await tx.cartItem.deleteMany({
-        where: { id: { in: cartItemIds }, userId },
-      });
+        return { status: "CREATED" as const, order };
+      },
+      { timeout: 10000 },
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message === "CART_ITEM_CLAIM_CONFLICT") {
+      return { status: "CART_ITEM_NOT_FOUND" as const };
+    }
 
-      return { status: "CREATED" as const, order };
-    },
-    { timeout: 10000 },
-  );
+    throw error;
+  }
 }
 
 // 구매 요청 취소 (PENDING → CANCELLED, 상태만 변경)

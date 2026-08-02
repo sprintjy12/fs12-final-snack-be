@@ -2,7 +2,10 @@ import { Router } from "express";
 
 import authController from "../controllers/authController.js";
 import { validate } from "../middlewares/zodValidate.js";
-import { superAdminSignupSchema } from "../schemas/authSchema.js";
+import {
+  loginSchema,
+  superAdminSignupSchema,
+} from "../schemas/authSchema";
 
 /**
  * 인증 라우터
@@ -19,7 +22,20 @@ const authRouter = Router();
 authRouter.post(
   "/super-admin/signup",
   validate(superAdminSignupSchema),
-  authController.handleSignupSuperAdmin,
+  authController.signupSuperAdmin,
 );
+
+/**
+ * 로그인
+ * @param req 요청
+ * @param res 응답
+ * @returns 로그인 성공 메시지
+ */
+authRouter.post(
+  "/login",
+  validate(loginSchema),
+  authController.login,
+);
+
 
 export default authRouter;

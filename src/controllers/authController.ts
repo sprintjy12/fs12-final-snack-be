@@ -7,9 +7,12 @@ import {
 } from "../schemas/authSchema";
 import {
   login,
+  refreshTokens,
   signupSuperAdmin,
 } from "../services/authService";
 import asyncHandler from "../utils/asyncHandler";
+import { ErrorCodes } from "../constants/errorCodes";
+import AppError from "../utils/appError";
 
 const REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
 const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
@@ -21,24 +24,24 @@ const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
  * @returns 최고 관리자 회원가입 성공 메시지
  */
 const handleSignupSuperAdmin = asyncHandler(
-    async (
-      req: Request<
-        ParamsDictionary,
-        unknown,
-        SuperAdminSignupInput
-      >,
-      res: Response,
-    ) => {
-      const signupData = req.body;
+  async (
+    req: Request<
+      ParamsDictionary,
+      unknown,
+      SuperAdminSignupInput
+    >,
+    res: Response,
+  ) => {
+    const signupData = req.body;
   
-      const result = await signupSuperAdmin(signupData); // 최고 관리자 회원가입
+    const result = await signupSuperAdmin(signupData); // 최고 관리자 회원가입
   
-      res.status(201).json({
-        message: "최고 관리자 회원가입에 성공했습니다.",
-        data: result, 
-      });
-    },
-  );
+    res.status(201).json({
+      message: "최고 관리자 회원가입에 성공했습니다.",
+      data: result, 
+    });
+  },
+);
 
 /**
  * 로그인
@@ -71,7 +74,7 @@ const handleLogin = asyncHandler(
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         maxAge: REFRESH_TOKEN_MAX_AGE,
-        path: "/api/auth/",
+        path: "/api/auth",
       },
     );
 
@@ -85,7 +88,52 @@ const handleLogin = asyncHandler(
   },
 );
 
+/**
+ * 토큰 재발급
+ */
+const handleRefreshTokens = asyncHandler(
+  async (
+    req: Request,
+    res: Response,
+  ) => {
+    const refreshToken =
+      req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      throw new AppError(
+        ErrorCodes.AUTH.REFRESH_TOKEN_REQUIRED,
+      );
+    }
+
+    const {
+      accessToken,
+      refreshToken: newRefreshToken,
+    } = await refreshTokens(refreshToken);
+
+    res.cookie(
+      REFRESH_TOKEN_COOKIE_NAME,
+      newRefreshToken,
+      {
+        httpOnly: true,
+        secure:
+          process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: REFRESH_TOKEN_MAX_AGE,
+        path: "/api/auth",
+      },
+    );
+
+    res.status(200).json({
+      message: "토큰 재발급에 성공했습니다.",
+      data: {
+        accessToken,
+      },
+    });
+  },
+);
+
 export default {
   signupSuperAdmin: handleSignupSuperAdmin,
   login: handleLogin,
+  refreshTokens: handleRefreshTokens,
 };

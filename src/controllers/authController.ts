@@ -24,24 +24,24 @@ const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
  * @returns 최고 관리자 회원가입 성공 메시지
  */
 const handleSignupSuperAdmin = asyncHandler(
-    async (
-      req: Request<
-        ParamsDictionary,
-        unknown,
-        SuperAdminSignupInput
-      >,
-      res: Response,
-    ) => {
-      const signupData = req.body;
+  async (
+    req: Request<
+      ParamsDictionary,
+      unknown,
+      SuperAdminSignupInput
+    >,
+    res: Response,
+  ) => {
+    const signupData = req.body;
   
-      const result = await signupSuperAdmin(signupData); // 최고 관리자 회원가입
+    const result = await signupSuperAdmin(signupData); // 최고 관리자 회원가입
   
-      res.status(201).json({
-        message: "최고 관리자 회원가입에 성공했습니다.",
-        data: result, 
-      });
-    },
-  );
+    res.status(201).json({
+      message: "최고 관리자 회원가입에 성공했습니다.",
+      data: result, 
+    });
+  },
+);
 
 /**
  * 로그인
@@ -74,7 +74,7 @@ const handleLogin = asyncHandler(
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         maxAge: REFRESH_TOKEN_MAX_AGE,
-        path: "/api/auth/",
+        path: "/api/auth",
       },
     );
 

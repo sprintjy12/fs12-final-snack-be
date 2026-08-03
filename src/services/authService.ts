@@ -229,12 +229,26 @@ export const refreshTokens = async (
       newRefreshToken,
     );
 
-  await rotateRefreshToken({
-    oldRefreshTokenId: storedRefreshToken.id,
-    userId: user.id,
-    tokenHash: newRefreshTokenHash,
-    expiresAt: newRefreshTokenExpiresAt,
-  });
+  try {
+    await rotateRefreshToken({
+      oldRefreshTokenId: storedRefreshToken.id,
+      userId: user.id,
+      tokenHash: newRefreshTokenHash,
+      expiresAt: newRefreshTokenExpiresAt,
+    });
+  } catch (error) {
+    // 동시 재발급 등으로 이미 삭제된 행을 다시 delete하면 P2025
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      throw new AppError(
+        ErrorCodes.AUTH.INVALID_REFRESH_TOKEN,
+      );
+    }
+
+    throw error;
+  }
 
   return {
     accessToken: newAccessToken,

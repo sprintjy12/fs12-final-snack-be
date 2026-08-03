@@ -14,9 +14,25 @@ import cartRouter from "./routes/cartRouter";
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 
+const frontendUrl = process.env.FRONTEND_URL;
+
+if (!frontendUrl) {
+  throw new Error(
+    "FRONTEND_URL 환경변수가 설정되지 않았습니다.",
+  );
+}
+
+try {
+  new URL(frontendUrl);
+} catch {
+  throw new Error(
+    "FRONTEND_URL 환경변수가 올바른 URL 형식이 아닙니다.",
+  );
+}
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: frontendUrl,
     credentials: true,
   }),
 );

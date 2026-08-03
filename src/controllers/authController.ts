@@ -142,9 +142,11 @@ const handleLogout = asyncHandler(
     res: Response,
   ) => {
     const refreshToken =
-      req.cookies?.refreshToken;
+    typeof req.cookies?.refreshToken === "string"
+     ? req.cookies.refreshToken
+     : undefined;
 
-    await logout(refreshToken);
+await logout(refreshToken);
 
     res.clearCookie(
       REFRESH_TOKEN_COOKIE_NAME,

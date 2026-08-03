@@ -37,5 +37,16 @@ authRouter.post(
   authController.login,
 );
 
+/**
+ * 리프레시 토큰 갱신
+ * @param req 요청
+ * @param res 응답
+ * @returns 리프레시 토큰 갱신 성공 메시지
+ */
+authRouter.post(
+  "/refresh",
+  authController.refreshTokens,
+);
+
 
 export default authRouter;

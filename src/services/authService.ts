@@ -7,7 +7,10 @@ import {
   createSuperAdminWithCompany,
   findCompanyByBusinessNumber,
   findUserByEmail,
+  findUserForAuthentication,
   findUserForLogin,
+  findRefreshTokenByHash,
+  rotateRefreshToken,
 } from "../repositories/authRepository";
 import {
   LoginInput,
@@ -18,6 +21,7 @@ import {
   createRefreshToken,
   getRefreshTokenExpirationDate,
   hashToken,
+  verifyRefreshToken,
 } from "../utils/token";
 import AppError from "../utils/appError";
 
@@ -160,5 +164,94 @@ export const login = async (loginData: LoginInput) => {
       role: user.role,
       status: user.status,
     },
+  };
+};
+
+/**
+ * 토큰 재발급
+ * @param refreshToken 리프레시 토큰 원문
+ * @returns 새로운 액세스 토큰과 리프레시 토큰
+ */
+export const refreshTokens = async (
+  refreshToken: string,
+) => {
+  const payload = verifyRefreshToken(refreshToken);
+
+  const refreshTokenHash = hashToken(refreshToken);
+
+  const storedRefreshToken =
+    await findRefreshTokenByHash(refreshTokenHash);
+
+  if (!storedRefreshToken) {
+    throw new AppError(
+      ErrorCodes.AUTH.INVALID_REFRESH_TOKEN,
+    );
+  }
+
+  if (
+    storedRefreshToken.userId !== payload.sub
+  ) {
+    throw new AppError(
+      ErrorCodes.AUTH.INVALID_REFRESH_TOKEN,
+    );
+  }
+
+  const user = await findUserForAuthentication(
+    payload.sub,
+  );
+
+  if (!user) {
+    throw new AppError(
+      ErrorCodes.AUTH.INVALID_REFRESH_TOKEN,
+    );
+  }
+
+  if (user.status !== UserStatus.ACTIVE) {
+    throw new AppError(
+      ErrorCodes.AUTH.INACTIVE_USER,
+    );
+  }
+
+  const newAccessToken = createAccessToken({
+    userId: user.id,
+    companyId: user.companyId,
+    role: user.role,
+  });
+
+  const newRefreshToken =
+    createRefreshToken(user.id);
+
+  const newRefreshTokenHash =
+    hashToken(newRefreshToken);
+
+  const newRefreshTokenExpiresAt =
+    getRefreshTokenExpirationDate(
+      newRefreshToken,
+    );
+
+  try {
+    await rotateRefreshToken({
+      oldRefreshTokenId: storedRefreshToken.id,
+      userId: user.id,
+      tokenHash: newRefreshTokenHash,
+      expiresAt: newRefreshTokenExpiresAt,
+    });
+  } catch (error) {
+    // 동시 재발급 등으로 이미 삭제된 행을 다시 delete하면 P2025
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      throw new AppError(
+        ErrorCodes.AUTH.INVALID_REFRESH_TOKEN,
+      );
+    }
+
+    throw error;
+  }
+
+  return {
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
   };
 };

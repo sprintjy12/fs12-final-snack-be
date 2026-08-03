@@ -4,6 +4,7 @@ import {
   InvitationRole,
   OrderStatus,
   OrderType,
+  Prisma,
   PrismaClient,
   UserRole,
   UserStatus,
@@ -14,6 +15,7 @@ const prisma = new PrismaClient();
 
 const PASSWORD_HASH_ROUNDS = 12;
 const DEFAULT_PASSWORD = "Password123!";
+const SEED_TX_TIMEOUT_MS = 120_000;
 
 const hashToken = (token: string) =>
   createHash("sha256").update(token).digest("hex");
@@ -30,28 +32,88 @@ const daysAgo = (days: number) => {
   return date;
 };
 
-async function main() {
-  console.log("🌱 Seeding database...");
+/** DATABASE_URL에서 비밀번호를 제외한 연결 대상 정보 */
+const getDatabaseTarget = () => {
+  const databaseUrl = process.env.DATABASE_URL;
 
-  // FK 역순으로 초기화 (재실행 가능하게)
-  await prisma.refreshToken.deleteMany();
-  await prisma.cartItem.deleteMany();
-  await prisma.orderItem.deleteMany();
-  await prisma.order.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.budget.deleteMany();
-  await prisma.invitation.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.company.deleteMany();
+  if (!databaseUrl) {
+    return { raw: "(DATABASE_URL not set)" };
+  }
+
+  try {
+    const url = new URL(databaseUrl);
+    return {
+      host: url.hostname,
+      port: url.port || "5432",
+      database: url.pathname.replace(/^\//, "") || "(unknown)",
+      user: url.username || "(unknown)",
+    };
+  } catch {
+    return { raw: "(invalid DATABASE_URL)" };
+  }
+};
+
+/**
+ * 시드는 전체 테이블을 비운 뒤 다시 채운다.
+ * SSH 터널(localhost → RDS) 환경에서 실수로 원격 DB를 지우지 않도록 가드한다.
+ */
+const assertSafeToSeed = () => {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Seed aborted: NODE_ENV=production 에서는 시드를 실행할 수 없습니다.",
+    );
+  }
+
+  if (process.env.ALLOW_DB_SEED !== "true") {
+    throw new Error(
+      [
+        "Seed aborted: 명시적 허용이 필요합니다.",
+        "  ALLOW_DB_SEED=true npm run db:seed",
+        "",
+        "주의: npm run ssh 터널이 켜져 있으면 localhost도 원격 RDS입니다.",
+      ].join("\n"),
+    );
+  }
+
+  const target = getDatabaseTarget();
+  console.log("🎯 Seed target DB:");
+  if ("raw" in target) {
+    console.log(`  ${target.raw}`);
+  } else {
+    console.log(`  host     : ${target.host}`);
+    console.log(`  port     : ${target.port}`);
+    console.log(`  database : ${target.database}`);
+    console.log(`  user     : ${target.user}`);
+  }
+  console.log("");
+};
+
+async function main() {
+  assertSafeToSeed();
+
+  console.log("🌱 Seeding database...");
 
   const passwordHash = await bcrypt.hash(
     DEFAULT_PASSWORD,
     PASSWORD_HASH_ROUNDS,
   );
 
+  await prisma.$transaction(
+    async (tx: Prisma.TransactionClient) => {
+  // FK 역순으로 초기화 (재실행 가능하게)
+  await tx.refreshToken.deleteMany();
+  await tx.cartItem.deleteMany();
+  await tx.orderItem.deleteMany();
+  await tx.order.deleteMany();
+  await tx.product.deleteMany();
+  await tx.category.deleteMany();
+  await tx.budget.deleteMany();
+  await tx.invitation.deleteMany();
+  await tx.user.deleteMany();
+  await tx.company.deleteMany();
+
   // ---------- Companies (2) ----------
-  const companyA = await prisma.company.create({
+  const companyA = await tx.company.create({
     data: {
       id: randomUUID(),
       name: "스낵팩토리",
@@ -60,7 +122,7 @@ async function main() {
     },
   });
 
-  const companyB = await prisma.company.create({
+  const companyB = await tx.company.create({
     data: {
       id: randomUUID(),
       name: "오피스바이트",
@@ -80,7 +142,7 @@ async function main() {
     adminB,
     userB1,
   ] = await Promise.all([
-    prisma.user.create({
+    tx.user.create({
       data: {
         id: randomUUID(),
         companyId: companyA.id,
@@ -90,7 +152,7 @@ async function main() {
         role: UserRole.SUPER_ADMIN,
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         id: randomUUID(),
         companyId: companyA.id,
@@ -100,7 +162,7 @@ async function main() {
         role: UserRole.ADMIN,
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         id: randomUUID(),
         companyId: companyA.id,
@@ -110,7 +172,7 @@ async function main() {
         role: UserRole.USER,
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         id: randomUUID(),
         companyId: companyA.id,
@@ -120,7 +182,7 @@ async function main() {
         role: UserRole.USER,
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         id: randomUUID(),
         companyId: companyA.id,
@@ -132,7 +194,7 @@ async function main() {
         withdrawnAt: daysAgo(10),
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         id: randomUUID(),
         companyId: companyB.id,
@@ -142,7 +204,7 @@ async function main() {
         role: UserRole.SUPER_ADMIN,
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         id: randomUUID(),
         companyId: companyB.id,
@@ -152,7 +214,7 @@ async function main() {
         role: UserRole.ADMIN,
       },
     }),
-    prisma.user.create({
+    tx.user.create({
       data: {
         id: randomUUID(),
         companyId: companyB.id,
@@ -165,7 +227,7 @@ async function main() {
   ]);
 
   // ---------- Invitations (4) ----------
-  await prisma.invitation.createMany({
+  await tx.invitation.createMany({
     data: [
       {
         companyId: companyA.id,
@@ -207,21 +269,21 @@ async function main() {
   });
 
   // ---------- Categories (대분류 3 + 소분류 7) ----------
-  const catSnack = await prisma.category.create({
+  const catSnack = await tx.category.create({
     data: {
       id: randomUUID(),
       name: "과자/스낵",
       depth: 1,
     },
   });
-  const catDrink = await prisma.category.create({
+  const catDrink = await tx.category.create({
     data: {
       id: randomUUID(),
       name: "음료",
       depth: 1,
     },
   });
-  const catInstant = await prisma.category.create({
+  const catInstant = await tx.category.create({
     data: {
       id: randomUUID(),
       name: "간편식",
@@ -238,7 +300,7 @@ async function main() {
     catRamen,
     catMeal,
   ] = await Promise.all([
-    prisma.category.create({
+    tx.category.create({
       data: {
         id: randomUUID(),
         parentId: catSnack.id,
@@ -246,7 +308,7 @@ async function main() {
         depth: 2,
       },
     }),
-    prisma.category.create({
+    tx.category.create({
       data: {
         id: randomUUID(),
         parentId: catSnack.id,
@@ -254,7 +316,7 @@ async function main() {
         depth: 2,
       },
     }),
-    prisma.category.create({
+    tx.category.create({
       data: {
         id: randomUUID(),
         parentId: catSnack.id,
@@ -262,7 +324,7 @@ async function main() {
         depth: 2,
       },
     }),
-    prisma.category.create({
+    tx.category.create({
       data: {
         id: randomUUID(),
         parentId: catDrink.id,
@@ -270,7 +332,7 @@ async function main() {
         depth: 2,
       },
     }),
-    prisma.category.create({
+    tx.category.create({
       data: {
         id: randomUUID(),
         parentId: catDrink.id,
@@ -278,7 +340,7 @@ async function main() {
         depth: 2,
       },
     }),
-    prisma.category.create({
+    tx.category.create({
       data: {
         id: randomUUID(),
         parentId: catInstant.id,
@@ -286,7 +348,7 @@ async function main() {
         depth: 2,
       },
     }),
-    prisma.category.create({
+    tx.category.create({
       data: {
         id: randomUUID(),
         parentId: catInstant.id,
@@ -494,7 +556,7 @@ async function main() {
 
   const products = await Promise.all(
     productDefs.map(({ categoryName: _categoryName, ...data }) =>
-      prisma.product.create({
+      tx.product.create({
         data: {
           id: randomUUID(),
           ...data,
@@ -516,7 +578,7 @@ async function main() {
   );
 
   // ---------- Budgets (회사별 최근 3개월) ----------
-  await prisma.budget.createMany({
+  await tx.budget.createMany({
     data: [
       {
         id: randomUUID(),
@@ -834,7 +896,7 @@ async function main() {
         ? 0
         : shippingFee;
 
-    await prisma.order.create({
+    await tx.order.create({
       data: {
         id: randomUUID(),
         companyId: spec.companyId,
@@ -868,7 +930,7 @@ async function main() {
   }
 
   // ---------- CartItems (5) ----------
-  await prisma.cartItem.createMany({
+  await tx.cartItem.createMany({
     data: [
       {
         id: randomUUID(),
@@ -904,7 +966,7 @@ async function main() {
   });
 
   // ---------- RefreshTokens (2) ----------
-  await prisma.refreshToken.createMany({
+  await tx.refreshToken.createMany({
     data: [
       {
         id: randomUUID(),
@@ -920,6 +982,12 @@ async function main() {
       },
     ],
   });
+    },
+    {
+      maxWait: 10_000,
+      timeout: SEED_TX_TIMEOUT_MS,
+    },
+  );
 
   console.log("✅ Seed completed");
   console.log("");

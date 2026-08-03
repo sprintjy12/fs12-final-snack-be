@@ -6,6 +6,7 @@
     "start": "tsc && node dist/app.js",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
+    "db:seed:allow": "ALLOW_DB_SEED=true prisma db seed",
     "ssh": "dotenv -- bash -c 'ssh -i \"$SSH_KEY_PATH\" -L 5432:$DB_HOST:5432 $EC2_USER@$EC2_HOST -N'"
   },
   "prisma": {

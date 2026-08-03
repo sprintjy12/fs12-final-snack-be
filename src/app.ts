@@ -22,9 +22,26 @@ if (!frontendUrl) {
   );
 }
 
+let frontendOrigin: string;
+
 try {
-  new URL(frontendUrl);
-} catch {
+  const parsedUrl = new URL(frontendUrl);
+
+  if (
+    parsedUrl.protocol !== "http:" &&
+    parsedUrl.protocol !== "https:"
+  ) {
+    throw new Error(
+      "FRONTEND_URL은 http 또는 https 프로토콜만 사용할 수 있습니다.",
+    );
+  }
+
+  frontendOrigin = parsedUrl.origin;
+} catch (error) {
+  if (error instanceof Error && error.message.includes("프로토콜")) {
+    throw error;
+  }
+
   throw new Error(
     "FRONTEND_URL 환경변수가 올바른 URL 형식이 아닙니다.",
   );
@@ -32,7 +49,7 @@ try {
 
 app.use(
   cors({
-    origin: frontendUrl,
+    origin: frontendOrigin,
     credentials: true,
   }),
 );

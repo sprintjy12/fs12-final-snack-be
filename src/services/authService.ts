@@ -11,6 +11,7 @@ import {
   findUserForLogin,
   findRefreshTokenByHash,
   rotateRefreshToken,
+  deleteRefreshTokenByHash,
 } from "../repositories/authRepository";
 import {
   LoginInput,
@@ -250,8 +251,28 @@ export const refreshTokens = async (
     throw error;
   }
 
+  
+
   return {
     accessToken: newAccessToken,
     refreshToken: newRefreshToken,
   };
+};
+
+/**
+ * 로그아웃
+ * @param refreshToken 리프레시 토큰 원문
+ */
+export const logout = async (
+  refreshToken?: string,
+) => {
+  if (!refreshToken) {
+    return;
+  }
+
+  const refreshTokenHash = hashToken(refreshToken);
+
+  await deleteRefreshTokenByHash(
+    refreshTokenHash,
+  );
 };

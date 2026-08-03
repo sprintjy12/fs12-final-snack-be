@@ -9,6 +9,7 @@ import {
   login,
   refreshTokens,
   signupSuperAdmin,
+  logout,
 } from "../services/authService";
 import asyncHandler from "../utils/asyncHandler";
 import { ErrorCodes } from "../constants/errorCodes";
@@ -132,8 +133,41 @@ const handleRefreshTokens = asyncHandler(
   },
 );
 
+/**
+ * 로그아웃
+ */
+const handleLogout = asyncHandler(
+  async (
+    req: Request,
+    res: Response,
+  ) => {
+    const refreshToken =
+    typeof req.cookies?.refreshToken === "string"
+     ? req.cookies.refreshToken
+     : undefined;
+
+await logout(refreshToken);
+
+    res.clearCookie(
+      REFRESH_TOKEN_COOKIE_NAME,
+      {
+        httpOnly: true,
+        secure:
+          process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/api/auth",
+      },
+    );
+
+    res.status(200).json({
+      message: "로그아웃에 성공했습니다.",
+    });
+  },
+);
+
 export default {
   signupSuperAdmin: handleSignupSuperAdmin,
   login: handleLogin,
   refreshTokens: handleRefreshTokens,
+  logout: handleLogout,
 };

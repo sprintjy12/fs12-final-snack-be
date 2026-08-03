@@ -14,7 +14,46 @@ import cartRouter from "./routes/cartRouter";
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 
-app.use(cors());
+const frontendUrl = process.env.FRONTEND_URL;
+
+if (!frontendUrl) {
+  throw new Error(
+    "FRONTEND_URL 환경변수가 설정되지 않았습니다.",
+  );
+}
+
+let frontendOrigin: string;
+
+try {
+  const parsedUrl = new URL(frontendUrl);
+
+  if (
+    parsedUrl.protocol !== "http:" &&
+    parsedUrl.protocol !== "https:"
+  ) {
+    throw new Error(
+      "FRONTEND_URL은 http 또는 https 프로토콜만 사용할 수 있습니다.",
+    );
+  }
+
+  frontendOrigin = parsedUrl.origin;
+} catch (error) {
+  if (error instanceof Error && error.message.includes("프로토콜")) {
+    throw error;
+  }
+
+  throw new Error(
+    "FRONTEND_URL 환경변수가 올바른 URL 형식이 아닙니다.",
+  );
+}
+
+app.use(
+  cors({
+    origin: frontendOrigin,
+    credentials: true,
+  }),
+);
+
 app.use(express.json());
 app.use(cookieParser());
 app.use("/api/products", productRouter);

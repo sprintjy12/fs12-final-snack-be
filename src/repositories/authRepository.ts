@@ -15,6 +15,13 @@ type CreateRefreshTokenData = {
   expiresAt: Date;
 };
 
+type RotateRefreshTokenData = {
+  oldRefreshTokenId: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+};
+
 /**
  * 유저 인증 정보 조회
  * @param userId 유저 ID
@@ -171,6 +178,93 @@ export const createRefreshTokenRecord = async ({
       userId: true,
       expiresAt: true,
       createdAt: true,
+    },
+  });
+};
+
+/**
+ * 리프레시 토큰 해시로 토큰 정보 조회
+ * @param tokenHash 리프레시 토큰 해시
+ * @returns 리프레시 토큰 정보
+ */
+export const findRefreshTokenByHash = async (
+  tokenHash: string,
+) => {
+  return prisma.refreshToken.findUnique({
+    where: {
+      tokenHash,
+    },
+    select: {
+      id: true,
+      userId: true,
+      tokenHash: true,
+      expiresAt: true,
+      createdAt: true,
+    },
+  });
+};
+
+/**
+ * 리프레시 토큰 삭제
+ * @param id 리프레시 토큰 ID
+ */
+export const deleteRefreshTokenById = async (
+  id: string,
+) => {
+  return prisma.refreshToken.delete({
+    where: {
+      id,
+    },
+  });
+};
+
+/**
+ * 리프레시 토큰 교체
+ * @param oldRefreshTokenId 기존 리프레시 토큰 ID
+ * @param userId 유저 ID
+ * @param tokenHash 새로운 리프레시 토큰 해시
+ * @param expiresAt 새로운 리프레시 토큰 만료 시각
+ */
+export const rotateRefreshToken = async ({
+  oldRefreshTokenId,
+  userId,
+  tokenHash,
+  expiresAt,
+}: RotateRefreshTokenData) => {
+  return prisma.$transaction(async (transaction) => {
+    await transaction.refreshToken.delete({
+      where: {
+        id: oldRefreshTokenId,
+      },
+    });
+
+    return transaction.refreshToken.create({
+      data: {
+        userId,
+        tokenHash,
+        expiresAt,
+      },
+      select: {
+        id: true,
+        userId: true,
+        expiresAt: true,
+        createdAt: true,
+      },
+    });
+  });
+};
+
+/**
+ * 리프레시 토큰 해시로 토큰 삭제
+ * @param tokenHash 리프레시 토큰 해시
+ * @returns 삭제된 토큰 개수
+ */
+export const deleteRefreshTokenByHash = async (
+  tokenHash: string,
+) => {
+  return prisma.refreshToken.deleteMany({
+    where: {
+      tokenHash,
     },
   });
 };

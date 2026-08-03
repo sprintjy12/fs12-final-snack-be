@@ -1,3 +1,4 @@
+import { UserStatus } from "@prisma/client";
 import { ErrorCodes } from "../constants/errorCodes";
 import { findMyProfile } from "../repositories/userRepository";
 import AppError from "../utils/appError";
@@ -8,13 +9,15 @@ import AppError from "../utils/appError";
  * @returns 내 정보
  */
 export const getMyProfile = async (userId: string) => {
-  const user = await findMyProfile(userId);
-
-  if (!user) {
-    throw new AppError(
-      ErrorCodes.USER.NOT_FOUND,
-    );
-  }
-
-  return user;
-};
+    const user = await findMyProfile(userId);
+  
+    if (!user) {
+      throw new AppError(ErrorCodes.USER.NOT_FOUND);
+    }
+  
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new AppError(ErrorCodes.AUTH.INACTIVE_USER);
+    }
+  
+    return user;
+  };

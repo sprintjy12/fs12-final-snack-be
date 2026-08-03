@@ -15,6 +15,11 @@ type AccessTokenPayload = JwtPayload & {
   type: "access";
 };
 
+type RefreshTokenPayload = JwtPayload & {
+  sub: string;
+  type: "refresh";
+};
+
 type CreateAccessTokenData = {
   userId: string;
   companyId: string;
@@ -142,6 +147,52 @@ export const verifyAccessToken = (
     if (error instanceof JsonWebTokenError) {
       throw new AppError(
         ErrorCodes.AUTH.INVALID_ACCESS_TOKEN,
+      );
+    }
+
+    throw error;
+  }
+};
+
+/**
+ * 리프레시 토큰 검증
+ * @param token 리프레시 토큰
+ * @returns 리프레시 토큰 페이로드
+ */
+export const verifyRefreshToken = (
+  token: string,
+): RefreshTokenPayload => {
+  try {
+    const decoded = jwt.verify(
+      token,
+      getRefreshTokenSecret(),
+    );
+
+    if (
+      typeof decoded === "string" ||
+      !decoded.sub ||
+      decoded.type !== "refresh"
+    ) {
+      throw new AppError(
+        ErrorCodes.AUTH.INVALID_REFRESH_TOKEN,
+      );
+    }
+
+    return decoded as RefreshTokenPayload;
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+
+    if (error instanceof TokenExpiredError) {
+      throw new AppError(
+        ErrorCodes.AUTH.REFRESH_TOKEN_EXPIRED,
+      );
+    }
+
+    if (error instanceof JsonWebTokenError) {
+      throw new AppError(
+        ErrorCodes.AUTH.INVALID_REFRESH_TOKEN,
       );
     }
 

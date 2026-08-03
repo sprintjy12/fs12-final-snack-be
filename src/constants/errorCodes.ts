@@ -20,6 +20,21 @@ export const ErrorCodes = {
       statusCode: 401,
       message: "액세스 토큰이 만료되었습니다.",
     },
+    REFRESH_TOKEN_REQUIRED: {
+      code: "AUTH_REFRESH_TOKEN_REQUIRED",
+      statusCode: 401,
+      message: "리프레시 토큰이 필요합니다.",
+    },
+    INVALID_REFRESH_TOKEN: {
+      code: "AUTH_INVALID_REFRESH_TOKEN",
+      statusCode: 401,
+      message: "유효하지 않은 리프레시 토큰입니다.",
+    },
+    REFRESH_TOKEN_EXPIRED: {
+      code: "AUTH_REFRESH_TOKEN_EXPIRED",
+      statusCode: 401,
+      message: "리프레시 토큰이 만료되었습니다.",
+    },
     FORBIDDEN: {
       code: "AUTH_FORBIDDEN",
       statusCode: 403,

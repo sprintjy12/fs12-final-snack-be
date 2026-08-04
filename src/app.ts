@@ -8,6 +8,7 @@ import orderRouter from "./routes/orderRouter";
 import budgetRouter from "./routes/budgetRouter";
 import authRouter from "./routes/authRouter";
 import userRouter from "./routes/userRouter";
+import invitationRouter from "./routes/invitationRouter";
 import errorHandler from "./middlewares/errorHandler";
 import AppError from "./utils/appError";
 import cartRouter from "./routes/cartRouter";
@@ -63,6 +64,7 @@ app.use("/api/budgets", budgetRouter);
 app.use("/api/cart", cartRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
+app.use("/api/invitations", invitationRouter);
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });

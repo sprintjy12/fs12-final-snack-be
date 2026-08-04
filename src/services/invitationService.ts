@@ -2,14 +2,19 @@ import { Prisma } from "@prisma/client";
 import { ErrorCodes } from "../constants/errorCodes";
 import {
   createInvitationIfNotExists,
+  createInvitedUserAndUseInvitation,
   deleteInvitation,
   findUserByEmailForInvitation,
   findValidInvitation,
   findInvitationByTokenHash,
   isInviteeBlocked,
 } from "../repositories/invitationRepository";
-import { CreateInvitationInput } from "../schemas/invitationSchema";
+import { 
+  CreateInvitationInput,
+  InvitedSignupInput,
+} from "../schemas/invitationSchema";
 import AppError from "../utils/appError";
+import bcrypt from "bcrypt";
 import {
   createInvitationToken,
   getInvitationExpirationDate,
@@ -183,4 +188,83 @@ export const verifyInvitation = async (token: string) => {
     companyName: invitation.company.name,
     expiresAt: invitation.expiresAt,
   };
+};
+
+// 초대 토큰 사용 후 유저 생성
+export const signupInvitedUser = async (
+  input: InvitedSignupInput,
+) => {
+  const tokenHash = hashInvitationToken(input.token);
+  const invitation = await findInvitationByTokenHash(tokenHash);
+
+  if (!invitation) {
+    throw new AppError(ErrorCodes.INVITATION.NOT_FOUND);
+  }
+
+  if (invitation.isUsed) {
+    throw new AppError(ErrorCodes.INVITATION.ALREADY_USED);
+  }
+
+  if (invitation.expiresAt <= new Date()) {
+    throw new AppError(ErrorCodes.INVITATION.EXPIRED);
+  }
+
+  const existingUser = await findUserByEmailForInvitation(
+    invitation.email,
+  );
+
+  if (existingUser) {
+    throw new AppError(
+      ErrorCodes.INVITATION.USER_ALREADY_EXISTS,
+    );
+  }
+
+  const passwordHash = await bcrypt.hash(input.password, 12);
+
+  try {
+    const signupResult = await createInvitedUserAndUseInvitation({
+      invitationId: invitation.id,
+      companyId: invitation.companyId,
+      name: invitation.name,
+      email: invitation.email,
+      passwordHash,
+      role: invitation.role,
+    });
+
+    if (signupResult.status === "NOT_FOUND") {
+      throw new AppError(ErrorCodes.INVITATION.NOT_FOUND);
+    }
+
+    if (signupResult.status === "ALREADY_USED") {
+      throw new AppError(ErrorCodes.INVITATION.ALREADY_USED);
+    }
+
+    if (signupResult.status === "EXPIRED") {
+      throw new AppError(ErrorCodes.INVITATION.EXPIRED);
+    }
+
+    return signupResult.user;
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+
+    // 동시 가입 레이스: email unique 충돌 → 비즈니스 에러로 매핑
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const target = error.meta?.target;
+
+      const isEmailConflict =
+        (Array.isArray(target) && target.includes("email")) ||
+        (typeof target === "string" && target.includes("email"));
+
+      if (isEmailConflict) {
+        throw new AppError(ErrorCodes.INVITATION.USER_ALREADY_EXISTS);
+      }
+    }
+
+    throw error;
+  }
 };

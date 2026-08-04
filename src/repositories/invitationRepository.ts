@@ -1,6 +1,24 @@
 import { InvitationRole, Prisma, UserStatus } from "@prisma/client";
 import prisma from "../config/db";
 
+type CreateInvitedUserData = {
+  invitationId: number;
+  companyId: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  role: InvitationRole;
+};
+
+type CreateInvitationData = {
+  companyId: string;
+  name: string;
+  email: string;
+  role: InvitationRole;
+  tokenHash: string;
+  expiresAt: Date;
+};
+
 const WITHDRAWAL_RECOVERY_DAYS = 7;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
@@ -24,15 +42,6 @@ export type InvitationUserSnapshot = {
   companyId: string;
   status: UserStatus;
   withdrawnAt: Date | null;
-};
-
-type CreateInvitationData = {
-  companyId: string;
-  name: string;
-  email: string;
-  role: InvitationRole;
-  tokenHash: string;
-  expiresAt: Date;
 };
 
 /**
@@ -68,6 +77,9 @@ export const isInviteeBlocked = (
   return recoveryDeadlineMs >= now.getTime();
 };
 
+/**
+ * 초대 대상 유저 조회
+ */
 export const findUserByEmailForInvitation = async (email: string) => {
   return prisma.user.findUnique({
     where: { email },
@@ -75,6 +87,9 @@ export const findUserByEmailForInvitation = async (email: string) => {
   });
 };
 
+/**
+ * 초대 토큰 해시로 초대 조회
+ */
 export const findValidInvitation = async (
   companyId: string,
   email: string,
@@ -151,6 +166,9 @@ export const createInvitationIfNotExists = async (
   );
 };
 
+/**
+ * 초대 삭제
+ */
 export const deleteInvitation = async (invitationId: number) => {
   return prisma.invitation.delete({
     where: {
@@ -159,6 +177,9 @@ export const deleteInvitation = async (invitationId: number) => {
   });
 };
 
+/**
+ * 초대 토큰 해시로 초대 조회
+ */
 export const findInvitationByTokenHash = async (tokenHash: string) => {
   return prisma.invitation.findUnique({
     where: {
@@ -166,6 +187,7 @@ export const findInvitationByTokenHash = async (tokenHash: string) => {
     },
     select: {
       id: true,
+      companyId: true,
       name: true,
       email: true,
       role: true,
@@ -177,5 +199,77 @@ export const findInvitationByTokenHash = async (tokenHash: string) => {
         },
       },
     },
+  });
+};
+
+/**
+ * 초대 토큰으로 유저 생성 + 초대 사용 처리
+ * - isUsed 를 true 로 갱신 (삭제하지 않음)
+ */
+export const createInvitedUserAndUseInvitation = async (
+  data: CreateInvitedUserData,
+) => {
+  return prisma.$transaction(async (transaction) => {
+    const invitation = await transaction.invitation.findUnique({
+      where: {
+        id: data.invitationId,
+      },
+      select: {
+        id: true,
+        isUsed: true,
+        expiresAt: true,
+      },
+    });
+
+    if (!invitation) {
+      return { status: "NOT_FOUND" as const };
+    }
+
+    if (invitation.isUsed) {
+      return { status: "ALREADY_USED" as const };
+    }
+
+    if (invitation.expiresAt <= new Date()) {
+      return { status: "EXPIRED" as const };
+    }
+
+    const user = await transaction.user.create({
+      data: {
+        companyId: data.companyId,
+        name: data.name,
+        email: data.email,
+        passwordHash: data.passwordHash,
+        role: data.role,
+      },
+      select: {
+        id: true,
+        companyId: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        company: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    await transaction.invitation.update({
+      where: {
+        id: data.invitationId,
+      },
+      data: {
+        isUsed: true,
+      },
+    });
+
+    return {
+      status: "CREATED" as const,
+      user,
+    };
   });
 };

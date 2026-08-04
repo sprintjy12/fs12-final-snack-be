@@ -28,6 +28,8 @@ const handleVerifyInvitation = asyncHandler(
 
     const invitation = await verifyInvitation(token);
 
+    res.set("Cache-Control", "no-store");
+
     res.status(200).json({
       message: "유효한 초대입니다.",
       data: invitation,

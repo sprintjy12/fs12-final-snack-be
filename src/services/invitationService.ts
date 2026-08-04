@@ -237,19 +237,15 @@ export const signupInvitedUser = async (
     if (signupResult.status === "NOT_FOUND") {
       throw new AppError(ErrorCodes.INVITATION.NOT_FOUND);
     }
-
+    
     if (signupResult.status === "ALREADY_USED") {
       throw new AppError(ErrorCodes.INVITATION.ALREADY_USED);
     }
-
+    
     if (signupResult.status === "EXPIRED") {
       throw new AppError(ErrorCodes.INVITATION.EXPIRED);
     }
-
-    if (signupResult.status === "USER_ALREADY_EXISTS") {
-      throw new AppError(ErrorCodes.INVITATION.USER_ALREADY_EXISTS);
-    }
-
+    
     return signupResult.user;
   } catch (error) {
     if (error instanceof AppError) {

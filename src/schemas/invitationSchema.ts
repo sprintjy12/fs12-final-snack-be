@@ -38,6 +38,7 @@ export type VerifyInvitationInput = z.infer<
 export const invitedSignupSchema = z.object({
   token: z
     .string()
+    .trim()
     .min(1, {
       error: "초대 토큰이 필요합니다.",
     }),

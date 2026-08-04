@@ -190,7 +190,11 @@ export const verifyInvitation = async (token: string) => {
   };
 };
 
-// 초대 토큰 사용 후 유저 생성
+/**
+ * 초대 토큰으로 회원가입
+ * - 신규: user create
+ * - 복구 기간 지난 WITHDRAWN: 기존 row 재활성화 (초대 생성 정책과 동일)
+ */
 export const signupInvitedUser = async (
   input: InvitedSignupInput,
 ) => {
@@ -209,14 +213,13 @@ export const signupInvitedUser = async (
     throw new AppError(ErrorCodes.INVITATION.EXPIRED);
   }
 
+  // 빠른 실패 (최종 가드는 트랜잭션 내부 isInviteeBlocked)
   const existingUser = await findUserByEmailForInvitation(
     invitation.email,
   );
 
-  if (existingUser) {
-    throw new AppError(
-      ErrorCodes.INVITATION.USER_ALREADY_EXISTS,
-    );
+  if (isInviteeBlocked(existingUser, new Date())) {
+    throw new AppError(ErrorCodes.INVITATION.USER_ALREADY_EXISTS);
   }
 
   const passwordHash = await bcrypt.hash(input.password, 12);
@@ -243,13 +246,19 @@ export const signupInvitedUser = async (
       throw new AppError(ErrorCodes.INVITATION.EXPIRED);
     }
 
+    if (signupResult.status === "USER_ALREADY_EXISTS") {
+      throw new AppError(ErrorCodes.INVITATION.USER_ALREADY_EXISTS);
+    }
+
     return signupResult.user;
   } catch (error) {
     if (error instanceof AppError) {
       throw error;
     }
 
-    // 동시 가입 레이스: email unique 충돌 → 비즈니스 에러로 매핑
+    // 동시 가입 레이스: email unique 충돌
+    // - 같은 초대로 winner가 isUsed 설정 후 → ALREADY_USED
+    // - 다른 경로로 이미 가입된 이메일 → USER_ALREADY_EXISTS
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
@@ -261,6 +270,13 @@ export const signupInvitedUser = async (
         (typeof target === "string" && target.includes("email"));
 
       if (isEmailConflict) {
+        const latestInvitation =
+          await findInvitationByTokenHash(tokenHash);
+
+        if (latestInvitation?.isUsed) {
+          throw new AppError(ErrorCodes.INVITATION.ALREADY_USED);
+        }
+
         throw new AppError(ErrorCodes.INVITATION.USER_ALREADY_EXISTS);
       }
     }

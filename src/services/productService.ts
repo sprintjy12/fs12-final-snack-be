@@ -1,5 +1,5 @@
 import productRepository from "../repositories/productRepository.js";
-import { Prisma } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 import AppError from "../utils/appError.js";
 import { ErrorCodes } from "../constants/errorCodes.js";
 
@@ -151,14 +151,14 @@ async function getProductById(productId: string) {
 }
 
 //상품 삭제
-async function deleteProduct(productId: string, userId: string) {
+async function deleteProduct(productId: string, userId: string, userRole: UserRole) {
   const product = await productRepository.findById(productId);
 
   if (!product) {
     throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
   }
 
-  if (product.createdById !== userId) {
+  if (product.createdById !== userId && userRole === "USER") {
     throw new AppError(ErrorCodes.PRODUCT.UNAUTHORIZED_ACCESS);
   }
 
@@ -173,6 +173,7 @@ async function deleteProduct(productId: string, userId: string) {
 async function updateProduct(
   productId: string,
   userId: string,
+  userRole: UserRole,
   input: Partial<CreateProductInput>,
 ) {
   const product = await productRepository.findById(productId);
@@ -181,7 +182,7 @@ async function updateProduct(
     throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
   }
 
-  if (product.createdById !== userId) {
+  if (product.createdById !== userId && userRole === "USER") {
     throw new AppError(ErrorCodes.PRODUCT.UNAUTHORIZED_ACCESS);
   }
 

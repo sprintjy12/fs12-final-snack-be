@@ -1,7 +1,14 @@
+import { UserRole } from "@prisma/client";
 import { Router } from "express";
 
 import userController from "../controllers/userController";
 import { authenticate } from "../middlewares/authenticate";
+import { authorize } from "../middlewares/authorize";
+import { validate } from "../middlewares/zodValidate";
+import {
+  updateUserRoleSchema,
+  userIdParamSchema,
+} from "../schemas/userSchema";
 
 const userRouter = Router();
 
@@ -9,6 +16,15 @@ userRouter.get(
   "/me",
   authenticate,
   userController.getMyProfile,
+);
+
+userRouter.patch(
+  "/:userId/role",
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN),
+  validate(userIdParamSchema, "params"),
+  validate(updateUserRoleSchema, "body"),
+  userController.updateUserRole,
 );
 
 export default userRouter;

@@ -5,6 +5,7 @@ import {
   deleteInvitation,
   findUserByEmailForInvitation,
   findValidInvitation,
+  findInvitationByTokenHash,
   isInviteeBlocked,
 } from "../repositories/invitationRepository";
 import { CreateInvitationInput } from "../schemas/invitationSchema";
@@ -34,23 +35,33 @@ const isTokenHashUniqueViolation = (
   return false;
 };
 
+/**
+ * 회원 초대 생성 + 이메일 발송
+ * - 유저/유효 초대 검사는 TX 안에서 최종 판단
+ * - 메일 실패 시 생성한 초대 롤백
+ */
 export const createMemberInvitation = async (
   companyId: string,
   input: CreateInvitationInput,
 ) => {
-  const now = new Date();
-
   // 빠른 실패 (최종 가드는 트랜잭션 내부 재검사)
   const existingUser = await findUserByEmailForInvitation(input.email);
 
-  if (isInviteeBlocked(existingUser, now)) {
+  if (isInviteeBlocked(existingUser, new Date())) {
     throw new AppError(ErrorCodes.INVITATION.USER_ALREADY_EXISTS);
   }
 
-  let invitation;
+  let invitation: {
+    id: number;
+    name: string;
+    email: string;
+    role: CreateInvitationInput["role"];
+    expiresAt: Date;
+  } | null = null;
   let invitationToken = createInvitationToken();
 
   for (let attempt = 0; attempt < MAX_CREATE_ATTEMPTS; attempt++) {
+    const now = new Date();
     const tokenHash = hashInvitationToken(invitationToken);
     const expiresAt = getInvitationExpirationDate();
 
@@ -91,7 +102,7 @@ export const createMemberInvitation = async (
         const existingInvitation = await findValidInvitation(
           companyId,
           input.email,
-          now,
+          new Date(),
         );
 
         if (existingInvitation) {
@@ -105,7 +116,7 @@ export const createMemberInvitation = async (
         throw error;
       }
 
-      // tokenHash unique 충돌은 거의 없으나 이메일 중복이 아님 → 토큰 재발급 후 1회 재시도
+      // tokenHash unique 충돌은 이메일 중복이 아님 → 토큰 재발급 후 1회 재시도
       if (
         error.code === "P2002" &&
         isTokenHashUniqueViolation(error) &&
@@ -120,7 +131,8 @@ export const createMemberInvitation = async (
   }
 
   if (!invitation) {
-    throw new AppError(ErrorCodes.INVITATION.ALREADY_EXISTS);
+    // 루프가 초대 없이 끝난 경우(이론상 도달하지 않음) — ALREADY_EXISTS로 위장하지 않음
+    throw new Error("초대 생성에 실패했습니다.");
   }
 
   try {
@@ -143,4 +155,32 @@ export const createMemberInvitation = async (
   }
 
   return invitation;
+};
+
+/**
+ * 초대 토큰 검증 (가입 전 프리필용)
+ */
+export const verifyInvitation = async (token: string) => {
+  const tokenHash = hashInvitationToken(token);
+  const invitation = await findInvitationByTokenHash(tokenHash);
+
+  if (!invitation) {
+    throw new AppError(ErrorCodes.INVITATION.NOT_FOUND);
+  }
+
+  if (invitation.isUsed) {
+    throw new AppError(ErrorCodes.INVITATION.ALREADY_USED);
+  }
+
+  if (invitation.expiresAt <= new Date()) {
+    throw new AppError(ErrorCodes.INVITATION.EXPIRED);
+  }
+
+  return {
+    name: invitation.name,
+    email: invitation.email,
+    role: invitation.role,
+    companyName: invitation.company.name,
+    expiresAt: invitation.expiresAt,
+  };
 };

@@ -21,3 +21,15 @@ export const createInvitationSchema = z.object({
 });
 
 export type CreateInvitationInput = z.infer<typeof createInvitationSchema>;
+
+export const verifyInvitationSchema = z.object({
+  token: z
+    .string()
+    .min(1, {
+      error: "초대 토큰이 필요합니다.",
+    }),
+});
+
+export type VerifyInvitationInput = z.infer<
+  typeof verifyInvitationSchema
+>;

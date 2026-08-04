@@ -79,12 +79,13 @@ async function deleteProduct(req: Request, res: Response) {
   const { productId } = req.params;
 
   const userId = req.user?.id;
+  const userRole = req.user?.role;
 
-  if (!userId) {
+  if (!userId || !userRole) {
     throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
   }
 
-  await productService.deleteProduct(productId as string, userId);
+  await productService.deleteProduct(productId as string, userId, userRole);
 
   res.status(200).json({ message: "상품 삭제 성공" });
 }
@@ -95,12 +96,13 @@ async function updateProduct(req: Request, res: Response) {
   const input = req.body as Partial<CreateProductInput>;
 
   const userId = req.user?.id;
+  const userRole = req.user?.role;
 
-  if (!userId) {
+  if (!userId || !userRole) {
     throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
   }
 
-  const product = await productService.updateProduct(productId, userId, input);
+  const product = await productService.updateProduct(productId, userId, userRole, input);
 
   res.status(200).json({
     message: "상품 수정 성공",

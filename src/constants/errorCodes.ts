@@ -84,6 +84,16 @@ export const ErrorCodes = {
       statusCode: 400,
       message: "이미 탈퇴한 회원입니다.",
     },
+    UNAUTHORIZED_ACCESS: {
+      code: "USER_UNAUTHORIZED_ACCESS",
+      statusCode: 403,
+      message: "같은 회사의 회원만 처리할 수 있습니다.",
+    },
+    CANNOT_CHANGE_SUPER_ADMIN: {
+      code: "USER_CANNOT_CHANGE_SUPER_ADMIN",
+      statusCode: 403,
+      message: "최고 관리자의 권한은 변경할 수 없습니다.",
+    },
   },
   INVITATION: {
     NOT_FOUND: {

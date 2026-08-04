@@ -76,12 +76,31 @@ async function deleteAll(userId: string) {
 }
 
 // 유저의 장바구니 개별 삭제
-async function deleteById(cartItemId: string, userId: string) {
-  return prisma.cartItem.deleteMany({
+async function deleteById(cartItemId: string, userId: string, tx?: Prisma.TransactionClient) {
+  const client = tx || prisma;
+  return client.cartItem.deleteMany({
     where: {
       id: cartItemId,
       userId,
     },
+  });
+}
+
+// 유저의 장바구니 선택 삭제
+async function deleteManyByIds(cartItemIds: string[], userId: string) {
+  return prisma.cartItem.deleteMany({
+    where: {
+      id: { in: cartItemIds },
+      userId,
+    },
+  });
+}
+
+// 사용자의 장바구니 항목 조회
+async function findByIdAndUser(id: string, userId: string, tx?: Prisma.TransactionClient) {
+  const client = tx || prisma;
+  return client.cartItem.findFirst({
+    where: { id, userId },
   });
 }
 
@@ -92,4 +111,6 @@ export default {
   updateQuantity,
   deleteAll,
   deleteById,
+  deleteManyByIds,
+  findByIdAndUser,
 };

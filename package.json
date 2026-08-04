@@ -4,7 +4,13 @@
   "scripts": {
     "dev": "nodemon --exec tsx src/app.ts",
     "start": "tsc && node dist/app.js",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:seed:allow": "ALLOW_DB_SEED=true prisma db seed",
+    "ssh": "dotenv -- bash -c 'ssh -i \"$SSH_KEY_PATH\" -L 5432:$DB_HOST:5432 $EC2_USER@$EC2_HOST -N'"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.832.0",
@@ -28,6 +34,7 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.1.1",
+    "dotenv-cli": "^11.0.0",
     "nodemon": "^3.1.7",
     "prisma": "^6.10.1",
     "tsx": "^4.23.0",

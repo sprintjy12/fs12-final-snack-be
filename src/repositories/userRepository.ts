@@ -1,4 +1,4 @@
-import { UserRole } from "@prisma/client";
+import { UserRole, UserStatus } from "@prisma/client";
 
 import prisma from "../config/db";
 
@@ -49,22 +49,50 @@ export const findUserForRoleUpdate = async (userId: string) => {
   });
 };
 
+type UpdateUserRoleAndInvalidateSessionsParams = {
+  userId: string;
+  companyId: string;
+  role: UserRole;
+};
+
 /**
- * 유저 권한 변경 및 리프레시 토큰 전체 삭제
- * @param userId 유저 ID
- * @param role 변경할 권한
+ * 조건부 권한 변경 + 세션 무효화
+ * 같은 회사 / ACTIVE / SUPER_ADMIN 아닌 경우에만 변경한다.
+ * 조건 불일치 시 토큰을 삭제하지 않고 null을 반환한다.
  */
-export const updateUserRoleAndInvalidateSessions = async (
-  userId: string,
-  role: UserRole,
-) => {
+export const updateUserRoleAndInvalidateSessions = async ({
+  userId,
+  companyId,
+  role,
+}: UpdateUserRoleAndInvalidateSessionsParams) => {
   return prisma.$transaction(async (tx) => {
-    const user = await tx.user.update({
+    const updateResult = await tx.user.updateMany({
       where: {
         id: userId,
+        companyId,
+        status: UserStatus.ACTIVE,
+        role: {
+          not: UserRole.SUPER_ADMIN,
+        },
       },
       data: {
         role,
+      },
+    });
+
+    if (updateResult.count === 0) {
+      return null;
+    }
+
+    await tx.refreshToken.deleteMany({
+      where: {
+        userId,
+      },
+    });
+
+    return tx.user.findUnique({
+      where: {
+        id: userId,
       },
       select: {
         id: true,
@@ -75,13 +103,5 @@ export const updateUserRoleAndInvalidateSessions = async (
         status: true,
       },
     });
-
-    await tx.refreshToken.deleteMany({
-      where: {
-        userId,
-      },
-    });
-
-    return user;
   });
 };

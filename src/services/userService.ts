@@ -36,15 +36,24 @@ type UpdateUserRoleParams = {
 
 /**
  * 회원 권한 변경
- * @param actorCompanyId 요청자 회사 ID
- * @param targetUserId 대상 유저 ID
- * @param role 변경할 권한 (USER | ADMIN)
+ * 조건부 update로 회사/상태/SUPER_ADMIN 제약을 원자적으로 보장한다.
  */
 export const updateUserRole = async ({
   actorCompanyId,
   targetUserId,
   role,
 }: UpdateUserRoleParams) => {
+  const updatedUser = await updateUserRoleAndInvalidateSessions({
+    userId: targetUserId,
+    companyId: actorCompanyId,
+    role,
+  });
+
+  if (updatedUser) {
+    return updatedUser;
+  }
+
+  // 조건부 변경 실패 → 현재 상태로 실패 사유 매핑
   const targetUser = await findUserForRoleUpdate(targetUserId);
 
   if (!targetUser) {
@@ -63,8 +72,5 @@ export const updateUserRole = async ({
     throw new AppError(ErrorCodes.AUTH.INACTIVE_USER);
   }
 
-  return updateUserRoleAndInvalidateSessions(
-    targetUserId,
-    role,
-  );
+  throw new AppError(ErrorCodes.AUTH.FORBIDDEN);
 };

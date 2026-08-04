@@ -10,6 +10,7 @@ export const createInvitationSchema = z.object({
 
   email: z
     .string()
+    .trim()
     .max(254, { error: "이메일은 최대 254자까지 입력할 수 있습니다." })
     .pipe(z.email({ error: "올바른 이메일 형식이 아닙니다." }))
     .transform((email) => email.toLowerCase()),

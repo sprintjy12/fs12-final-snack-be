@@ -3,39 +3,61 @@ import { Resend } from "resend";
 import { ErrorCodes } from "../constants/errorCodes";
 import AppError from "./appError";
 
-const resendApiKey = process.env.RESEND_API_KEY;
-const resendFromEmail = process.env.RESEND_FROM_EMAIL;
-const frontendUrl = process.env.FRONTEND_URL;
+let resendClient: Resend | null = null;
 
-if (!resendApiKey) {
-  throw new Error("RESEND_API_KEY 환경변수가 필요합니다.");
-}
+const getResendConfig = () => {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const resendFromEmail = process.env.RESEND_FROM_EMAIL;
+  const frontendUrl = process.env.FRONTEND_URL;
 
-if (!resendFromEmail) {
-  throw new Error("RESEND_FROM_EMAIL 환경변수가 필요합니다.");
-}
+  if (!resendApiKey || !resendFromEmail || !frontendUrl) {
+    throw new AppError(ErrorCodes.INVITATION.EMAIL_SEND_FAILED);
+  }
 
-if (!frontendUrl) {
-  throw new Error("FRONTEND_URL 환경변수가 필요합니다.");
-}
+  return {
+    resendApiKey,
+    resendFromEmail,
+    frontendUrl,
+  };
+};
 
-const resend = new Resend(resendApiKey);
+const getResendClient = () => {
+  if (!resendClient) {
+    const { resendApiKey } = getResendConfig();
+    resendClient = new Resend(resendApiKey);
+  }
+
+  return resendClient;
+};
+
+const escapeHtml = (value: string) => {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+};
 
 export const sendInvitationEmail = async (
   email: string,
   name: string,
   invitationToken: string,
 ) => {
+  const { resendFromEmail, frontendUrl } = getResendConfig();
+  const resend = getResendClient();
+
   const invitationUrl = `${frontendUrl}/invite?token=${encodeURIComponent(
     invitationToken,
   )}`;
+  const safeName = escapeHtml(name);
 
   const { error } = await resend.emails.send({
     from: resendFromEmail,
     to: email,
     subject: "간식대장 회원 초대",
     html: `
-      <p>${name}님, 간식대장에 초대되었습니다.</p>
+      <p>${safeName}님, 간식대장에 초대되었습니다.</p>
       <p>아래 링크를 통해 회원가입을 진행해주세요.</p>
       <p>
         <a href="${invitationUrl}">

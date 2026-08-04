@@ -4,6 +4,7 @@ import { z } from "zod";
 export const createInvitationSchema = z.object({
   name: z
     .string()
+    .trim()
     .min(1, { error: "이름을 입력해주세요." })
     .max(8, { error: "이름은 최대 8자까지 입력할 수 있습니다." }),
 

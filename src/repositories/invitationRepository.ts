@@ -240,85 +240,67 @@ export const createInvitedUserAndUseInvitation = async (
   return prisma.$transaction(async (transaction) => {
     const now = new Date();
 
-    const invitation = await transaction.invitation.findUnique({
+    const claimResult = await transaction.invitation.updateMany({
       where: {
         id: data.invitationId,
-      },
-      select: {
-        id: true,
-        isUsed: true,
-        expiresAt: true,
-      },
-    });
-
-    if (!invitation) {
-      return { status: "NOT_FOUND" as const };
-    }
-
-    if (invitation.isUsed) {
-      return { status: "ALREADY_USED" as const };
-    }
-
-    if (invitation.expiresAt <= now) {
-      return { status: "EXPIRED" as const };
-    }
-
-    const existingUser = await transaction.user.findUnique({
-      where: {
-        email: data.email,
-      },
-      select: userInvitationSelect,
-    });
-
-    // 초대 생성과 동일 정책: 차단 대상이면 가입 거부
-    if (isInviteeBlocked(existingUser, now)) {
-      return { status: "USER_ALREADY_EXISTS" as const };
-    }
-
-    const role = toUserRole(data.role);
-
-    // 복구 기간이 지난 WITHDRAWN: 기존 row 재활성화
-    // (email unique 유지 + 동일/타 회사 재초대 대응)
-    const user = existingUser
-      ? await transaction.user.update({
-          where: {
-            id: existingUser.id,
-          },
-          data: {
-            companyId: data.companyId,
-            name: data.name,
-            passwordHash: data.passwordHash,
-            role,
-            status: UserStatus.ACTIVE,
-            withdrawnAt: null,
-          },
-          select: invitedUserSelect,
-        })
-      : await transaction.user.create({
-          data: {
-            companyId: data.companyId,
-            name: data.name,
-            email: data.email,
-            passwordHash: data.passwordHash,
-            role,
-          },
-          select: invitedUserSelect,
-        });
-
-    if (existingUser) {
-      await transaction.refreshToken.deleteMany({
-        where: {
-          userId: existingUser.id,
+        isUsed: false,
+        expiresAt: {
+          gt: now,
         },
-      });
-    }
-
-    await transaction.invitation.update({
-      where: {
-        id: data.invitationId,
       },
       data: {
         isUsed: true,
+      },
+    });
+
+    if (claimResult.count === 0) {
+      const invitation = await transaction.invitation.findUnique({
+        where: {
+          id: data.invitationId,
+        },
+        select: {
+          isUsed: true,
+          expiresAt: true,
+        },
+      });
+
+      if (!invitation) {
+        return { status: "NOT_FOUND" as const };
+      }
+
+      if (invitation.isUsed) {
+        return { status: "ALREADY_USED" as const };
+      }
+
+      if (invitation.expiresAt <= now) {
+        return { status: "EXPIRED" as const };
+      }
+
+      return { status: "ALREADY_USED" as const };
+    }
+
+    const user = await transaction.user.create({
+      data: {
+        companyId: data.companyId,
+        name: data.name,
+        email: data.email,
+        passwordHash: data.passwordHash,
+        role: data.role,
+      },
+      select: {
+        id: true,
+        companyId: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        company: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 

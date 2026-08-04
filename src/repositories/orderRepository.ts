@@ -40,7 +40,9 @@ async function findOrders(params: {
   where: Prisma.OrderWhereInput;
   skip: number;
   take: number;
-  orderBy: Prisma.OrderOrderByWithRelationInput;
+  orderBy:
+    | Prisma.OrderOrderByWithRelationInput
+    | Prisma.OrderOrderByWithRelationInput[];
 }) {
   const { where, skip, take, orderBy } = params;
 

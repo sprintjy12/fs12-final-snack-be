@@ -5,16 +5,18 @@ import { ErrorCodes } from "../constants/errorCodes";
 import { OrderStatus, OrderType, Prisma } from "@prisma/client";
 import { getKstMonthRange, toKstYearMonth } from "../utils/date";
 
-// 정렬
-function getOrderBy(sort?: string): Prisma.OrderOrderByWithRelationInput {
+// 정렬 (동점 시 페이지 누락/중복 방지를 위해 id로 2차 정렬)
+function getOrderBy(
+  sort?: string,
+): Prisma.OrderOrderByWithRelationInput[] {
   switch (sort) {
     case "highPrice":
-      return { totalPrice: "desc" };
+      return [{ totalPrice: "desc" }, { id: "desc" }];
     case "lowPrice":
-      return { totalPrice: "asc" };
+      return [{ totalPrice: "asc" }, { id: "asc" }];
     case "latest":
     default:
-      return { createdAt: "desc" };
+      return [{ createdAt: "desc" }, { id: "desc" }];
   }
 }
 

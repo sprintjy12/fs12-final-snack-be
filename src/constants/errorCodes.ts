@@ -101,6 +101,21 @@ export const ErrorCodes = {
       statusCode: 400,
       message: "이미 사용된 초대입니다.",
     },
+    ALREADY_EXISTS: {
+      code: "INVITATION_ALREADY_EXISTS",
+      statusCode: 409,
+      message: "이미 유효한 초대가 존재합니다.",
+    },
+    USER_ALREADY_EXISTS: {
+      code: "INVITATION_USER_ALREADY_EXISTS",
+      statusCode: 409,
+      message: "이미 가입된 이메일입니다.",
+    },
+    EMAIL_SEND_FAILED: {
+      code: "INVITATION_EMAIL_SEND_FAILED",
+      statusCode: 502,
+      message: "초대 이메일 발송에 실패했습니다.",
+    },
   },
   CATEGORY: {
     NOT_FOUND: {

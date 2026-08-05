@@ -7,6 +7,8 @@ import {
 } from "../controllers/budgetController";
 import { authenticate } from "../middlewares/authenticate";
 import { authorize } from "../middlewares/authorize";
+import { validate } from "../middlewares/zodValidate";
+import { updateBudgetSettingsSchema } from "../schemas/budgetSchema";
 
 const budgetRouter = express.Router();
 
@@ -19,8 +21,6 @@ budgetRouter.get(
   getBudgetSummary,
 );
 
-// TODO: 검증 미들웨어 연결
-// validate(updateBudgetSettingsSchema, "body")
 budgetRouter.get(
   "/settings",
   authenticate,
@@ -32,6 +32,7 @@ budgetRouter.patch(
   "/settings",
   authenticate,
   authorize(...adminUp),
+  validate(updateBudgetSettingsSchema, "body"),
   updateBudgetSettings,
 );
 

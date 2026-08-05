@@ -161,7 +161,10 @@ async function checkMonthlyBudget(
     to: monthRange.to,
   });
 
-  return { withinBudget: spent + amount <= budget, budget, spent };
+  // 0 이하면 미설정/무제한으로 보고 예산 검증을 건너뛴다
+  const withinBudget = budget <= 0 || spent + amount <= budget;
+
+  return { withinBudget, budget, spent };
 }
 
 async function incrementPurchaseCounts(

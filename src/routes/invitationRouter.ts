@@ -5,6 +5,7 @@ import { authorize } from "../middlewares/authorize";
 import { validate } from "../middlewares/zodValidate";
 import { 
   createInvitationSchema, 
+  invitedSignupSchema,
   verifyInvitationSchema,
  } from "../schemas/invitationSchema";
 
@@ -14,6 +15,12 @@ invitationRouter.get(
   "/verify",
   validate(verifyInvitationSchema, "query"),
   invitationController.verifyInvitation,
+);
+
+invitationRouter.post(
+  "/signup",
+  validate(invitedSignupSchema),
+  invitationController.invitedSignup,
 );
 
 invitationRouter.post(

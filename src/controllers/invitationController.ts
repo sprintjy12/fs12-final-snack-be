@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 
 import {
   createMemberInvitation,
+  signupInvitedUser,
   verifyInvitation,
 } from "../services/invitationService";
 import asyncHandler from "../utils/asyncHandler";
@@ -37,7 +38,19 @@ const handleVerifyInvitation = asyncHandler(
   },
 );
 
+const handleInvitedSignup = asyncHandler(
+  async (req: Request, res: Response) => {
+    const user = await signupInvitedUser(req.body);
+
+    res.status(201).json({
+      message: "회원가입에 성공했습니다.",
+      data: user,
+    });
+  },
+);
+
 export default {
   createInvitation: handleCreateInvitation,
   verifyInvitation: handleVerifyInvitation,
+  invitedSignup: handleInvitedSignup,
 };

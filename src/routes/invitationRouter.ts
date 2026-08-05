@@ -3,9 +3,18 @@ import invitationController from "../controllers/invitationController";
 import { authenticate } from "../middlewares/authenticate";
 import { authorize } from "../middlewares/authorize";
 import { validate } from "../middlewares/zodValidate";
-import { createInvitationSchema } from "../schemas/invitationSchema";
+import { 
+  createInvitationSchema, 
+  verifyInvitationSchema,
+ } from "../schemas/invitationSchema";
 
 const invitationRouter = Router();
+
+invitationRouter.get(
+  "/verify",
+  validate(verifyInvitationSchema, "query"),
+  invitationController.verifyInvitation,
+);
 
 invitationRouter.post(
   "/",

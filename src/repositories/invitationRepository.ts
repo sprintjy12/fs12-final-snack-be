@@ -11,6 +11,14 @@ const userInvitationSelect = {
   withdrawnAt: true,
 } as const;
 
+const invitationSelect = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  expiresAt: true,
+} as const;
+
 export type InvitationUserSnapshot = {
   id: string;
   companyId: string;
@@ -18,9 +26,19 @@ export type InvitationUserSnapshot = {
   withdrawnAt: Date | null;
 };
 
+type CreateInvitationData = {
+  companyId: string;
+  name: string;
+  email: string;
+  role: InvitationRole;
+  tokenHash: string;
+  expiresAt: Date;
+};
+
 /**
  * 초대 대상 이메일이 차단되어야 하면 true
  * (ACTIVE, 복구 기간 내 WITHDRAWN, withdrawnAt 없는 WITHDRAWN)
+ * 복구 기간이 지난 WITHDRAWN은 false → 동일/타 회사 모두 재초대 가능
  */
 export const isInviteeBlocked = (
   existingUser: InvitationUserSnapshot | null,
@@ -34,26 +52,20 @@ export const isInviteeBlocked = (
     return true;
   }
 
-  if (
-    existingUser.status === UserStatus.WITHDRAWN &&
-    !existingUser.withdrawnAt
-  ) {
+  if (existingUser.status !== UserStatus.WITHDRAWN) {
+    return false;
+  }
+
+  // withdrawnAt 없으면 복구 기한 계산 불가 → 초대 차단
+  if (!existingUser.withdrawnAt) {
     return true;
   }
 
-  if (
-    existingUser.status === UserStatus.WITHDRAWN &&
-    existingUser.withdrawnAt
-  ) {
-    const recoveryDeadline = new Date(
-      existingUser.withdrawnAt.getTime() +
-        WITHDRAWAL_RECOVERY_DAYS * DAY_IN_MS,
-    );
+  const recoveryDeadlineMs =
+    existingUser.withdrawnAt.getTime() +
+    WITHDRAWAL_RECOVERY_DAYS * DAY_IN_MS;
 
-    return recoveryDeadline >= now;
-  }
-
-  return false;
+  return recoveryDeadlineMs >= now.getTime();
 };
 
 export const findUserByEmailForInvitation = async (email: string) => {
@@ -84,32 +96,9 @@ export const findValidInvitation = async (
   });
 };
 
-type CreateInvitationData = {
-  companyId: string;
-  name: string;
-  email: string;
-  role: InvitationRole;
-  tokenHash: string;
-  expiresAt: Date;
-};
-
-const invitationSelect = {
-  id: true,
-  name: true,
-  email: true,
-  role: true,
-  expiresAt: true,
-} as const;
-
-export const createInvitation = async (data: CreateInvitationData) => {
-  return prisma.invitation.create({
-    data,
-    select: invitationSelect,
-  });
-};
-
 /**
- * 유저 ACTIVE 여부 + 유효 초대 존재 여부를 확인한 뒤 생성 (동시 요청 레이스 완화)
+ * 초대 대상 유저 상태 + 유효 초대 중복을 트랜잭션 안에서 검사한 뒤 생성
+ * (동시 가입/동시 초대 레이스 완화)
  */
 export const createInvitationIfNotExists = async (
   data: CreateInvitationData,
@@ -166,6 +155,27 @@ export const deleteInvitation = async (invitationId: number) => {
   return prisma.invitation.delete({
     where: {
       id: invitationId,
+    },
+  });
+};
+
+export const findInvitationByTokenHash = async (tokenHash: string) => {
+  return prisma.invitation.findUnique({
+    where: {
+      tokenHash,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      expiresAt: true,
+      isUsed: true,
+      company: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 };

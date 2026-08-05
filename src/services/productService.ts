@@ -166,7 +166,14 @@ async function deleteProduct(productId: string, userId: string, userRole: UserRo
     throw new AppError(ErrorCodes.PRODUCT.HAS_ORDER_HISTORY);
   }
 
-  await productRepository.deleteById(productId);
+  try {
+    await productRepository.deleteById(productId);
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
+      throw new AppError(ErrorCodes.PRODUCT.HAS_ORDER_HISTORY);
+    }
+    throw err;
+  }
 }
 
 //상품 수정

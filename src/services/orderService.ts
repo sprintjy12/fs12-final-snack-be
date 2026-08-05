@@ -252,7 +252,7 @@ async function createDirectOrder(params: {
     throw new AppError(ErrorCodes.BUDGET.INSUFFICIENT_MONTHLY_BUDGET);
   }
 
-  const { order, firstItem, totalQuantity } = result;
+  const { order, firstItem, itemCount, totalQuantity } = result;
 
   return {
     orderId: order.id,
@@ -261,6 +261,7 @@ async function createDirectOrder(params: {
     shippingFee: order.shippingFee,
     totalPrice: order.totalPrice,
     totalQuantity,
+    itemCount,
     approvedAt: order.approvedAt,
     firstProductName: firstItem.productName,
     categoryName: firstItem.categoryName,
@@ -297,7 +298,7 @@ async function createPurchaseRequest(params: {
     throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
   }
 
-  const { order, firstItem, totalQuantity } = result;
+  const { order, firstItem, itemCount, totalQuantity } = result;
 
   return {
     orderId: order.id,
@@ -306,6 +307,7 @@ async function createPurchaseRequest(params: {
     shippingFee: order.shippingFee,
     totalPrice: order.totalPrice,
     totalQuantity,
+    itemCount,
     requestMessage: order.requestMessage,
     requestedAt: order.createdAt,
     // 완료 페이지: 요청 배열 첫 상품을 대표로 사용

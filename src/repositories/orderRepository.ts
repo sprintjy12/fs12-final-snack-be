@@ -405,6 +405,7 @@ async function createDirectOrder(params: {
           productName: firstItem.productName,
           categoryName: firstItem.categoryName,
         },
+        itemCount: items.length,
         totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
       };
     },
@@ -477,6 +478,7 @@ async function createPurchaseRequest(params: {
             productName: firstItem.productName,
             categoryName: firstItem.categoryName,
           },
+          itemCount: items.length,
           totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
         };
       },

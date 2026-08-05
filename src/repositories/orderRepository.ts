@@ -395,7 +395,18 @@ async function createDirectOrder(params: {
         tx.cartItem.deleteMany({ where: { id: { in: cartItemIds }, userId } }),
       ]);
 
-      return { status: "CREATED" as const, order };
+      // 대표 상품은 DB include 순서가 아니라 요청 배열 첫 항목을 사용한다
+      const firstItem = items[0];
+
+      return {
+        status: "CREATED" as const,
+        order,
+        firstItem: {
+          productName: firstItem.productName,
+          categoryName: firstItem.categoryName,
+        },
+        totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
+      };
     },
     { timeout: 10000 },
   );

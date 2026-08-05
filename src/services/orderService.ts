@@ -252,7 +252,19 @@ async function createDirectOrder(params: {
     throw new AppError(ErrorCodes.BUDGET.INSUFFICIENT_MONTHLY_BUDGET);
   }
 
-  return result.order;
+  const { order, firstItem, totalQuantity } = result;
+
+  return {
+    orderId: order.id,
+    status: order.status,
+    productAmount: order.productAmount,
+    shippingFee: order.shippingFee,
+    totalPrice: order.totalPrice,
+    totalQuantity,
+    approvedAt: order.approvedAt,
+    firstProductName: firstItem.productName,
+    categoryName: firstItem.categoryName,
+  };
 }
 
 // 구매 요청 생성 (완료 페이지용 요약 포함)

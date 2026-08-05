@@ -117,8 +117,15 @@ export const changePassword = async (
 
   const newPasswordHash = await bcrypt.hash(input.newPassword, 12);
 
-  await updatePasswordAndDeleteRefreshTokens(
+  const updated = await updatePasswordAndDeleteRefreshTokens(
     userId,
+    user.passwordHash,
     newPasswordHash,
   );
+  
+  if (!updated) {
+    throw new AppError(
+      ErrorCodes.USER.CURRENT_PASSWORD_MISMATCH,
+    );
+  }
 };

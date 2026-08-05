@@ -14,7 +14,6 @@ export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
 
 const passwordSchema = z
   .string()
-  .trim()
   .min(8, {
     error: "비밀번호는 최소 8자 이상이어야 합니다.",
   })
@@ -34,20 +33,13 @@ const passwordSchema = z
     error: "비밀번호에는 한글, 공백, 이모지를 사용할 수 없습니다.",
   });
 
-export const changePasswordSchema = z
-  .object({
+export const changePasswordSchema = z.object({
     currentPassword: z.string().min(1, {
       error: "현재 비밀번호를 입력해주세요.",
     }),
     newPassword: passwordSchema,
-  })
-  .refine(
-    (data) => data.currentPassword !== data.newPassword,
-    {
-      message: "새 비밀번호는 현재 비밀번호와 달라야 합니다.",
-      path: ["newPassword"],
-    },
-  );
+  }
+);
 
 export type ChangePasswordInput = z.infer<
   typeof changePasswordSchema

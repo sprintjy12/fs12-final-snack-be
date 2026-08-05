@@ -125,22 +125,30 @@ export const findUserPasswordById = async (userId: string) => {
 
 export const updatePasswordAndDeleteRefreshTokens = async (
   userId: string,
-  passwordHash: string,
+  currentPasswordHash: string,
+  newPasswordHash: string,
 ) => {
   return prisma.$transaction(async (transaction) => {
-    await transaction.user.update({
+    const updateResult = await transaction.user.updateMany({
       where: {
         id: userId,
+        passwordHash: currentPasswordHash,
       },
       data: {
-        passwordHash,
+        passwordHash: newPasswordHash,
       },
     });
+
+    if (updateResult.count !== 1) {
+      return false;
+    }
 
     await transaction.refreshToken.deleteMany({
       where: {
         userId,
       },
     });
+
+    return true;
   });
 };

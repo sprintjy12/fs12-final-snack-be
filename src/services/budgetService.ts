@@ -25,12 +25,14 @@ async function getCurrentMonthBudget(companyId: string) {
   ]);
 
   const budget = budgets[0]?.amount ?? defaultMonthlyBudget;
+  const isUnlimited = budget <= 0;
 
   return {
     yearMonth: currentMonthRange.yearMonth,
     budget,
     spent,
-    remaining: budget - spent,
+    remaining: isUnlimited ? null : budget - spent,
+    isUnlimited,
   };
 }
 
@@ -134,8 +136,14 @@ async function getBudgetSummary(companyId: string) {
   const previousMonthBudget =
     budgetByYearMonth.get(previousMonthRange.yearMonth) ?? defaultMonthlyBudget;
 
-  const currentMonthRemaining = currentMonthBudget - currentMonthSpent;
-  const previousMonthRemaining = previousMonthBudget - previousMonthSpent;
+  const currentMonthUnlimited = currentMonthBudget <= 0;
+  const previousMonthUnlimited = previousMonthBudget <= 0;
+  const currentMonthRemaining = currentMonthUnlimited
+    ? null
+    : currentMonthBudget - currentMonthSpent;
+  const previousMonthRemaining = previousMonthUnlimited
+    ? null
+    : previousMonthBudget - previousMonthSpent;
 
   return {
     currentMonth: {
@@ -143,16 +151,20 @@ async function getBudgetSummary(companyId: string) {
       budget: currentMonthBudget,
       spent: currentMonthSpent,
       remaining: currentMonthRemaining,
+      isUnlimited: currentMonthUnlimited,
     },
     previousMonth: {
       yearMonth: previousMonthRange.yearMonth,
       budget: previousMonthBudget,
       spent: previousMonthSpent,
       remaining: previousMonthRemaining,
+      isUnlimited: previousMonthUnlimited,
     },
-    // 양수면 지난달보다 남은 예산이 더 많다는 뜻
+    // 양수면 지난달보다 남은 예산이 더 많다는 뜻 (한쪽이라도 무제한이면 비교 불가)
     remainingDiffFromPreviousMonth:
-      currentMonthRemaining - previousMonthRemaining,
+      currentMonthRemaining === null || previousMonthRemaining === null
+        ? null
+        : currentMonthRemaining - previousMonthRemaining,
     currentYear: {
       year: currentMonth.year,
       spent: currentYearSpent,

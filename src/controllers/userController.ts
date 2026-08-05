@@ -4,6 +4,7 @@ import type { ParamsDictionary } from "express-serve-static-core";
 import {
   getMyProfile,
   updateUserRole,
+  changePassword,
 } from "../services/userService";
 import { UpdateUserRoleInput } from "../schemas/userSchema";
 import asyncHandler from "../utils/asyncHandler";
@@ -56,7 +57,25 @@ const handleUpdateUserRole = asyncHandler(
   },
 );
 
+/**
+ * 2026년 8월 5일 
+ * 유저 비밀번호 변경 추가
+ * 한희나 작업
+ */
+const handleChangePassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+
+    await changePassword(userId, req.body);
+
+    res.status(200).json({
+      message: "비밀번호가 변경되었습니다. 다시 로그인해주세요.",
+    });
+  },
+);
+
 export default {
   getMyProfile: handleGetMyProfile,
   updateUserRole: handleUpdateUserRole,
+  changePassword: handleChangePassword,
 };

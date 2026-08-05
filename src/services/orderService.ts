@@ -78,18 +78,21 @@ async function getOrderHistory(params: {
 
   const data = orders.map((order) => {
     const itemCount = order.orderItems.length;
+    const totalQuantity = order.orderItems.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    );
     return {
       id: order.id,
+      type: order.type,
       approvedAt: order.approvedAt,
       totalPrice: order.totalPrice,
+      totalQuantity,
       requesterName: order.requester?.name ?? null,
       processorName: order.processor?.name ?? null,
       createdAt: order.createdAt,
-      itemsSummary: {
-        firstProductName:
-          itemCount > 0 ? order.orderItems[0].productName : null,
-        itemCount,
-      },
+      firstProductName: order.orderItems[0]?.productName ?? null,
+      itemCount,
     };
   });
 

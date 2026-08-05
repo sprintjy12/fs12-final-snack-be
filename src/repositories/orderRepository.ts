@@ -51,7 +51,10 @@ async function findOrders(params: {
     include: {
       requester: { select: { name: true } },
       processor: { select: { name: true } },
-      orderItems: { select: { productName: true } },
+      orderItems: {
+        select: { productName: true, quantity: true },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      },
     },
     orderBy,
     skip,
@@ -84,6 +87,7 @@ async function findOrderDetailById(orderId: string) {
           unitPrice: true,
           subtotal: true,
         },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       },
     },
   });

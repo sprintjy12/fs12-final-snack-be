@@ -1,7 +1,7 @@
 import prisma from "../config/db";
 import { OrderStatus, OrderType, Prisma } from "@prisma/client";
 import budgetRepository from "./budgetRepository";
-import { SHIPPING_FEE } from "../constants/order";
+import { calculateShippingFee } from "../constants/order";
 
 const orderItemWithProductInclude = {
   product: {
@@ -361,7 +361,8 @@ async function createDirectOrder(params: {
 
       const { items } = resolved;
       const productAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
-      const totalPrice = productAmount + SHIPPING_FEE;
+      const shippingFee = calculateShippingFee(productAmount);
+      const totalPrice = productAmount + shippingFee;
 
       const { withinBudget, budget, spent } = await checkMonthlyBudget(tx, {
         companyId,
@@ -382,7 +383,7 @@ async function createDirectOrder(params: {
           type: OrderType.DIRECT,
           status: OrderStatus.APPROVED,
           productAmount,
-          shippingFee: SHIPPING_FEE,
+          shippingFee,
           totalPrice,
           approvedAt: new Date(),
           orderItems: { create: items },
@@ -438,7 +439,8 @@ async function createPurchaseRequest(params: {
           (sum, item) => sum + item.subtotal,
           0,
         );
-        const totalPrice = productAmount + SHIPPING_FEE;
+        const shippingFee = calculateShippingFee(productAmount);
+        const totalPrice = productAmount + shippingFee;
 
         const order = await tx.order.create({
           data: {
@@ -447,7 +449,7 @@ async function createPurchaseRequest(params: {
             type: OrderType.REQUEST,
             status: OrderStatus.PENDING,
             productAmount,
-            shippingFee: SHIPPING_FEE,
+            shippingFee,
             totalPrice,
             requestMessage,
             orderItems: { create: items },

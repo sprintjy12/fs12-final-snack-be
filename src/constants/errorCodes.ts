@@ -94,6 +94,21 @@ export const ErrorCodes = {
       statusCode: 403,
       message: "최고 관리자의 권한은 변경할 수 없습니다.",
     },
+    CURRENT_PASSWORD_MISMATCH: {
+      code: "CURRENT_PASSWORD_MISMATCH",
+      statusCode: 400,
+      message: "현재 비밀번호가 일치하지 않습니다.",
+    },
+    SAME_AS_CURRENT_PASSWORD: {
+      code: "SAME_AS_CURRENT_PASSWORD",
+      statusCode: 400,
+      message: "새 비밀번호는 현재 비밀번호와 달라야 합니다.",
+    },
+    PASSWORD_CHANGE_CONFLICT: {
+      code: "PASSWORD_CHANGE_CONFLICT",
+      statusCode: 409,
+      message: "비밀번호가 이미 변경되었습니다. 다시 로그인해주세요.",
+    },
   },
   INVITATION: {
     NOT_FOUND: {

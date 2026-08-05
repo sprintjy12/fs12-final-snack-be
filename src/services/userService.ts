@@ -1,12 +1,17 @@
 import { UserRole, UserStatus } from "@prisma/client";
-
+import bcrypt from "bcrypt";
 import { ErrorCodes } from "../constants/errorCodes";
 import {
   findMyProfile,
   findUserForRoleUpdate,
+  findUserPasswordById,
   updateUserRoleAndInvalidateSessions,
+  updatePasswordAndDeleteRefreshTokens,
 } from "../repositories/userRepository";
-import { UpdateUserRoleInput } from "../schemas/userSchema";
+import { 
+  UpdateUserRoleInput,
+  ChangePasswordInput,
+} from "../schemas/userSchema";
 import AppError from "../utils/appError";
 
 /**
@@ -73,4 +78,54 @@ export const updateUserRole = async ({
   }
 
   throw new AppError(ErrorCodes.AUTH.FORBIDDEN);
+};
+
+
+/**
+ * 2026년 8월 5일 추가
+ * 유저 비밀번호 변경
+ * 한희나 작업
+ */
+
+export const changePassword = async (
+  userId: string,
+  input: ChangePasswordInput,
+) => {
+  const user = await findUserPasswordById(userId);
+
+  if (!user) {
+    throw new AppError(ErrorCodes.USER.NOT_FOUND);
+  }
+
+  const isCurrentPasswordValid = await bcrypt.compare(
+    input.currentPassword,
+    user.passwordHash,
+  );
+
+  if (!isCurrentPasswordValid) {
+    throw new AppError(ErrorCodes.USER.CURRENT_PASSWORD_MISMATCH);
+  }
+
+  const isSamePassword = await bcrypt.compare(
+    input.newPassword,
+    user.passwordHash,
+  );
+
+  if (isSamePassword) {
+    throw new AppError(ErrorCodes.USER.SAME_AS_CURRENT_PASSWORD);
+  }
+
+  const newPasswordHash = await bcrypt.hash(input.newPassword, 12);
+
+  const updated = await updatePasswordAndDeleteRefreshTokens(
+    userId,
+    user.passwordHash,
+    newPasswordHash,
+  );
+  
+  if (!updated) {
+    throw new AppError(
+      ErrorCodes.USER.CURRENT_PASSWORD_MISMATCH,
+    );
+  }
 };

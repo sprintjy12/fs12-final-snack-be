@@ -105,3 +105,50 @@ export const updateUserRoleAndInvalidateSessions = async ({
     });
   });
 };
+
+/**
+ * 2026년 8월 5일 
+ * 유저 비밀번호 변경 추가
+ * 한희나 작업
+ */
+export const findUserPasswordById = async (userId: string) => {
+  return prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      passwordHash: true,
+    },
+  });
+};
+
+export const updatePasswordAndDeleteRefreshTokens = async (
+  userId: string,
+  currentPasswordHash: string,
+  newPasswordHash: string,
+) => {
+  return prisma.$transaction(async (transaction) => {
+    const updateResult = await transaction.user.updateMany({
+      where: {
+        id: userId,
+        passwordHash: currentPasswordHash,
+      },
+      data: {
+        passwordHash: newPasswordHash,
+      },
+    });
+
+    if (updateResult.count !== 1) {
+      return false;
+    }
+
+    await transaction.refreshToken.deleteMany({
+      where: {
+        userId,
+      },
+    });
+
+    return true;
+  });
+};

@@ -8,6 +8,7 @@ import { validate } from "../middlewares/zodValidate";
 import {
   updateUserRoleSchema,
   userIdParamSchema,
+  changePasswordSchema,
 } from "../schemas/userSchema";
 
 const userRouter = Router();
@@ -16,6 +17,13 @@ userRouter.get(
   "/me",
   authenticate,
   userController.getMyProfile,
+);
+
+userRouter.patch(
+  "/me/password",
+  authenticate,
+  validate(changePasswordSchema),
+  userController.changePassword,
 );
 
 userRouter.patch(

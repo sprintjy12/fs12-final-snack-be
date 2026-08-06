@@ -35,6 +35,7 @@ function toOrderDetailResponse(order: OrderDetail) {
     subtotal: item.subtotal,
   }));
 
+  const itemCount = items.length;
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return {
@@ -44,6 +45,7 @@ function toOrderDetailResponse(order: OrderDetail) {
     productAmount: order.productAmount,
     shippingFee: order.shippingFee,
     totalPrice: order.totalPrice,
+    itemCount,
     totalQuantity,
     requestMessage: order.requestMessage,
     responseMessage: order.responseMessage,

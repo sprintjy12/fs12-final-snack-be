@@ -219,6 +219,95 @@ async function getPurchaseRequestDetail(params: {
   };
 }
 
+// 내 구매 요청 목록 조회 (본인 요청, 전체 상태)
+async function getMyPurchaseRequestList(params: {
+  userId: string;
+  companyId: string;
+  page: number;
+  limit: number;
+  sort?: string;
+}) {
+  const { userId, companyId, page, limit, sort } = params;
+
+  const where = {
+    companyId,
+    requesterId: userId,
+    type: OrderType.REQUEST,
+  };
+
+  const [totalCount, orders] = await Promise.all([
+    orderRepository.countOrders(where),
+    orderRepository.findOrders({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: getOrderBy(sort),
+    }),
+  ]);
+
+  const data = orders.map((order) => {
+    const itemCount = order.orderItems.length;
+    const totalQuantity = order.orderItems.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    );
+    return {
+      id: order.id,
+      type: order.type,
+      status: order.status,
+      approvedAt: order.approvedAt,
+      totalPrice: order.totalPrice,
+      totalQuantity,
+      requesterName: order.requester?.name ?? null,
+      processorName: order.processor?.name ?? null,
+      createdAt: order.createdAt,
+      firstProductName: order.orderItems[0]?.productName ?? null,
+      itemCount,
+    };
+  });
+
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    data,
+    pagination: {
+      totalCount,
+      totalPages,
+      currentPage: page,
+      limit,
+      hasNextPage: page < totalPages,
+    },
+  };
+}
+
+// 내 구매 요청 상세 조회
+async function getMyPurchaseRequestDetail(params: {
+  orderId: string;
+  userId: string;
+  companyId: string;
+}) {
+  const { orderId, userId, companyId } = params;
+  const order = await orderRepository.findOrderDetailById(orderId);
+
+  if (!order) {
+    throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
+  }
+
+  if (order.companyId !== companyId) {
+    throw new AppError(ErrorCodes.ORDER.UNAUTHORIZED_ACCESS);
+  }
+
+  if (order.type !== OrderType.REQUEST) {
+    throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
+  }
+
+  if (order.requesterId !== userId) {
+    throw new AppError(ErrorCodes.ORDER.UNAUTHORIZED_ACCESS);
+  }
+
+  return toOrderDetailResponse(order);
+}
+
 // 즉시구매 (장바구니에서 고른 항목을 바로 구매 확정)
 async function createDirectOrder(params: {
   userId: string;
@@ -446,6 +535,8 @@ export default {
   getOrderDetail,
   getPurchaseRequestList,
   getPurchaseRequestDetail,
+  getMyPurchaseRequestList,
+  getMyPurchaseRequestDetail,
   createDirectOrder,
   createPurchaseRequest,
   cancelPurchaseRequest,

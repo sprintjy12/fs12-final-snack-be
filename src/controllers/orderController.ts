@@ -81,6 +81,49 @@ export const getPurchaseRequestDetail = asyncHandler(
   },
 );
 
+export const getMyPurchaseRequestList = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id: userId, companyId } = req.user!;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const sort =
+      (req.query.sort as "latest" | "highPrice" | "lowPrice") || "latest";
+
+    const result = await orderService.getMyPurchaseRequestList({
+      userId,
+      companyId,
+      page,
+      limit,
+      sort,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "내 구매 요청 리스트 조회 성공",
+      ...result,
+    });
+  },
+);
+
+export const getMyPurchaseRequestDetail = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id: userId, companyId } = req.user!;
+    const orderId = req.params.orderId as string;
+
+    const data = await orderService.getMyPurchaseRequestDetail({
+      orderId,
+      userId,
+      companyId,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "내 구매 요청 상세 조회 성공",
+      data,
+    });
+  },
+);
+
 export const createDirectOrder = asyncHandler(
   async (req: Request, res: Response) => {
     const { id: userId, companyId } = req.user!;

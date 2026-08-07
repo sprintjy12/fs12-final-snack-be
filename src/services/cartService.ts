@@ -36,7 +36,7 @@ async function addToCart(userId: string, productId: string, quantity: number) {
   return prisma.$transaction(async (tx) => {
     // 1. 상품 조회 (FOR UPDATE 락만 추가)
     const [product] = await tx.$queryRaw<{ stock: number }[]>`
-      SELECT stock FROM "Product" WHERE id = ${productId} FOR UPDATE
+      SELECT stock FROM products WHERE id = ${productId}::uuid FOR UPDATE
     `;
     if (!product) {
       throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
@@ -114,8 +114,8 @@ async function updateCartItem(
     // CartItem을 가장 먼저 잠금 — 동시 요청 직렬화의 기준점
     const [lockedCartItem] = await tx.$queryRaw<LockedCartItem[]>`
       SELECT id, "productId", quantity
-      FROM "CartItem"
-      WHERE id = ${cartItemId} AND "userId" = ${userId}
+      FROM cart_items
+      WHERE id = ${cartItemId}::uuid AND "userId" = ${userId}::uuid
       FOR UPDATE
     `;
 
@@ -132,7 +132,7 @@ async function updateCartItem(
     }
 
     const [product] = await tx.$queryRaw<{ stock: number }[]>`
-      SELECT stock FROM "Product" WHERE id = ${lockedCartItem.productId} FOR UPDATE
+      SELECT stock FROM products WHERE id = ${lockedCartItem.productId}::uuid FOR UPDATE
     `;
     if (!product) {
       throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);

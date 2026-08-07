@@ -6,9 +6,7 @@ import { OrderStatus, OrderType, Prisma } from "@prisma/client";
 import { getKstMonthRange, toKstYearMonth } from "../utils/date";
 
 // 정렬 (동점 시 페이지 누락/중복 방지를 위해 id로 2차 정렬)
-function getOrderBy(
-  sort?: string,
-): Prisma.OrderOrderByWithRelationInput[] {
+function getOrderBy(sort?: string): Prisma.OrderOrderByWithRelationInput[] {
   switch (sort) {
     case "highPrice":
       return [{ totalPrice: "desc" }, { id: "desc" }];
@@ -44,6 +42,7 @@ function toOrderDetailResponse(order: OrderDetail) {
     productAmount: order.productAmount,
     shippingFee: order.shippingFee,
     totalPrice: order.totalPrice,
+    itemCount: order.orderItems.length,
     totalQuantity,
     requestMessage: order.requestMessage,
     responseMessage: order.responseMessage,
@@ -157,10 +156,15 @@ async function getPurchaseRequestList(params: {
 
   const data = orders.map((order) => {
     const itemCount = order.orderItems.length;
+    const totalQuantity = order.orderItems.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    );
     return {
       id: order.id,
       requestedAt: order.createdAt,
       totalPrice: order.totalPrice,
+      totalQuantity,
       requesterName: order.requester?.name ?? null,
       itemsSummary: {
         firstProductName:

@@ -25,6 +25,7 @@ type OrderDetail = NonNullable<
 // 상세 응답 형태 (구매 내역 / 구매 요청 공용)
 function toOrderDetailResponse(order: OrderDetail) {
   const items = order.orderItems.map((item) => ({
+    productId: item.productId,
     productName: item.productName,
     imageUrl: item.imageUrl,
     categoryName: item.categoryName,

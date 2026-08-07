@@ -112,6 +112,7 @@ async function updateCartItem(
 ) {
   return prisma.$transaction(async (tx) => {
     // CartItem을 가장 먼저 잠금 — 동시 요청 직렬화의 기준점
+    //uuid 추가
     const [lockedCartItem] = await tx.$queryRaw<LockedCartItem[]>`
       SELECT id, "productId", quantity
       FROM cart_items

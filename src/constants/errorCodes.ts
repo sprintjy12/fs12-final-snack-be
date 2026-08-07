@@ -235,6 +235,13 @@ export const ErrorCodes = {
       message: "상품 재고가 부족합니다.",
     },
   },
+  UPLOAD: {
+    INVALID_CONTENT_TYPE: {
+      code: "UPLOAD_INVALID_CONTENT_TYPE",
+      statusCode: 400,
+      message: "지원하지 않는 이미지 형식입니다.",
+    },
+  },
   BUDGET: {
     NOT_FOUND: {
       code: "BUDGET_NOT_FOUND",

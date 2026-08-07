@@ -2,6 +2,7 @@ import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 import { ErrorCodes } from "../constants/errorCodes.js";
+import { MAX_IMAGE_SIZE_BYTES } from "../schemas/uploadSchema.js";
 import AppError from "../utils/appError.js";
 
 function getRequiredAwsCredential(name: string) {
@@ -31,14 +32,24 @@ const allowedContentTypes = new Set([
 interface CreatePresignedUrlInput {
   fileName: string;
   contentType: string;
+  fileSize: number;
 }
 
 async function createPresignedUrl({
   fileName,
   contentType,
+  fileSize,
 }: CreatePresignedUrlInput) {
   if (!allowedContentTypes.has(contentType)) {
     throw new AppError(ErrorCodes.UPLOAD.INVALID_CONTENT_TYPE);
+  }
+
+  if (
+    !Number.isInteger(fileSize) ||
+    fileSize <= 0 ||
+    fileSize > MAX_IMAGE_SIZE_BYTES
+  ) {
+    throw new AppError(ErrorCodes.UPLOAD.INVALID_FILE_SIZE);
   }
 
   const bucket = process.env.S3_BUCKET_NAME;
@@ -51,6 +62,7 @@ async function createPresignedUrl({
     Bucket: bucket,
     Key: key,
     ContentType: contentType,
+    ContentLength: fileSize,
   });
   const uploadUrl = await getSignedUrl(s3Client, command, {
     expiresIn: 60 * 5,

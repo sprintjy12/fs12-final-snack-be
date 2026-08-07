@@ -241,6 +241,11 @@ export const ErrorCodes = {
       statusCode: 400,
       message: "지원하지 않는 이미지 형식입니다.",
     },
+    INVALID_FILE_SIZE: {
+      code: "UPLOAD_INVALID_FILE_SIZE",
+      statusCode: 400,
+      message: "이미지 크기는 최대 10MB까지 업로드할 수 있습니다.",
+    },
   },
   BUDGET: {
     NOT_FOUND: {

@@ -36,7 +36,7 @@ async function addToCart(userId: string, productId: string, quantity: number) {
   return prisma.$transaction(async (tx) => {
     // 1. 상품 조회 (FOR UPDATE 락만 추가)
     const [product] = await tx.$queryRaw<{ stock: number }[]>`
-      SELECT stock FROM "Product" WHERE id = ${productId} FOR UPDATE
+      SELECT stock FROM products WHERE id = ${productId}::uuid FOR UPDATE
     `;
     if (!product) {
       throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
@@ -105,47 +105,47 @@ async function deleteSelectedCartItems(userId: string, cartItemIds: string[]) {
 }
 
 // 상품 수량 수정
-async function updateCartItem(
-  userId: string,
-  cartItemId: string,
-  delta: number,
-) {
+async function updateCartItem(userId: string, cartItemId: string, delta: number) {
   return prisma.$transaction(async (tx) => {
-    // CartItem을 가장 먼저 잠금 — 동시 요청 직렬화의 기준점
+    // 1. 락 없이 productId만 먼저 조회
+    const cartItemRow = await tx.cartItem.findFirst({
+      where: { id: cartItemId, userId },
+      select: { productId: true },
+    });
+    if (!cartItemRow) {
+      throw new AppError(ErrorCodes.CART.ITEM_NOT_FOUND);
+    }
+
+    // 2. products 먼저 잠금 (addToCart와 순서 통일)
+    const [product] = await tx.$queryRaw<{ stock: number }[]>`
+      SELECT stock FROM products WHERE id = ${cartItemRow.productId}::uuid FOR UPDATE
+    `;
+    if (!product) {
+      throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
+    }
+
+    // 3. 그 다음 cart_items 잠금 — 최신 quantity 재조회
     const [lockedCartItem] = await tx.$queryRaw<LockedCartItem[]>`
       SELECT id, "productId", quantity
-      FROM "CartItem"
-      WHERE id = ${cartItemId} AND "userId" = ${userId}
+      FROM cart_items
+      WHERE id = ${cartItemId}::uuid AND "userId" = ${userId}::uuid
       FOR UPDATE
     `;
-
     if (!lockedCartItem) {
       throw new AppError(ErrorCodes.CART.ITEM_NOT_FOUND);
     }
 
-    // 잠긴 시점의 최신 quantity를 기준으로 계산
     const newQuantity = lockedCartItem.quantity + delta;
 
     if (newQuantity <= 0) {
       await cartRepository.deleteById(cartItemId, userId, tx);
       return { deleted: true, item: null };
     }
-
-    const [product] = await tx.$queryRaw<{ stock: number }[]>`
-      SELECT stock FROM "Product" WHERE id = ${lockedCartItem.productId} FOR UPDATE
-    `;
-    if (!product) {
-      throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
-    }
     if (product.stock < newQuantity) {
       throw new AppError(ErrorCodes.CART.INSUFFICIENT_STOCK);
     }
 
-    const updated = await cartRepository.updateQuantity(
-      cartItemId,
-      newQuantity,
-      tx,
-    );
+    const updated = await cartRepository.updateQuantity(cartItemId, newQuantity, tx);
     return { deleted: false, item: updated };
   });
 }

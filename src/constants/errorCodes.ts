@@ -235,6 +235,18 @@ export const ErrorCodes = {
       message: "상품 재고가 부족합니다.",
     },
   },
+  UPLOAD: {
+    INVALID_CONTENT_TYPE: {
+      code: "UPLOAD_INVALID_CONTENT_TYPE",
+      statusCode: 400,
+      message: "지원하지 않는 이미지 형식입니다.",
+    },
+    INVALID_FILE_SIZE: {
+      code: "UPLOAD_INVALID_FILE_SIZE",
+      statusCode: 400,
+      message: "이미지 크기는 최대 10MB까지 업로드할 수 있습니다.",
+    },
+  },
   BUDGET: {
     NOT_FOUND: {
       code: "BUDGET_NOT_FOUND",

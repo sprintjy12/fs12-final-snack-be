@@ -5,6 +5,7 @@ import {
   getMyProfile,
   updateUserRole,
   changePassword,
+  changeCompanyName,
 } from "../services/userService";
 import { UpdateUserRoleInput } from "../schemas/userSchema";
 import asyncHandler from "../utils/asyncHandler";
@@ -58,9 +59,7 @@ const handleUpdateUserRole = asyncHandler(
 );
 
 /**
- * 2026년 8월 5일 
  * 유저 비밀번호 변경 추가
- * 한희나 작업
  */
 const handleChangePassword = asyncHandler(
   async (req: Request, res: Response) => {
@@ -74,8 +73,25 @@ const handleChangePassword = asyncHandler(
   },
 );
 
+/**
+ * 회사명 변경 추가
+ */
+const handleChangeCompanyName = asyncHandler(
+  async (req: Request, res: Response) => {
+    const companyId = req.user!.companyId;
+
+    const company = await changeCompanyName(companyId, req.body);
+
+    res.status(200).json({
+      message: "회사명이 변경되었습니다.",
+      data: company,
+    });
+  },
+);
+
 export default {
   getMyProfile: handleGetMyProfile,
   updateUserRole: handleUpdateUserRole,
   changePassword: handleChangePassword,
+  changeCompanyName: handleChangeCompanyName,
 };

@@ -44,3 +44,19 @@ export const changePasswordSchema = z.object({
 export type ChangePasswordInput = z.infer<
   typeof changePasswordSchema
 >;
+
+export const changeCompanyNameSchema = z.object({
+  companyName: z
+    .string()
+    .trim()
+    .min(1, {
+      error: "회사명을 입력해주세요.",
+    })
+    .max(15, {
+      error: "회사명은 최대 15자까지 입력할 수 있습니다.",
+    }),
+});
+
+export type ChangeCompanyNameInput = z.infer<
+  typeof changeCompanyNameSchema
+>;

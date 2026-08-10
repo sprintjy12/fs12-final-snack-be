@@ -10,9 +10,18 @@ import {
   userIdParamSchema,
   changePasswordSchema,
   changeCompanyNameSchema,
+  getUsersQuerySchema,
 } from "../schemas/userSchema";
 
 const userRouter = Router();
+
+userRouter.get(
+  "/",
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN),
+  validate(getUsersQuerySchema, "query"),
+  userController.getUsers,
+);
 
 userRouter.get(
   "/me",

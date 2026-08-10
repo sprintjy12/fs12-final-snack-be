@@ -3,12 +3,36 @@ import type { ParamsDictionary } from "express-serve-static-core";
 
 import {
   getMyProfile,
+  getUsers,
   updateUserRole,
   changePassword,
   changeCompanyName,
 } from "../services/userService";
-import { UpdateUserRoleInput } from "../schemas/userSchema";
+import { GetUsersQuery, UpdateUserRoleInput } from "../schemas/userSchema";
 import asyncHandler from "../utils/asyncHandler";
+
+/**
+ * 회원 목록 조회
+ */
+const handleGetUsers = asyncHandler(
+  async (req: Request, res: Response) => {
+    const actor = req.user!;
+    const { page, limit, name } = req.query as unknown as GetUsersQuery;
+
+    const result = await getUsers({
+      companyId: actor.companyId,
+      page,
+      limit,
+      name,
+    });
+
+    res.status(200).json({
+      message: "회원 목록 조회에 성공했습니다.",
+      data: result.users,
+      pagination: result.pagination,
+    });
+  },
+);
 
 /**
  * 내 정보 조회
@@ -90,6 +114,7 @@ const handleChangeCompanyName = asyncHandler(
 );
 
 export default {
+  getUsers: handleGetUsers,
   getMyProfile: handleGetMyProfile,
   updateUserRole: handleUpdateUserRole,
   changePassword: handleChangePassword,

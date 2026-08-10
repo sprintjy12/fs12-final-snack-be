@@ -163,3 +163,63 @@ export const updateCompanyName = async (
     },
   });
 };
+
+type FindUsersByCompanyParams = {
+  companyId: string;
+  name?: string;
+  skip: number;
+  take: number;
+};
+
+const buildCompanyUsersWhere = ({
+  companyId,
+  name,
+}: Pick<FindUsersByCompanyParams, "companyId" | "name">) => ({
+  companyId,
+  status: UserStatus.ACTIVE,
+  ...(name
+    ? {
+        name: {
+          contains: name,
+          mode: "insensitive" as const,
+        },
+      }
+    : {}),
+});
+
+/**
+ * 같은 회사 회원 목록 조회 (이름 부분 검색 지원)
+ */
+export const findUsersByCompany = async ({
+  companyId,
+  name,
+  skip,
+  take,
+}: FindUsersByCompanyParams) => {
+  return prisma.user.findMany({
+    where: buildCompanyUsersWhere({ companyId, name }),
+    skip,
+    take,
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+    },
+  });
+};
+
+/**
+ * 같은 회사 회원 수 조회 (이름 부분 검색 지원)
+ */
+export const countUsersByCompany = async ({
+  companyId,
+  name,
+}: Pick<FindUsersByCompanyParams, "companyId" | "name">) => {
+  return prisma.user.count({
+    where: buildCompanyUsersWhere({ companyId, name }),
+  });
+};

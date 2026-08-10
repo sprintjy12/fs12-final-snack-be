@@ -60,3 +60,17 @@ export const changeCompanyNameSchema = z.object({
 export type ChangeCompanyNameInput = z.infer<
   typeof changeCompanyNameSchema
 >;
+
+export const getUsersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+  name: z
+    .string()
+    .trim()
+    .max(8, {
+      error: "이름은 최대 8자까지 입력할 수 있습니다.",
+    })
+    .optional(),
+});
+
+export type GetUsersQuery = z.infer<typeof getUsersQuerySchema>;

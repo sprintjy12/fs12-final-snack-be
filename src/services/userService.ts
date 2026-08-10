@@ -5,14 +5,17 @@ import {
   findMyProfile,
   findUserForRoleUpdate,
   findUserPasswordById,
+  findUsersByCompany,
+  countUsersByCompany,
   updateUserRole as updateUserRoleInRepository,
   updatePasswordAndDeleteRefreshTokens,
   updateCompanyName,
 } from "../repositories/userRepository";
-import { 
+import {
   UpdateUserRoleInput,
   ChangePasswordInput,
   ChangeCompanyNameInput,
+  GetUsersQuery,
 } from "../schemas/userSchema";
 import AppError from "../utils/appError";
 
@@ -141,4 +144,47 @@ export const changeCompanyName = async (
     companyId, 
     input.companyName
   );
+};
+
+type GetUsersParams = {
+  companyId: string;
+  page: GetUsersQuery["page"];
+  limit: GetUsersQuery["limit"];
+  name?: GetUsersQuery["name"];
+};
+
+/**
+ * 같은 회사 회원 목록 조회
+ */
+export const getUsers = async ({
+  companyId,
+  page,
+  limit,
+  name,
+}: GetUsersParams) => {
+  const searchName = name?.trim() || undefined;
+  const skip = (page - 1) * limit;
+
+  const [users, total] = await Promise.all([
+    findUsersByCompany({
+      companyId,
+      name: searchName,
+      skip,
+      take: limit,
+    }),
+    countUsersByCompany({
+      companyId,
+      name: searchName,
+    }),
+  ]);
+
+  return {
+    users,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };

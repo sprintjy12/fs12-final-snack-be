@@ -257,7 +257,7 @@ async function main() {
       const companies = [companyA, companyB, ...extraCompanies];
       counts.companies = companies.length;
 
-      // ---------- Users (기존 계정 유지 + 추가 = 32+) ----------
+      // ---------- Users (기존 계정 유지 + 스낵팩토리 추가 48명) ----------
       const [
         superAdminA,
         adminA,
@@ -387,16 +387,30 @@ async function main() {
         "차예솔",
         "표진우",
         "하서진",
+        "고나래",
+        "도경수",
+        "라은별",
+        "마준서",
+        "방소율",
+        "사리원",
+        "아윤호",
+        "자민서",
+        "차도윤",
+        "카이안",
+        "타수현",
+        "파예나",
+        "하수린",
+        "강해린",
       ];
 
-      // 스낵팩토리 추가 유저 (페이지네이션용, ACTIVE 위주)
+      // 스낵팩토리 추가 유저 (페이지네이션용, ACTIVE 위주, email/name 중복 없음)
       const extraUsersA = await Promise.all(
-        Array.from({ length: 28 }, (_, i) =>
+        Array.from({ length: 48 }, (_, i) =>
           tx.user.create({
             data: {
               id: randomUUID(),
               companyId: companyA.id,
-              name: koreanNames[i % koreanNames.length],
+              name: koreanNames[i],
               email: `user${i + 3}@snackfactory.com`,
               passwordHash,
               role: i % 9 === 0 ? UserRole.ADMIN : UserRole.USER,

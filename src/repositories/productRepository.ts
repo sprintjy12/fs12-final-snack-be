@@ -48,7 +48,9 @@ async function findMany(
   where: Prisma.ProductWhereInput,
   skip: number,
   take: number,
-  orderBy: Prisma.ProductOrderByWithRelationInput,
+  orderBy:
+    | Prisma.ProductOrderByWithRelationInput
+    | Prisma.ProductOrderByWithRelationInput[],
 ) {
   return prisma.product.findMany({
     where,
@@ -72,7 +74,9 @@ async function findManyByUserId(
   userId: string,
   skip: number,
   take: number,
-  orderBy: Prisma.ProductOrderByWithRelationInput,
+  orderBy:
+    | Prisma.ProductOrderByWithRelationInput
+    | Prisma.ProductOrderByWithRelationInput[],
 ) {
   return prisma.product.findMany({
     where: { createdById: userId },

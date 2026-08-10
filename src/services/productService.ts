@@ -92,17 +92,19 @@ async function getProducts(
 }
 
 // 정렬
-function getOrderBy(sort: string): Prisma.ProductOrderByWithRelationInput {
+function getOrderBy(
+  sort: string,
+): Prisma.ProductOrderByWithRelationInput[] {
   switch (sort) {
     case "priceAsc":
-      return { price: "asc" };
+      return [{ price: "asc" }, { id: "asc" }];
     case "priceDesc":
-      return { price: "desc" };
+      return [{ price: "desc" }, { id: "desc" }];
     case "popular":
-      return { purchaseCount: "desc" };
+      return [{ purchaseCount: "desc" }, { id: "desc" }];
     case "latest":
     default:
-      return { createdAt: "desc" };
+      return [{ createdAt: "desc" }, { id: "desc" }];
   }
 }
 

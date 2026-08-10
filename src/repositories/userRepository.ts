@@ -200,9 +200,10 @@ export const findUsersByCompany = async ({
     where: buildCompanyUsersWhere({ companyId, name }),
     skip,
     take,
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: [
+      { createdAt: "desc" },
+      { id: "desc" },
+    ],
     select: {
       id: true,
       name: true,

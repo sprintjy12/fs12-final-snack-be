@@ -152,3 +152,21 @@ export const updatePasswordAndDeleteRefreshTokens = async (
     return true;
   });
 };
+
+export const updateCompanyName = async (
+  companyId: string,
+  companyName: string,
+) => {
+  return prisma.company.update({
+    where: {
+      id: companyId,
+    },
+    data: {
+      name: companyName,
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+};

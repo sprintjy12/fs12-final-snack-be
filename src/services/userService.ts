@@ -7,10 +7,12 @@ import {
   findUserPasswordById,
   updateUserRoleAndInvalidateSessions,
   updatePasswordAndDeleteRefreshTokens,
+  updateCompanyName,
 } from "../repositories/userRepository";
 import { 
   UpdateUserRoleInput,
   ChangePasswordInput,
+  ChangeCompanyNameInput,
 } from "../schemas/userSchema";
 import AppError from "../utils/appError";
 
@@ -125,7 +127,17 @@ export const changePassword = async (
   
   if (!updated) {
     throw new AppError(
-      ErrorCodes.USER.CURRENT_PASSWORD_MISMATCH,
+      ErrorCodes.USER.PASSWORD_CHANGE_CONFLICT,
     );
   }
+};
+
+export const changeCompanyName = async (
+  companyId: string,
+  input: ChangeCompanyNameInput,
+) => {
+  return updateCompanyName(
+    companyId, 
+    input.companyName
+  );
 };

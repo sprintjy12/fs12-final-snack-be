@@ -9,6 +9,7 @@ import {
   updateUserRoleSchema,
   userIdParamSchema,
   changePasswordSchema,
+  changeCompanyNameSchema,
 } from "../schemas/userSchema";
 
 const userRouter = Router();
@@ -24,6 +25,14 @@ userRouter.patch(
   authenticate,
   validate(changePasswordSchema),
   userController.changePassword,
+);
+
+userRouter.patch(
+  "/me/company",
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN),
+  validate(changeCompanyNameSchema),
+  userController.changeCompanyName,
 );
 
 userRouter.patch(

@@ -49,60 +49,53 @@ export const findUserForRoleUpdate = async (userId: string) => {
   });
 };
 
-type UpdateUserRoleAndInvalidateSessionsParams = {
+type UpdateUserRoleParams = {
   userId: string;
   companyId: string;
   role: UserRole;
 };
 
 /**
- * 조건부 권한 변경 + 세션 무효화
+ * 조건부 권한 변경
  * 같은 회사 / ACTIVE / SUPER_ADMIN 아닌 경우에만 변경한다.
- * 조건 불일치 시 토큰을 삭제하지 않고 null을 반환한다.
+ * refresh 세션은 유지한다. authenticate가 매 요청 DB role을 읽고,
+ * access 재발급 시에도 DB role로 새 토큰이 발급된다.
  */
-export const updateUserRoleAndInvalidateSessions = async ({
+export const updateUserRole = async ({
   userId,
   companyId,
   role,
-}: UpdateUserRoleAndInvalidateSessionsParams) => {
-  return prisma.$transaction(async (tx) => {
-    const updateResult = await tx.user.updateMany({
-      where: {
-        id: userId,
-        companyId,
-        status: UserStatus.ACTIVE,
-        role: {
-          not: UserRole.SUPER_ADMIN,
-        },
+}: UpdateUserRoleParams) => {
+  const updateResult = await prisma.user.updateMany({
+    where: {
+      id: userId,
+      companyId,
+      status: UserStatus.ACTIVE,
+      role: {
+        not: UserRole.SUPER_ADMIN,
       },
-      data: {
-        role,
-      },
-    });
+    },
+    data: {
+      role,
+    },
+  });
 
-    if (updateResult.count === 0) {
-      return null;
-    }
+  if (updateResult.count === 0) {
+    return null;
+  }
 
-    await tx.refreshToken.deleteMany({
-      where: {
-        userId,
-      },
-    });
-
-    return tx.user.findUnique({
-      where: {
-        id: userId,
-      },
-      select: {
-        id: true,
-        companyId: true,
-        name: true,
-        email: true,
-        role: true,
-        status: true,
-      },
-    });
+  return prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      companyId: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+    },
   });
 };
 

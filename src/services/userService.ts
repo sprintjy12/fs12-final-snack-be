@@ -5,7 +5,7 @@ import {
   findMyProfile,
   findUserForRoleUpdate,
   findUserPasswordById,
-  updateUserRoleAndInvalidateSessions,
+  updateUserRole as updateUserRoleInRepository,
   updatePasswordAndDeleteRefreshTokens,
   updateCompanyName,
 } from "../repositories/userRepository";
@@ -44,13 +44,14 @@ type UpdateUserRoleParams = {
 /**
  * 회원 권한 변경
  * 조건부 update로 회사/상태/SUPER_ADMIN 제약을 원자적으로 보장한다.
+ * 세션은 유지하고, 이후 요청/access 재발급부터 DB의 새 role이 적용된다.
  */
 export const updateUserRole = async ({
   actorCompanyId,
   targetUserId,
   role,
 }: UpdateUserRoleParams) => {
-  const updatedUser = await updateUserRoleAndInvalidateSessions({
+  const updatedUser = await updateUserRoleInRepository({
     userId: targetUserId,
     companyId: actorCompanyId,
     role,

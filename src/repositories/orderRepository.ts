@@ -80,6 +80,7 @@ async function findOrderDetailById(orderId: string) {
       },
       orderItems: {
         select: {
+          productId: true,
           productName: true,
           imageUrl: true,
           categoryName: true,

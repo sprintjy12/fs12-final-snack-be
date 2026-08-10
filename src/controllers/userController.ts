@@ -7,6 +7,7 @@ import {
   updateUserRole,
   changePassword,
   changeCompanyName,
+  withdrawUser,
 } from "../services/userService";
 import { GetUsersQuery, UpdateUserRoleInput } from "../schemas/userSchema";
 import asyncHandler from "../utils/asyncHandler";
@@ -113,10 +114,30 @@ const handleChangeCompanyName = asyncHandler(
   },
 );
 
+/**
+ * 회원 강제 탈퇴
+ */
+const handleWithdrawUser = asyncHandler(
+  async (req: Request, res: Response) => {
+    const actor = req.user!;
+    const userId = req.params.userId as string;
+
+    await withdrawUser({
+      actorCompanyId: actor.companyId,
+      targetUserId: userId,
+    });
+
+    res.status(200).json({
+      message: "회원 탈퇴 처리에 성공했습니다.",
+    });
+  },
+);
+
 export default {
   getUsers: handleGetUsers,
   getMyProfile: handleGetMyProfile,
   updateUserRole: handleUpdateUserRole,
   changePassword: handleChangePassword,
   changeCompanyName: handleChangeCompanyName,
+  withdrawUser: handleWithdrawUser,
 };

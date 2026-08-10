@@ -94,6 +94,11 @@ export const ErrorCodes = {
       statusCode: 403,
       message: "최고 관리자의 권한은 변경할 수 없습니다.",
     },
+    CANNOT_WITHDRAW_SUPER_ADMIN: {
+      code: "USER_CANNOT_WITHDRAW_SUPER_ADMIN",
+      statusCode: 403,
+      message: "최고 관리자는 탈퇴 처리할 수 없습니다.",
+    },
     CURRENT_PASSWORD_MISMATCH: {
       code: "CURRENT_PASSWORD_MISMATCH",
       statusCode: 400,

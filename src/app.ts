@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import productRouter from "./routes/productRouter";
+import categoryRouter from "./routes/categoryRouter";
 import orderRouter from "./routes/orderRouter";
 import budgetRouter from "./routes/budgetRouter";
 import authRouter from "./routes/authRouter";
@@ -60,6 +61,7 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 app.use("/api/products", productRouter);
+app.use("/api/categories", categoryRouter);
 app.use("/api/orders", orderRouter);
 app.use("/api/budgets", budgetRouter);
 app.use("/api/cart", cartRouter);

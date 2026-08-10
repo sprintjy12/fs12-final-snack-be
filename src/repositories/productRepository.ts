@@ -55,7 +55,11 @@ async function findMany(
     skip,
     take,
     orderBy,
-    include: { category: true },
+    include: {
+      category: {
+        include: { parent: true },
+      },
+    },
   });
 }
 
@@ -98,7 +102,9 @@ async function findByIdWithDetail(productId: string) {
   return prisma.product.findUnique({
     where: { id: productId },
     include: {
-      category: true,
+      category: {
+        include: { parent: true },
+      },
       company: true,
       createdBy: {
         select: { id: true, name: true },

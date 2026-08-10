@@ -269,23 +269,37 @@ async function main() {
   });
 
   // ---------- Categories (대분류 3 + 소분류 7) ----------
+  // FE `CATEGORY_API_IDS`와 동일 고정 uuid (필터 연동용). 시드 재실행 시에도 안정적.
+  const FE_CAT = {
+    snack: "00000000-0000-4000-8000-000000000001",
+    drink: "00000000-0000-4000-8000-000000000002",
+    meal: "00000000-0000-4000-8000-000000000004",
+    snackChip: "00000000-0000-4000-8000-000000000101",
+    snackCookie: "00000000-0000-4000-8000-000000000102",
+    snackCandy: "00000000-0000-4000-8000-000000000103",
+    soda: "00000000-0000-4000-8000-000000000011",
+    drinkCoffee: "00000000-0000-4000-8000-000000000014",
+    noodle: "00000000-0000-4000-8000-000000000041",
+    instantMeal: "00000000-0000-4000-8000-000000000042",
+  } as const;
+
   const catSnack = await tx.category.create({
     data: {
-      id: randomUUID(),
+      id: FE_CAT.snack,
       name: "과자/스낵",
       depth: 1,
     },
   });
   const catDrink = await tx.category.create({
     data: {
-      id: randomUUID(),
+      id: FE_CAT.drink,
       name: "음료",
       depth: 1,
     },
   });
   const catInstant = await tx.category.create({
     data: {
-      id: randomUUID(),
+      id: FE_CAT.meal,
       name: "간편식",
       depth: 1,
     },
@@ -302,7 +316,7 @@ async function main() {
   ] = await Promise.all([
     tx.category.create({
       data: {
-        id: randomUUID(),
+        id: FE_CAT.snackChip,
         parentId: catSnack.id,
         name: "칩/스낵",
         depth: 2,
@@ -310,7 +324,7 @@ async function main() {
     }),
     tx.category.create({
       data: {
-        id: randomUUID(),
+        id: FE_CAT.snackCookie,
         parentId: catSnack.id,
         name: "쿠키/비스킷",
         depth: 2,
@@ -318,7 +332,7 @@ async function main() {
     }),
     tx.category.create({
       data: {
-        id: randomUUID(),
+        id: FE_CAT.snackCandy,
         parentId: catSnack.id,
         name: "캔디/젤리",
         depth: 2,
@@ -326,7 +340,7 @@ async function main() {
     }),
     tx.category.create({
       data: {
-        id: randomUUID(),
+        id: FE_CAT.drinkCoffee,
         parentId: catDrink.id,
         name: "커피/차",
         depth: 2,
@@ -334,7 +348,7 @@ async function main() {
     }),
     tx.category.create({
       data: {
-        id: randomUUID(),
+        id: FE_CAT.soda,
         parentId: catDrink.id,
         name: "주스/탄산",
         depth: 2,
@@ -342,7 +356,7 @@ async function main() {
     }),
     tx.category.create({
       data: {
-        id: randomUUID(),
+        id: FE_CAT.noodle,
         parentId: catInstant.id,
         name: "라면/면류",
         depth: 2,
@@ -350,7 +364,7 @@ async function main() {
     }),
     tx.category.create({
       data: {
-        id: randomUUID(),
+        id: FE_CAT.instantMeal,
         parentId: catInstant.id,
         name: "즉석밥/컵밥",
         depth: 2,

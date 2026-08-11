@@ -53,4 +53,12 @@ userRouter.patch(
   userController.updateUserRole,
 );
 
+userRouter.delete(
+  "/:userId",
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN),
+  validate(userIdParamSchema, "params"),
+  userController.withdrawUser,
+);
+
 export default userRouter;

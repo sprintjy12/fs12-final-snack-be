@@ -10,6 +10,7 @@ import {
   updateUserRole as updateUserRoleInRepository,
   updatePasswordAndDeleteRefreshTokens,
   updateCompanyName,
+  withdrawUser as withdrawUserInRepository,
 } from "../repositories/userRepository";
 import {
   UpdateUserRoleInput,
@@ -187,4 +188,46 @@ export const getUsers = async ({
       totalPages: Math.ceil(total / limit),
     },
   };
+};
+type WithdrawUserParams = {
+  actorCompanyId: string;
+  targetUserId: string;
+};
+
+/**
+ * 회원 강제 탈퇴
+ * 조건부 update로 회사/상태/SUPER_ADMIN 제약을 원자적으로 보장한다.
+ */
+export const withdrawUser = async ({
+  actorCompanyId,
+  targetUserId,
+}: WithdrawUserParams) => {
+  const withdrawn = await withdrawUserInRepository({
+    userId: targetUserId,
+    companyId: actorCompanyId,
+  });
+
+  if (withdrawn) {
+    return;
+  }
+
+  const targetUser = await findUserForRoleUpdate(targetUserId);
+
+  if (!targetUser) {
+    throw new AppError(ErrorCodes.USER.NOT_FOUND);
+  }
+
+  if (targetUser.companyId !== actorCompanyId) {
+    throw new AppError(ErrorCodes.USER.UNAUTHORIZED_ACCESS);
+  }
+
+  if (targetUser.role === UserRole.SUPER_ADMIN) {
+    throw new AppError(ErrorCodes.USER.CANNOT_WITHDRAW_SUPER_ADMIN);
+  }
+
+  if (targetUser.status === UserStatus.WITHDRAWN) {
+    throw new AppError(ErrorCodes.USER.ALREADY_WITHDRAWN);
+  }
+
+  throw new AppError(ErrorCodes.AUTH.FORBIDDEN);
 };

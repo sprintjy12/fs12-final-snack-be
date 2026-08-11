@@ -1,4 +1,4 @@
-import { UserRole, UserStatus } from "@prisma/client";
+import { OrderStatus, UserRole, UserStatus } from "@prisma/client";
 
 import prisma from "../config/db";
 
@@ -177,6 +177,9 @@ const buildCompanyUsersWhere = ({
 }: Pick<FindUsersByCompanyParams, "companyId" | "name">) => ({
   companyId,
   status: UserStatus.ACTIVE,
+  role: {
+    not: UserRole.SUPER_ADMIN,
+  },
   ...(name
     ? {
         name: {
@@ -188,7 +191,7 @@ const buildCompanyUsersWhere = ({
 });
 
 /**
- * 같은 회사 회원 목록 조회 (이름 부분 검색 지원)
+ * 같은 회사 회원 목록 조회 (ACTIVE, SUPER_ADMIN 제외, 이름 부분 검색 지원)
  */
 export const findUsersByCompany = async ({
   companyId,
@@ -200,9 +203,10 @@ export const findUsersByCompany = async ({
     where: buildCompanyUsersWhere({ companyId, name }),
     skip,
     take,
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: [
+      { createdAt: "desc" },
+      { id: "desc" },
+    ],
     select: {
       id: true,
       name: true,
@@ -221,5 +225,67 @@ export const countUsersByCompany = async ({
 }: Pick<FindUsersByCompanyParams, "companyId" | "name">) => {
   return prisma.user.count({
     where: buildCompanyUsersWhere({ companyId, name }),
+  });
+};
+
+type WithdrawUserParams = {
+  userId: string;
+  companyId: string;
+};
+
+/**
+ * 회원 강제 탈퇴 (soft delete)
+ * 같은 회사 / ACTIVE / SUPER_ADMIN 아닌 경우에만 탈퇴 처리한다.
+ * WITHDRAWN 반영 → PENDING 구매 요청 취소 → cart/refreshToken 삭제를 한 트랜잭션으로 수행한다.
+ */
+export const withdrawUser = async ({
+  userId,
+  companyId,
+}: WithdrawUserParams) => {
+  return prisma.$transaction(async (transaction) => {
+    const now = new Date();
+
+    const updateResult = await transaction.user.updateMany({
+      where: {
+        id: userId,
+        companyId,
+        status: UserStatus.ACTIVE,
+        role: {
+          not: UserRole.SUPER_ADMIN,
+        },
+      },
+      data: {
+        status: UserStatus.WITHDRAWN,
+        withdrawnAt: now,
+      },
+    });
+
+    if (updateResult.count === 0) {
+      return false;
+    }
+
+    await transaction.order.updateMany({
+      where: {
+        requesterId: userId,
+        status: OrderStatus.PENDING,
+      },
+      data: {
+        status: OrderStatus.CANCELLED,
+      },
+    });
+
+    await transaction.cartItem.deleteMany({
+      where: {
+        userId,
+      },
+    });
+
+    await transaction.refreshToken.deleteMany({
+      where: {
+        userId,
+      },
+    });
+
+    return true;
   });
 };

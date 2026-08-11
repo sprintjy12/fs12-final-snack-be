@@ -27,11 +27,7 @@ import {
 const orderRouter = express.Router();
 
 const adminUp = [UserRole.ADMIN, UserRole.SUPER_ADMIN] as const;
-const userUp = [
-  UserRole.USER,
-  UserRole.ADMIN,
-  UserRole.SUPER_ADMIN,
-] as const;
+const userUp = [UserRole.USER, UserRole.ADMIN, UserRole.SUPER_ADMIN] as const;
 
 // "/requests", "/my-requests"가 "/:orderId"로 잡히지 않도록 먼저 등록
 orderRouter.get(

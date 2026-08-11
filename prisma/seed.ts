@@ -33,6 +33,38 @@ const daysAgo = (days: number) => {
   return date;
 };
 
+/** Unsplash 음식/스낵/음료 공개 이미지 (시드용) */
+const SEED_PRODUCT_IMAGES = [
+  "https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=400&h=400&fit=crop", // chips
+  "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=400&h=400&fit=crop", // cookies
+  "https://images.unsplash.com/photo-1511381939415-e44015466834?w=400&h=400&fit=crop", // chocolate
+  "https://images.unsplash.com/photo-1582058091505-f87a2e55a40f?w=400&h=400&fit=crop", // candy
+  "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=400&h=400&fit=crop", // nuts
+  "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=400&h=400&fit=crop", // soda
+  "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400&h=400&fit=crop", // juice
+  "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=400&fit=crop", // coffee
+  "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400&h=400&fit=crop", // tea
+  "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&h=400&fit=crop", // water
+  "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=400&fit=crop", // ramen
+  "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=400&fit=crop", // salad
+  "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=400&fit=crop", // bread
+  "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400&h=400&fit=crop", // sandwich
+  "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&h=400&fit=crop", // yogurt
+  "https://images.unsplash.com/photo-1521483451569-e33803c48038?w=400&h=400&fit=crop", // cereal
+  "https://images.unsplash.com/photo-1619566636858-838d861447e8?w=400&h=400&fit=crop", // fruit
+  "https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&h=400&fit=crop", // dessert
+  "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=400&h=400&fit=crop", // matcha/drink
+  "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&h=400&fit=crop", // coffee beans
+] as const;
+
+const seedProductImageUrl = (seed: string) => {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  return SEED_PRODUCT_IMAGES[hash % SEED_PRODUCT_IMAGES.length];
+};
+
 const yearMonthOffset = (monthsAgo: number) => {
   const date = new Date();
   date.setDate(1);
@@ -537,431 +569,994 @@ async function main() {
       await tx.invitation.createMany({ data: invitationData });
       counts.invitations = invitationData.length;
 
-      // ---------- Categories (FE 고정 UUID 유지 + 확장 = 32+) ----------
-      const FE_CAT = {
-        snack: "00000000-0000-4000-8000-000000000001",
-        drink: "00000000-0000-4000-8000-000000000002",
-        meal: "00000000-0000-4000-8000-000000000004",
-        snackChip: "00000000-0000-4000-8000-000000000101",
-        snackCookie: "00000000-0000-4000-8000-000000000102",
-        snackCandy: "00000000-0000-4000-8000-000000000103",
-        soda: "00000000-0000-4000-8000-000000000011",
-        drinkCoffee: "00000000-0000-4000-8000-000000000014",
-        noodle: "00000000-0000-4000-8000-000000000041",
-        instantMeal: "00000000-0000-4000-8000-000000000042",
-      } as const;
+      // ---------- Categories (depth 1 상위 / depth 2 하위, 고정 UUID) ----------
+      // 숫자 id → UUID: 상위 N → ...00000N, 하위 N → ...0001NN
+      const parentCategoryId = (id: number) =>
+        `00000000-0000-4000-8000-${String(id).padStart(12, "0")}`;
+      const childCategoryId = (id: number) =>
+        `00000000-0000-4000-8000-0000000001${String(id).padStart(2, "0")}`;
 
-      const catSnack = await tx.category.create({
-        data: { id: FE_CAT.snack, name: "과자/스낵", depth: 1 },
-      });
-      const catDrink = await tx.category.create({
-        data: { id: FE_CAT.drink, name: "음료", depth: 1 },
-      });
-      const catInstant = await tx.category.create({
-        data: { id: FE_CAT.meal, name: "간편식", depth: 1 },
-      });
+      const parentCategoryDefs = [
+        { id: 1, name: "스낵" },
+        { id: 2, name: "음료" },
+        { id: 3, name: "생수" },
+        { id: 4, name: "간편식" },
+        { id: 5, name: "신선식품" },
+        { id: 6, name: "비품" },
+      ] as const;
 
-      const [
-        catChips,
-        catCookies,
-        catCandy,
-        catCoffee,
-        catJuice,
-        catRamen,
-        catMeal,
-      ] = await Promise.all([
-        tx.category.create({
-          data: {
-            id: FE_CAT.snackChip,
-            parentId: catSnack.id,
-            name: "칩/스낵",
-            depth: 2,
-          },
-        }),
-        tx.category.create({
-          data: {
-            id: FE_CAT.snackCookie,
-            parentId: catSnack.id,
-            name: "쿠키/비스킷",
-            depth: 2,
-          },
-        }),
-        tx.category.create({
-          data: {
-            id: FE_CAT.snackCandy,
-            parentId: catSnack.id,
-            name: "캔디/젤리",
-            depth: 2,
-          },
-        }),
-        tx.category.create({
-          data: {
-            id: FE_CAT.drinkCoffee,
-            parentId: catDrink.id,
-            name: "커피/차",
-            depth: 2,
-          },
-        }),
-        tx.category.create({
-          data: {
-            id: FE_CAT.soda,
-            parentId: catDrink.id,
-            name: "주스/탄산",
-            depth: 2,
-          },
-        }),
-        tx.category.create({
-          data: {
-            id: FE_CAT.noodle,
-            parentId: catInstant.id,
-            name: "라면/면류",
-            depth: 2,
-          },
-        }),
-        tx.category.create({
-          data: {
-            id: FE_CAT.instantMeal,
-            parentId: catInstant.id,
-            name: "즉석밥/컵밥",
-            depth: 2,
-          },
-        }),
-      ]);
+      const childCategoryDefs = [
+        { id: 1, name: "과자", parentId: 1 },
+        { id: 2, name: "쿠키", parentId: 1 },
+        { id: 3, name: "파이", parentId: 1 },
+        { id: 4, name: "초콜릿류", parentId: 1 },
+        { id: 5, name: "캔디류", parentId: 1 },
+        { id: 6, name: "껌류", parentId: 1 },
+        { id: 7, name: "비스켓류", parentId: 1 },
+        { id: 8, name: "씨리얼바", parentId: 1 },
+        { id: 9, name: "젤리류", parentId: 1 },
+        { id: 10, name: "견과류", parentId: 1 },
+        { id: 11, name: "워터젤리", parentId: 1 },
+        { id: 12, name: "청량/탄산음료", parentId: 2 },
+        { id: 13, name: "과즙음료", parentId: 2 },
+        { id: 14, name: "에너지음료", parentId: 2 },
+        { id: 15, name: "이온음료", parentId: 2 },
+        { id: 16, name: "유산균음료", parentId: 2 },
+        { id: 17, name: "건강음료", parentId: 2 },
+        { id: 18, name: "차류", parentId: 2 },
+        { id: 19, name: "두유/우유", parentId: 2 },
+        { id: 20, name: "커피", parentId: 2 },
+        { id: 21, name: "생수", parentId: 3 },
+        { id: 22, name: "스파클링", parentId: 3 },
+        { id: 23, name: "봉지라면", parentId: 4 },
+        { id: 24, name: "과일", parentId: 4 },
+        { id: 25, name: "컵라면", parentId: 4 },
+        { id: 26, name: "핫도그 및 소시지", parentId: 4 },
+        { id: 27, name: "계란", parentId: 4 },
+        { id: 28, name: "죽/스프류", parentId: 4 },
+        { id: 29, name: "컵밥류", parentId: 4 },
+        { id: 30, name: "시리얼", parentId: 4 },
+        { id: 31, name: "반찬류", parentId: 4 },
+        { id: 32, name: "면류", parentId: 4 },
+        { id: 33, name: "요거트류", parentId: 4 },
+        { id: 34, name: "가공안주류", parentId: 4 },
+        { id: 35, name: "유제품", parentId: 4 },
+        { id: 36, name: "샐러드", parentId: 5 },
+        { id: 37, name: "빵", parentId: 5 },
+        { id: 38, name: "햄버거/샌드위치", parentId: 5 },
+        { id: 39, name: "주먹밥/김밥", parentId: 5 },
+        { id: 40, name: "도시락", parentId: 5 },
+        { id: 41, name: "커피/차류", parentId: 6 },
+        { id: 42, name: "생활용품", parentId: 6 },
+        { id: 43, name: "일회용품", parentId: 6 },
+        { id: 44, name: "사무용품", parentId: 6 },
+      ] as const;
 
-      const catFresh = await tx.category.create({
-        data: { id: randomUUID(), name: "신선식품", depth: 1 },
-      });
-      const catHealth = await tx.category.create({
-        data: { id: randomUUID(), name: "건강간식", depth: 1 },
-      });
-      const catOffice = await tx.category.create({
-        data: { id: randomUUID(), name: "오피스용품", depth: 1 },
-      });
-
-      const extraChildDefs: Array<{
-        parentId: string;
-        name: string;
-      }> = [
-        { parentId: catSnack.id, name: "견과/시리얼" },
-        { parentId: catSnack.id, name: "초콜릿" },
-        { parentId: catDrink.id, name: "생수/탄산수" },
-        { parentId: catDrink.id, name: "에너지드링크" },
-        { parentId: catDrink.id, name: "유제품/두유" },
-        { parentId: catInstant.id, name: "즉석국/찌개" },
-        { parentId: catInstant.id, name: "냉동간편식" },
-        { parentId: catFresh.id, name: "과일" },
-        { parentId: catFresh.id, name: "샐러드" },
-        { parentId: catFresh.id, name: "요거트" },
-        { parentId: catHealth.id, name: "프로틴바" },
-        { parentId: catHealth.id, name: "저당과자" },
-        { parentId: catHealth.id, name: "견과믹스" },
-        { parentId: catOffice.id, name: "티백/원두" },
-        { parentId: catOffice.id, name: "일회용컵/수저" },
-        { parentId: catOffice.id, name: "청소/위생" },
-        { parentId: catChips.id, name: "감자칩" },
-        { parentId: catCookies.id, name: "파이" },
-        { parentId: catCandy.id, name: "젤리" },
-        { parentId: catCoffee.id, name: "캔커피" },
-        { parentId: catJuice.id, name: "탄산음료" },
-        { parentId: catRamen.id, name: "컵라면" },
-        { parentId: catMeal.id, name: "컵밥" },
-      ];
-
-      // depth 3 children under depth-2 (schema allows hierarchy)
-      const extraChildren = await Promise.all(
-        extraChildDefs.map((def) =>
+      await Promise.all(
+        parentCategoryDefs.map((def) =>
           tx.category.create({
             data: {
-              id: randomUUID(),
-              parentId: def.parentId,
+              id: parentCategoryId(def.id),
               name: def.name,
-              depth: def.parentId === catSnack.id ||
-                def.parentId === catDrink.id ||
-                def.parentId === catInstant.id ||
-                def.parentId === catFresh.id ||
-                def.parentId === catHealth.id ||
-                def.parentId === catOffice.id
-                ? 2
-                : 3,
+              depth: 1,
             },
           }),
         ),
       );
 
-      const leafCategories = [
-        { cat: catChips, name: "칩/스낵" },
-        { cat: catCookies, name: "쿠키/비스킷" },
-        { cat: catCandy, name: "캔디/젤리" },
-        { cat: catCoffee, name: "커피/차" },
-        { cat: catJuice, name: "주스/탄산" },
-        { cat: catRamen, name: "라면/면류" },
-        { cat: catMeal, name: "즉석밥/컵밥" },
-        ...extraChildren
-          .filter((c) => c.depth === 2)
-          .map((c) => ({ cat: c, name: c.name })),
-      ];
+      const childCategories = await Promise.all(
+        childCategoryDefs.map((def) =>
+          tx.category.create({
+            data: {
+              id: childCategoryId(def.id),
+              parentId: parentCategoryId(def.parentId),
+              name: def.name,
+              depth: 2,
+            },
+          }),
+        ),
+      );
+
+      const categoryByName = Object.fromEntries(
+        childCategories.map((category) => [category.name, category]),
+      ) as Record<(typeof childCategoryDefs)[number]["name"], (typeof childCategories)[number]>;
+
+      const catSnack = categoryByName["과자"];
+      const catCookie = categoryByName["쿠키"];
+      const catPie = categoryByName["파이"];
+      const catBiscuit = categoryByName["비스켓류"];
+      const catJelly = categoryByName["젤리류"];
+      const catCoffee = categoryByName["커피"];
+      const catSoda = categoryByName["청량/탄산음료"];
+      const catBagRamen = categoryByName["봉지라면"];
+      const catCupMeal = categoryByName["컵밥류"];
+
+      const leafCategories = childCategories.map((cat) => ({
+        cat,
+        name: cat.name,
+      }));
 
       counts.categories =
-        3 + 7 + 3 + extraChildren.length; // parents + FE children + extra parents + extras
+        parentCategoryDefs.length + childCategoryDefs.length;
 
       // ---------- Products (스낵팩토리 32+ / 오피스바이트 16+ / 기타 회사 소량) ----------
       const namedProductDefsA = [
         {
-          categoryId: catChips.id,
-          categoryName: "칩/스낵",
+          categoryId: catSnack.id,
+          categoryName: catSnack.name,
           createdById: adminA.id,
           name: "포카칩 오리지널",
           price: 1500,
           stock: 120,
           purchaseCount: 45,
-          imageUrl: "https://example.com/images/pocachip.jpg",
+          imageUrl: seedProductImageUrl("pocachip"),
           productUrl: "https://example.com/products/pocachip",
         },
         {
-          categoryId: catChips.id,
-          categoryName: "칩/스낵",
+          categoryId: catSnack.id,
+          categoryName: catSnack.name,
           createdById: adminA.id,
           name: "허니버터칩",
           price: 1800,
           stock: 80,
           purchaseCount: 62,
-          imageUrl: "https://example.com/images/honeybutter.jpg",
+          imageUrl: seedProductImageUrl("honeybutter"),
           productUrl: "https://example.com/products/honeybutter",
         },
         {
-          categoryId: catCookies.id,
-          categoryName: "쿠키/비스킷",
+          categoryId: catPie.id,
+          categoryName: catPie.name,
           createdById: adminA.id,
           name: "초코파이",
           price: 4000,
           stock: 60,
           purchaseCount: 30,
-          imageUrl: "https://example.com/images/chocopie.jpg",
+          imageUrl: seedProductImageUrl("chocopie"),
           productUrl: "https://example.com/products/chocopie",
         },
         {
-          categoryId: catCookies.id,
-          categoryName: "쿠키/비스킷",
+          categoryId: catBiscuit.id,
+          categoryName: catBiscuit.name,
           createdById: superAdminA.id,
           name: "오리온 고소미",
           price: 2500,
           stock: 90,
           purchaseCount: 22,
-          imageUrl: "https://example.com/images/gosomi.jpg",
+          imageUrl: seedProductImageUrl("gosomi"),
           productUrl: "https://example.com/products/gosomi",
         },
         {
-          categoryId: catCandy.id,
-          categoryName: "캔디/젤리",
+          categoryId: catJelly.id,
+          categoryName: catJelly.name,
           createdById: adminA.id,
           name: "마이구미 포도",
           price: 1200,
           stock: 150,
           purchaseCount: 55,
-          imageUrl: "https://example.com/images/mygummi.jpg",
+          imageUrl: seedProductImageUrl("mygummi"),
           productUrl: "https://example.com/products/mygummi",
         },
         {
           categoryId: catCoffee.id,
-          categoryName: "커피/차",
+          categoryName: catCoffee.name,
           createdById: adminA.id,
           name: "칸타타 아메리카노",
           price: 2200,
           stock: 100,
           purchaseCount: 70,
-          imageUrl: "https://example.com/images/cantata.jpg",
+          imageUrl: seedProductImageUrl("cantata"),
           productUrl: "https://example.com/products/cantata",
         },
         {
           categoryId: catCoffee.id,
-          categoryName: "커피/차",
+          categoryName: catCoffee.name,
           createdById: adminA.id,
           name: "맥심 모카골드",
           price: 8000,
           stock: 40,
           purchaseCount: 18,
-          imageUrl: "https://example.com/images/maxim.jpg",
+          imageUrl: seedProductImageUrl("maxim"),
           productUrl: "https://example.com/products/maxim",
         },
         {
-          categoryId: catJuice.id,
-          categoryName: "주스/탄산",
+          categoryId: catSoda.id,
+          categoryName: catSoda.name,
           createdById: adminA.id,
           name: "코카콜라 355ml",
           price: 1600,
           stock: 200,
           purchaseCount: 88,
-          imageUrl: "https://example.com/images/coke.jpg",
+          imageUrl: seedProductImageUrl("coke"),
           productUrl: "https://example.com/products/coke",
         },
         {
-          categoryId: catRamen.id,
-          categoryName: "라면/면류",
+          categoryId: catBagRamen.id,
+          categoryName: catBagRamen.name,
           createdById: adminA.id,
           name: "신라면",
           price: 1100,
           stock: 180,
           purchaseCount: 95,
-          imageUrl: "https://example.com/images/shinramen.jpg",
+          imageUrl: seedProductImageUrl("shinramen"),
           productUrl: "https://example.com/products/shinramen",
         },
         {
-          categoryId: catMeal.id,
-          categoryName: "즉석밥/컵밥",
+          categoryId: catCupMeal.id,
+          categoryName: catCupMeal.name,
           createdById: adminA.id,
           name: "햇반 210g",
           price: 1900,
           stock: 70,
           purchaseCount: 40,
-          imageUrl: "https://example.com/images/hetbahn.jpg",
+          imageUrl: seedProductImageUrl("hetbahn"),
           productUrl: "https://example.com/products/hetbahn",
         },
       ];
 
-      const productNamePool = [
-        "새우깡",
-        "양파링",
-        "치토스",
-        "프링글스",
-        "꼬깔콘",
-        "오징어땅콩",
-        "홈런볼",
-        "다이제",
-        "몽쉘",
-        "오레오",
-        "빼빼로",
-        "하리보",
-        "젤리빈",
-        "멘토스",
-        "트윅스",
-        "스니커즈",
-        "바나나킥",
-        "썬칩",
-        "구운양파",
-        "카라멜콘",
-        "카페라떼캔",
-        "레쓰비",
-        "비타500",
-        "포카리스웨트",
-        "게토레이",
-        "환타오렌지",
-        "펩시",
-        "칠성사이다",
-        "진라면순한맛",
-        "너구리",
-        "짜파게티",
-        "비빔면",
-        "컵누들",
-        "참깨라면",
-        "팔도비빔면",
-        "컵밥김치",
-        "컵밥치킨",
-        "즉석된장국",
-        "프로틴바초코",
-        "아몬드믹스",
-      ].map((n) => n.trim());
+      // 카테고리별 자연스러운 상품명 (페이지네이션 채우기용)
+      const productNamesByCategory: Record<string, string[]> = {
+        과자: [
+          "새우깡",
+          "양파링",
+          "치토스",
+          "프링글스 오리지널",
+          "꼬깔콘 고소한맛",
+          "오징어땅콩",
+          "바나나킥",
+          "썬칩",
+          "구운양파",
+          "카라멜콘",
+          "꼬북칩 초코츄러스",
+          "허니버터아몬드",
+        ],
+        쿠키: [
+          "오레오",
+          "초코칩쿠키",
+          "버터쿠키",
+          "마카다미아쿠키",
+          "화이트쿠키",
+          "딸기샌드쿠키",
+          "카스타드쿠키",
+          "시나몬쿠키",
+          "아몬드쿠키",
+          "민트초코쿠키",
+          "홈런볼 초코",
+          "다이제 초코",
+        ],
+        파이: [
+          "몽쉘 크림",
+          "카스타드",
+          "후렌치파이 딸기",
+          "오뜨 쇼콜라",
+          "파이만주",
+          "초코롤케이크",
+          "크림파이",
+          "애플파이",
+          "바나나파이",
+          "치즈파이",
+          "소프트케익",
+          "가나슈파이",
+        ],
+        초콜릿류: [
+          "빼빼로 아몬드",
+          "가나 마일드",
+          "트윅스",
+          "스니커즈",
+          "킷캣",
+          "자유시간",
+          "크런키",
+          "허쉬 다크",
+          "몰티져스",
+          "초코바 카라멜",
+          "다크초콜릿 70%",
+          "밀크초콜릿바",
+        ],
+        캔디류: [
+          "멘토스 믹스",
+          "츄파춥스",
+          "청포도캔디",
+          "박하사탕",
+          "레몬캔디",
+          "커피캔디",
+          "과일사탕 믹스",
+          "밀크캔디",
+          "허브캔디",
+          "딸기캔디",
+          "콜라향 캔디",
+          "요거트캔디",
+        ],
+        껌류: [
+          "자일리톨 껌",
+          "스피아민트 껌",
+          "과일믹스 껌",
+          "페퍼민트 껌",
+          "무설탕 껌",
+          "풍선껌",
+          "쿨민트 껌",
+          "스트립 껌",
+          "커피향 껌",
+          "애플민트 껌",
+          "시나몬 껌",
+          "워터멜론 껌",
+        ],
+        비스켓류: [
+          "참크래커",
+          "버터비스킷",
+          "야채크래커",
+          "치즈비스킷",
+          "통밀비스킷",
+          "마늘빵 스낵",
+          "베이컨스낵",
+          "고소한 전병",
+          "김스낵",
+          "쌀과자",
+          "옥수수비스킷",
+          "감자비스킷",
+        ],
+        씨리얼바: [
+          "켈로그 바",
+          "에너지바 초코",
+          "그래놀라바",
+          "아몬드바",
+          "크랜베리바",
+          "피넛버터바",
+          "프로틴바 쿠키앤크림",
+          "오트바",
+          "과일견과바",
+          "요거트코팅바",
+          "코코넛바",
+          "헤이즐넛바",
+        ],
+        젤리류: [
+          "하리보 골드베렌",
+          "마이구미 복숭아",
+          "왕꿈틀이",
+          "젤리빈 믹스",
+          "푸딩젤리",
+          "포도젤리",
+          "복숭아젤리",
+          "요구르트젤리",
+          "콜라겐젤리",
+          "슬라이스젤리",
+          "미니젤리팩",
+          "과일컵젤리",
+        ],
+        견과류: [
+          "아몬드믹스",
+          "하루견과",
+          "캐슈넛",
+          "피스타치오",
+          "호두슬라이스",
+          "마카다미아",
+          "볶음땅콩",
+          "믹스너트",
+          "호박씨",
+          "해바라기씨",
+          "아몬드&크랜베리",
+          "저염 견과",
+        ],
+        워터젤리: [
+          "곤약젤리 포도",
+          "곤약젤리 복숭아",
+          "워터젤리 사과",
+          "제로슈거 젤리",
+          "알로에워터젤리",
+          "망고워터젤리",
+          "자몽워터젤리",
+          "레몬워터젤리",
+          "청포도워터젤리",
+          "딸기워터젤리",
+          "파인애플워터젤리",
+          "오렌지워터젤리",
+        ],
+        "청량/탄산음료": [
+          "펩시 355ml",
+          "칠성사이다 355ml",
+          "환타오렌지 355ml",
+          "마운틴듀",
+          "밀키스",
+          "천연사이다",
+          "콜라 제로",
+          "사이다 제로",
+          "포도환타",
+          "레몬사이다",
+          "크림소다",
+          "진저에일",
+        ],
+        과즙음료: [
+          "오렌지주스",
+          "사과주스",
+          "포도주스",
+          "토마토주스",
+          "망고주스",
+          "자몽주스",
+          "딸기바나나주스",
+          "알로에주스",
+          "혼합과일주스",
+          "당근사과주스",
+          "파인애플주스",
+          "석류주스",
+        ],
+        에너지음료: [
+          "레드불",
+          "몬스터 에너지",
+          "핫식스",
+          "박카스",
+          "비타파워",
+          "에너지부스트",
+          "카페인샷",
+          "구연산 에너지",
+          "제로 에너지",
+          "시트러스 에너지",
+          "베리 에너지",
+          "스포츠에너지",
+        ],
+        이온음료: [
+          "포카리스웨트",
+          "게토레이",
+          "파워에이드",
+          "토레타",
+          "이온더핏",
+          "아쿠아리우스",
+          "비타민이온",
+          "레몬이온",
+          "자몽이온",
+          "제로이온",
+          "스포츠드링크",
+          "리커버리워터",
+        ],
+        유산균음료: [
+          "야쿠르트",
+          "불가리스",
+          "윌",
+          "엔요",
+          "비피더스",
+          "프로바이오틱스드링크",
+          "요거트스무디",
+          "딸기유산균",
+          "플레인유산균",
+          "저당유산균",
+          "키즈유산균",
+          "장건강드링크",
+        ],
+        건강음료: [
+          "비타500",
+          "홍삼음료",
+          "헛개차",
+          "컨디션",
+          "비타민C 드링크",
+          "콜라겐음료",
+          "알로에겔",
+          "매실음료",
+          "배도라지",
+          "생강차음료",
+          "레몬디톡스",
+          "케일주스",
+        ],
+        차류: [
+          "보리차",
+          "녹차",
+          "둥글레차",
+          "옥수수수염차",
+          "우롱차",
+          "홍차 밀크티",
+          "자스민티",
+          "페퍼민트티",
+          "캐모마일티",
+          "아이스티 복숭아",
+          "레몬아이스티",
+          "제로아이스티",
+        ],
+        "두유/우유": [
+          "서울우유 200ml",
+          "매일우유",
+          "바나나우유",
+          "초코우유",
+          "딸기우유",
+          "저지방우유",
+          "두유 검은콩",
+          "고칼슘두유",
+          "아몬드브리즈",
+          "귀리우유",
+          "코코넛밀크",
+          "멸균우유",
+        ],
+        커피: [
+          "레쓰비",
+          "카페라떼캔",
+          "티오피 마일드",
+          "조지아 오리지널",
+          "바리스타룰스",
+          "콜드브루",
+          "아메리카노 캔",
+          "바닐라라떼",
+          "모카라떼",
+          "디카페인 커피",
+          "헤이즐넛커피",
+          "돌체라떼",
+        ],
+        생수: [
+          "삼다수 500ml",
+          "아이시스 500ml",
+          "백산수",
+          "에비앙",
+          "볼빅",
+          "평창수",
+          "석수",
+          "풀무원샘물",
+          "스파클생수",
+          "지리산수",
+          "해양심층수",
+          "미네랄워터",
+        ],
+        스파클링: [
+          "트레비 레몬",
+          "씨그램 라임",
+          "페리에",
+          "산펠레그리노",
+          "톡사이다",
+          "플레인 스파클링",
+          "자몽 스파클링",
+          "사과 스파클링",
+          "복숭아 스파클링",
+          "제로 스파클링",
+          "탄산수 라임",
+          "탄산수 플레인",
+        ],
+        봉지라면: [
+          "진라면 순한맛",
+          "너구리",
+          "짜파게티",
+          "비빔면",
+          "참깨라면",
+          "안성탕면",
+          "삼양라면",
+          "열라면",
+          "육개장사발면 봉지",
+          "꼬꼬면",
+          "짜왕",
+          "틈새라면",
+        ],
+        과일: [
+          "사과 소팩",
+          "바나나 한송이",
+          "귤 소포장",
+          "포도팩",
+          "딸기팩",
+          "블루베리컵",
+          "키위팩",
+          "오렌지망",
+          "토마토팩",
+          "컷팅과일믹스",
+          "과일컵 혼합",
+          "건포도팩",
+        ],
+        컵라면: [
+          "육개장사발면",
+          "컵누들",
+          "신라면컵",
+          "짜파게티컵",
+          "팔도비빔면컵",
+          "참깨라면컵",
+          "튀김우동컵",
+          "김치사발면",
+          "왕뚜껑",
+          "진라면컵",
+          "오뚜기컵밥라면",
+          "짜장컵",
+        ],
+        "핫도그 및 소시지": [
+          "크리스피핫도그",
+          "치즈핫도그",
+          "프랑크소시지",
+          "비엔나소시지",
+          "마늘프랑크",
+          "훈제소시지",
+          "떡핫도그",
+          "모짜렐라핫도그",
+          "치킨핫도그",
+          "캠핑소시지",
+          "비엔나팩",
+          "스모크소시지",
+        ],
+        계란: [
+          "구운계란 2입",
+          "훈제란",
+          "맥반석계란",
+          "반숙란",
+          "염계란",
+          "계란장조림팩",
+          "흰자계란",
+          "유기농란 4입",
+          "특란 10입",
+          "왕란팩",
+          "무항생제란",
+          "계란샌드재료팩",
+        ],
+        "죽/스프류": [
+          "전복죽",
+          "단호박죽",
+          "소고기죽",
+          "야채스프",
+          "옥수수스프",
+          "크림스프",
+          "된장국 즉석",
+          "미역국 즉석",
+          "북어국",
+          "호박죽",
+          "닭죽",
+          "버섯스프",
+        ],
+        컵밥류: [
+          "컵밥 김치",
+          "컵밥 치킨",
+          "컵밥 제육",
+          "컵밥 나물비빔",
+          "컵밥 불닭",
+          "즉석된장국밥",
+          "카레컵밥",
+          "짜장컵밥",
+          "비빔컵밥",
+          "참치마요컵밥",
+          "스팸컵밥",
+          "오므라이스컵",
+        ],
+        시리얼: [
+          "콘푸로스트",
+          "첵스초코",
+          "후루트링",
+          "아몬드푸레이크",
+          "그래놀라",
+          "오트밀",
+          "코코볼",
+          "허니첵스",
+          "시리얼바이트",
+          "통곡물시리얼",
+          "프로틴시리얼",
+          "딸기시리얼",
+        ],
+        반찬류: [
+          "김치볶음",
+          "멸치볶음",
+          "시금치나물",
+          "콩자반",
+          "어묵볶음",
+          "계란말이",
+          "잡채",
+          "도라지무침",
+          "오이무침",
+          "장조림",
+          "깻잎장아찌",
+          "두부조림",
+        ],
+        면류: [
+          "소면",
+          "우동면",
+          "스파게티면",
+          "쌀국수",
+          "냉면사리",
+          "칼국수면",
+          "쫄면",
+          "당면",
+          "페투치네",
+          "라자냐면",
+          "메밀소바",
+          "비빔국수면",
+        ],
+        요거트류: [
+          "그릭요거트",
+          "딸기요거트",
+          "블루베리요거트",
+          "플레인요거트",
+          "드링킹요거트",
+          "제로슈거요거트",
+          "프로바이오틱스요거트",
+          "복숭아요거트",
+          "망고요거트",
+          "요거트파르페",
+          "떠먹는요거트",
+          "키즈요거트",
+        ],
+        가공안주류: [
+          "육포",
+          "오징어채",
+          "쥐포",
+          "버터구이오징어",
+          "꿀버터아몬드안주",
+          "치즈큐브안주",
+          "소시지스낵",
+          "버터프레첼",
+          "맥주안주믹스",
+          "건조문어",
+          "화살오징어",
+          "스모크치즈",
+        ],
+        유제품: [
+          "모짜렐라치즈",
+          "체다슬라이스",
+          "버터",
+          "생크림",
+          "크림치즈",
+          "파마산가루",
+          "스트링치즈",
+          "요거트치즈",
+          "슬라이스치즈",
+          "저지방치즈",
+          "우유팩 1L",
+          "연유",
+        ],
+        샐러드: [
+          "치킨샐러드",
+          "리코타샐러드",
+          "콥샐러드",
+          "연어샐러드",
+          "시저샐러드",
+          "과일샐러드",
+          "그린샐러드",
+          "퀴노아샐러드",
+          "두부샐러드",
+          "계란샐러드",
+          "참치샐러드",
+          "베지샐러드",
+        ],
+        빵: [
+          "식빵",
+          "크로와상",
+          "베이글",
+          "단팥빵",
+          "소보루빵",
+          "마늘빵",
+          "치아바타",
+          "모닝빵",
+          "버터롤",
+          "소시지빵",
+          "피자빵",
+          "옥수수빵",
+        ],
+        "햄버거/샌드위치": [
+          "불고기버거",
+          "치킨버거",
+          "에그샌드위치",
+          "참치샌드위치",
+          "햄치즈샌드",
+          "클럽샌드위치",
+          "베이컨샌드",
+          "야채샌드",
+          "쉬림프버거",
+          "더블치즈버거",
+          "치킨마요샌드",
+          "BLT샌드위치",
+        ],
+        "주먹밥/김밥": [
+          "참치마요주먹밥",
+          "김치주먹밥",
+          "불고기주먹밥",
+          "삼각김밥 참치",
+          "삼각김밥 고추장",
+          "김밥 기본",
+          "치즈김밥",
+          "소고기김밥",
+          "야채김밥",
+          "날치알주먹밥",
+          "스팸주먹밥",
+          "계란김밥",
+        ],
+        도시락: [
+          "불고기도시락",
+          "제육도시락",
+          "치킨마요도시락",
+          "생선구이도시락",
+          "비빔도시락",
+          "카레도시락",
+          "돈까스도시락",
+          "샐러드도시락",
+          "잡채도시락",
+          "소시지도시락",
+          "덮밥도시락",
+          "건강도시락",
+        ],
+        "커피/차류": [
+          "맥심 모카골드 리필",
+          "카누 미니",
+          "녹차티백",
+          "홍차티백",
+          "둥글레차티백",
+          "원두커피 분쇄",
+          "드립백커피",
+          "코코아믹스",
+          "밀크티믹스",
+          "허브티세트",
+          "디카페인 원두",
+          "아이스티믹스",
+        ],
+        생활용품: [
+          "물티슈",
+          "핸드워시",
+          "주방세제",
+          "쓰레기봉투",
+          "세탁세제",
+          "섬유유연제",
+          "방향제",
+          "청소용 걸레",
+          "수세미",
+          "고무장갑",
+          "휴지 3겹",
+          "손소독제",
+        ],
+        일회용품: [
+          "종이컵 50입",
+          "플라스틱컵",
+          "일회용 수저세트",
+          "종이접시",
+          "빨대",
+          "비닐장갑",
+          "랩",
+          "호일",
+          "지퍼백",
+          "일회용 젓가락",
+          "도시락용기",
+          "테이크아웃홀더",
+        ],
+        사무용품: [
+          "볼펜 12색",
+          "형광펜세트",
+          "포스트잇",
+          "A4 복사용지",
+          "스테이플러",
+          "테이프",
+          "가위",
+          "클립",
+          "파일철",
+          "메모패드",
+          "지우개",
+          "바인더",
+        ],
+      };
 
-      const generatedDefsA = Array.from(
-        { length: MIN_ROWS - namedProductDefsA.length },
-        (_, i) => {
-          const leaf = leafCategories[i % leafCategories.length];
-          const name = `${productNamePool[i % productNamePool.length]} ${i + 1}`;
+      const pickCategoryProductName = (
+        categoryName: string,
+        usedNames: Set<string>,
+        index: number,
+      ) => {
+        const pool = productNamesByCategory[categoryName] ?? [];
+        const available = pool.filter((name) => !usedNames.has(name));
+        if (available.length > 0) {
+          return available[index % available.length];
+        }
+        const base = pool[index % Math.max(pool.length, 1)] ?? categoryName;
+        return `${base} ${index + 1}`;
+      };
+
+      // 하위 카테고리마다 페이지네이션용 상품 채우기 (기본 limit 8 → 2페이지+)
+      const PRODUCTS_PER_CATEGORY_A = 10;
+      const usedProductNamesA = new Set(
+        namedProductDefsA.map((def) => def.name),
+      );
+      const countByCategoryA = new Map<string, number>();
+      for (const def of namedProductDefsA) {
+        countByCategoryA.set(
+          def.categoryId,
+          (countByCategoryA.get(def.categoryId) ?? 0) + 1,
+        );
+      }
+
+      const paddingDefsA = leafCategories.flatMap((leaf, leafIndex) => {
+        const current = countByCategoryA.get(leaf.cat.id) ?? 0;
+        const need = Math.max(0, PRODUCTS_PER_CATEGORY_A - current);
+        return Array.from({ length: need }, (_, i) => {
+          const name = pickCategoryProductName(
+            leaf.name,
+            usedProductNamesA,
+            i,
+          );
+          usedProductNamesA.add(name);
+          const n = current + i + 1;
           return {
             categoryId: leaf.cat.id,
             categoryName: leaf.name,
-            createdById: i % 3 === 0 ? superAdminA.id : adminA.id,
+            createdById:
+              (leafIndex + i) % 3 === 0 ? superAdminA.id : adminA.id,
             name,
-            price: 1000 + (i % 20) * 200,
-            stock: 20 + (i % 15) * 10,
-            purchaseCount: i % 40,
-            imageUrl: `https://example.com/images/product-a-${i + 1}.jpg`,
-            productUrl: `https://example.com/products/product-a-${i + 1}`,
+            price: 1000 + ((leafIndex + i) % 20) * 200,
+            stock: 20 + ((leafIndex + i) % 15) * 10,
+            purchaseCount: (leafIndex + i) % 40,
+            imageUrl: seedProductImageUrl(`product-a-${leafIndex + 1}-${n}`),
+            productUrl: `https://example.com/products/product-a-${leafIndex + 1}-${n}`,
           };
-        },
-      );
+        });
+      });
 
-      const productDefsA = [...namedProductDefsA, ...generatedDefsA];
+      const productDefsA = [...namedProductDefsA, ...paddingDefsA];
 
       const namedProductDefsB = [
         {
-          categoryId: catChips.id,
-          categoryName: "칩/스낵",
+          categoryId: catSnack.id,
+          categoryName: catSnack.name,
           createdById: adminB.id,
           name: "새우깡",
           price: 1400,
           stock: 110,
           purchaseCount: 33,
-          imageUrl: "https://example.com/images/saeukkang.jpg",
+          imageUrl: seedProductImageUrl("saeukkang"),
           productUrl: "https://example.com/products/saeukkang",
         },
         {
-          categoryId: catCookies.id,
-          categoryName: "쿠키/비스킷",
+          categoryId: catCookie.id,
+          categoryName: catCookie.name,
           createdById: adminB.id,
           name: "홈런볼 초코",
           price: 2800,
           stock: 50,
           purchaseCount: 27,
-          imageUrl: "https://example.com/images/homerunball.jpg",
+          imageUrl: seedProductImageUrl("homerunball"),
           productUrl: "https://example.com/products/homerunball",
         },
         {
           categoryId: catCoffee.id,
-          categoryName: "커피/차",
+          categoryName: catCoffee.name,
           createdById: superAdminB.id,
           name: "스타벅스 더블샷",
           price: 2900,
           stock: 65,
           purchaseCount: 41,
-          imageUrl: "https://example.com/images/doubleshot.jpg",
+          imageUrl: seedProductImageUrl("doubleshot"),
           productUrl: "https://example.com/products/doubleshot",
         },
         {
-          categoryId: catJuice.id,
-          categoryName: "주스/탄산",
+          categoryId: catSoda.id,
+          categoryName: catSoda.name,
           createdById: adminB.id,
           name: "스프라이트 355ml",
           price: 1500,
           stock: 90,
           purchaseCount: 20,
-          imageUrl: "https://example.com/images/sprite.jpg",
+          imageUrl: seedProductImageUrl("sprite"),
           productUrl: "https://example.com/products/sprite",
         },
         {
-          categoryId: catRamen.id,
-          categoryName: "라면/면류",
+          categoryId: catBagRamen.id,
+          categoryName: catBagRamen.name,
           createdById: adminB.id,
           name: "진라면 매운맛",
           price: 1000,
           stock: 140,
           purchaseCount: 50,
-          imageUrl: "https://example.com/images/jinramen.jpg",
+          imageUrl: seedProductImageUrl("jinramen"),
           productUrl: "https://example.com/products/jinramen",
         },
         {
-          categoryId: catMeal.id,
-          categoryName: "즉석밥/컵밥",
+          categoryId: catCupMeal.id,
+          categoryName: catCupMeal.name,
           createdById: adminB.id,
           name: "컵밥 불고기",
           price: 3500,
           stock: 35,
           purchaseCount: 15,
-          imageUrl: "https://example.com/images/cupbap.jpg",
+          imageUrl: seedProductImageUrl("cupbap"),
           productUrl: "https://example.com/products/cupbap",
         },
       ];
 
+      const usedProductNamesB = new Set(
+        namedProductDefsB.map((def) => def.name),
+      );
       const generatedDefsB = Array.from({ length: 26 }, (_, i) => {
         const leaf = leafCategories[(i + 3) % leafCategories.length];
+        const name = pickCategoryProductName(
+          leaf.name,
+          usedProductNamesB,
+          i,
+        );
+        usedProductNamesB.add(name);
         return {
           categoryId: leaf.cat.id,
           categoryName: leaf.name,
           createdById: i % 4 === 0 ? superAdminB.id : adminB.id,
-          name: `바이트 ${productNamePool[(i + 7) % productNamePool.length]} ${i + 1}`,
+          name,
           price: 900 + (i % 18) * 150,
           stock: 15 + (i % 12) * 8,
           purchaseCount: (i * 3) % 50,
-          imageUrl: `https://example.com/images/product-b-${i + 1}.jpg`,
+          imageUrl: seedProductImageUrl(`product-b-${i + 1}`),
           productUrl: `https://example.com/products/product-b-${i + 1}`,
         };
       });
@@ -969,19 +1564,26 @@ async function main() {
       const productDefsB = [...namedProductDefsB, ...generatedDefsB];
 
       // 기타 회사: 회사당 1개 (관계 유지)
+      const usedProductNamesExtra = new Set<string>();
       const productDefsExtra = extraCompanies.map((company, index) => {
         const creator = extraCompanyUsers[index * 2]; // SUPER_ADMIN
         const leaf = leafCategories[index % leafCategories.length];
+        const name = pickCategoryProductName(
+          leaf.name,
+          usedProductNamesExtra,
+          index,
+        );
+        usedProductNamesExtra.add(name);
         return {
           companyId: company.id,
           categoryId: leaf.cat.id,
           categoryName: leaf.name,
           createdById: creator.id,
-          name: `${company.name} 시그니처 스낵`,
+          name,
           price: 1500 + (index % 10) * 100,
           stock: 30 + index,
           purchaseCount: index % 20,
-          imageUrl: `https://example.com/images/product-c-${index + 1}.jpg`,
+          imageUrl: seedProductImageUrl(`product-c-${index + 1}`),
           productUrl: `https://example.com/products/product-c-${index + 1}`,
         };
       });
@@ -1132,6 +1734,42 @@ async function main() {
               : null,
           createdAt: daysAgo(i % 40),
           items,
+        });
+      }
+
+      // 내 구매요청 페이지네이션용 (user1@snackfactory.com, 기본 limit 10 → 2페이지+)
+      for (let i = 0; i < 16; i++) {
+        const status = statusesCycle[i % statusesCycle.length];
+        const needsProcessor =
+          status === OrderStatus.APPROVED ||
+          status === OrderStatus.REJECTED;
+
+        orderSpecs.push({
+          companyId: companyA.id,
+          requesterId: userA1.id,
+          processorId: needsProcessor ? adminA.id : null,
+          type: OrderType.REQUEST,
+          status,
+          requestMessage:
+            requestMessages[i % requestMessages.length] ??
+            "내 요청 페이지네이션 테스트",
+          responseMessage:
+            status === OrderStatus.APPROVED
+              ? "승인되었습니다."
+              : status === OrderStatus.REJECTED
+                ? "이번 달 예산이 부족합니다."
+                : null,
+          approvedAt:
+            status === OrderStatus.APPROVED
+              ? daysAgo(Math.max(0, (i % 15) - 1))
+              : null,
+          createdAt: daysAgo(i % 30),
+          items: [
+            toOrderItem(
+              productsA[i % productsA.length],
+              1 + (i % 5),
+            ),
+          ],
         });
       }
 

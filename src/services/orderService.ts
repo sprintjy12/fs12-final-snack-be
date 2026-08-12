@@ -5,16 +5,21 @@ import { ErrorCodes } from "../constants/errorCodes";
 import { OrderStatus, OrderType, Prisma } from "@prisma/client";
 import { getKstMonthRange, toKstYearMonth } from "../utils/date";
 
-// 정렬
-function getOrderBy(sort?: string): Prisma.OrderOrderByWithRelationInput {
+// 정렬 (동점 시 페이지 누락/중복 방지를 위해 id로 2차 정렬)
+function getOrderBy(
+  sort?: string,
+  options?: { latestBy?: "createdAt" | "approvedAt" },
+): Prisma.OrderOrderByWithRelationInput[] {
   switch (sort) {
     case "highPrice":
-      return { totalPrice: "desc" };
+      return [{ totalPrice: "desc" }, { id: "desc" }];
     case "lowPrice":
-      return { totalPrice: "asc" };
+      return [{ totalPrice: "asc" }, { id: "asc" }];
     case "latest":
-    default:
-      return { createdAt: "desc" };
+    default: {
+      const latestBy = options?.latestBy ?? "createdAt";
+      return [{ [latestBy]: "desc" }, { id: "desc" }];
+    }
   }
 }
 
@@ -25,6 +30,7 @@ type OrderDetail = NonNullable<
 // 상세 응답 형태 (구매 내역 / 구매 요청 공용)
 function toOrderDetailResponse(order: OrderDetail) {
   const items = order.orderItems.map((item) => ({
+    productId: item.productId,
     productName: item.productName,
     imageUrl: item.imageUrl,
     categoryName: item.categoryName,
@@ -42,6 +48,7 @@ function toOrderDetailResponse(order: OrderDetail) {
     productAmount: order.productAmount,
     shippingFee: order.shippingFee,
     totalPrice: order.totalPrice,
+    itemCount: order.orderItems.length,
     totalQuantity,
     requestMessage: order.requestMessage,
     responseMessage: order.responseMessage,
@@ -70,24 +77,28 @@ async function getOrderHistory(params: {
       where,
       skip: (page - 1) * limit,
       take: limit,
-      orderBy: getOrderBy(sort),
+      // 구매 내역 latest는 승인일 기준
+      orderBy: getOrderBy(sort, { latestBy: "approvedAt" }),
     }),
   ]);
 
   const data = orders.map((order) => {
     const itemCount = order.orderItems.length;
+    const totalQuantity = order.orderItems.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    );
     return {
       id: order.id,
+      type: order.type,
       approvedAt: order.approvedAt,
       totalPrice: order.totalPrice,
+      totalQuantity,
       requesterName: order.requester?.name ?? null,
       processorName: order.processor?.name ?? null,
       createdAt: order.createdAt,
-      itemsSummary: {
-        firstProductName:
-          itemCount > 0 ? order.orderItems[0].productName : null,
-        itemCount,
-      },
+      firstProductName: order.orderItems[0]?.productName ?? null,
+      itemCount,
     };
   });
 
@@ -152,10 +163,15 @@ async function getPurchaseRequestList(params: {
 
   const data = orders.map((order) => {
     const itemCount = order.orderItems.length;
+    const totalQuantity = order.orderItems.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    );
     return {
       id: order.id,
       requestedAt: order.createdAt,
       totalPrice: order.totalPrice,
+      totalQuantity,
       requesterName: order.requester?.name ?? null,
       itemsSummary: {
         firstProductName:
@@ -210,6 +226,95 @@ async function getPurchaseRequestDetail(params: {
   };
 }
 
+// 내 구매 요청 목록 조회 (본인 요청, 전체 상태)
+async function getMyPurchaseRequestList(params: {
+  userId: string;
+  companyId: string;
+  page: number;
+  limit: number;
+  sort?: string;
+}) {
+  const { userId, companyId, page, limit, sort } = params;
+
+  const where = {
+    companyId,
+    requesterId: userId,
+    type: OrderType.REQUEST,
+  };
+
+  const [totalCount, orders] = await Promise.all([
+    orderRepository.countOrders(where),
+    orderRepository.findOrders({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: getOrderBy(sort),
+    }),
+  ]);
+
+  const data = orders.map((order) => {
+    const itemCount = order.orderItems.length;
+    const totalQuantity = order.orderItems.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    );
+    return {
+      id: order.id,
+      type: order.type,
+      status: order.status,
+      approvedAt: order.approvedAt,
+      totalPrice: order.totalPrice,
+      totalQuantity,
+      requesterName: order.requester?.name ?? null,
+      processorName: order.processor?.name ?? null,
+      createdAt: order.createdAt,
+      firstProductName: order.orderItems[0]?.productName ?? null,
+      itemCount,
+    };
+  });
+
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    data,
+    pagination: {
+      totalCount,
+      totalPages,
+      currentPage: page,
+      limit,
+      hasNextPage: page < totalPages,
+    },
+  };
+}
+
+// 내 구매 요청 상세 조회
+async function getMyPurchaseRequestDetail(params: {
+  orderId: string;
+  userId: string;
+  companyId: string;
+}) {
+  const { orderId, userId, companyId } = params;
+  const order = await orderRepository.findOrderDetailById(orderId);
+
+  if (!order) {
+    throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
+  }
+
+  if (order.companyId !== companyId) {
+    throw new AppError(ErrorCodes.ORDER.UNAUTHORIZED_ACCESS);
+  }
+
+  if (order.type !== OrderType.REQUEST) {
+    throw new AppError(ErrorCodes.ORDER.NOT_FOUND);
+  }
+
+  if (order.requesterId !== userId) {
+    throw new AppError(ErrorCodes.ORDER.UNAUTHORIZED_ACCESS);
+  }
+
+  return toOrderDetailResponse(order);
+}
+
 // 즉시구매 (장바구니에서 고른 항목을 바로 구매 확정)
 async function createDirectOrder(params: {
   userId: string;
@@ -247,7 +352,20 @@ async function createDirectOrder(params: {
     throw new AppError(ErrorCodes.BUDGET.INSUFFICIENT_MONTHLY_BUDGET);
   }
 
-  return result.order;
+  const { order, firstItem, itemCount, totalQuantity } = result;
+
+  return {
+    orderId: order.id,
+    status: order.status,
+    productAmount: order.productAmount,
+    shippingFee: order.shippingFee,
+    totalPrice: order.totalPrice,
+    totalQuantity,
+    itemCount,
+    approvedAt: order.approvedAt,
+    firstProductName: firstItem.productName,
+    categoryName: firstItem.categoryName,
+  };
 }
 
 // 구매 요청 생성 (완료 페이지용 요약 포함)
@@ -280,7 +398,7 @@ async function createPurchaseRequest(params: {
     throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
   }
 
-  const { order, firstItem, totalQuantity } = result;
+  const { order, firstItem, itemCount, totalQuantity } = result;
 
   return {
     orderId: order.id,
@@ -289,6 +407,7 @@ async function createPurchaseRequest(params: {
     shippingFee: order.shippingFee,
     totalPrice: order.totalPrice,
     totalQuantity,
+    itemCount,
     requestMessage: order.requestMessage,
     requestedAt: order.createdAt,
     // 완료 페이지: 요청 배열 첫 상품을 대표로 사용
@@ -423,6 +542,8 @@ export default {
   getOrderDetail,
   getPurchaseRequestList,
   getPurchaseRequestDetail,
+  getMyPurchaseRequestList,
+  getMyPurchaseRequestDetail,
   createDirectOrder,
   createPurchaseRequest,
   cancelPurchaseRequest,

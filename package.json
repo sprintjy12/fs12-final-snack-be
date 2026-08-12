@@ -6,7 +6,7 @@
     "start": "tsc && node dist/app.js",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "db:seed:allow": "ALLOW_DB_SEED=true prisma db seed",
+    "db:seed:allow": "dotenv -v ALLOW_DB_SEED=true -- prisma db seed",
     "ssh": "dotenv -- bash -c 'ssh -i \"$SSH_KEY_PATH\" -L 5432:$DB_HOST:5432 $EC2_USER@$EC2_HOST -N'"
   },
   "prisma": {
@@ -24,6 +24,7 @@
     "express": "^4.21.0",
     "express-rate-limit": "^8.6.1",
     "jsonwebtoken": "^9.0.3",
+    "resend": "^6.18.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

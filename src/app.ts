@@ -4,12 +4,16 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import productRouter from "./routes/productRouter";
+import categoryRouter from "./routes/categoryRouter";
 import orderRouter from "./routes/orderRouter";
 import budgetRouter from "./routes/budgetRouter";
 import authRouter from "./routes/authRouter";
+import userRouter from "./routes/userRouter";
+import invitationRouter from "./routes/invitationRouter";
 import errorHandler from "./middlewares/errorHandler";
 import AppError from "./utils/appError";
 import cartRouter from "./routes/cartRouter";
+import uploadRouter from "./routes/uploadRouter";
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
@@ -53,13 +57,18 @@ app.use(
     credentials: true,
   }),
 );
+
 app.use(express.json());
 app.use(cookieParser());
 app.use("/api/products", productRouter);
+app.use("/api/categories", categoryRouter);
 app.use("/api/orders", orderRouter);
 app.use("/api/budgets", budgetRouter);
 app.use("/api/cart", cartRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/users", userRouter);
+app.use("/api/invitations", invitationRouter);
+app.use("/api/upload", uploadRouter);
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });

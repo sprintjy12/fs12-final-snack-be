@@ -8,8 +8,10 @@ import { ErrorCodes } from "../constants/errorCodes.js";
 // 상품 목록 조회
 async function getProducts(req: Request, res: Response) {
   const { categoryId, page = 1, limit = 8, sort = "latest" } = req.query;
+  const companyId = req.user!.companyId;
 
   const result = await productService.getProducts(
+    companyId,
     categoryId as string,
     page as number,
     limit as number,
@@ -79,12 +81,13 @@ async function deleteProduct(req: Request, res: Response) {
   const { productId } = req.params;
 
   const userId = req.user?.id;
+  const userRole = req.user?.role;
 
-  if (!userId) {
+  if (!userId || !userRole) {
     throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
   }
 
-  await productService.deleteProduct(productId as string, userId);
+  await productService.deleteProduct(productId as string, userId, userRole);
 
   res.status(200).json({ message: "상품 삭제 성공" });
 }
@@ -95,12 +98,18 @@ async function updateProduct(req: Request, res: Response) {
   const input = req.body as Partial<CreateProductInput>;
 
   const userId = req.user?.id;
+  const userRole = req.user?.role;
 
-  if (!userId) {
+  if (!userId || !userRole) {
     throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
   }
 
-  const product = await productService.updateProduct(productId, userId, input);
+  const product = await productService.updateProduct(
+    productId,
+    userId,
+    userRole,
+    input,
+  );
 
   res.status(200).json({
     message: "상품 수정 성공",
@@ -111,8 +120,9 @@ async function updateProduct(req: Request, res: Response) {
 // 상품 상세 조회
 async function getProductById(req: Request, res: Response) {
   const { productId } = req.params as { productId: string };
+  const companyId = req.user!.companyId;
 
-  const product = await productService.getProductById(productId);
+  const product = await productService.getProductById(productId, companyId);
 
   res.status(200).json({
     message: "상품 상세 조회 성공",

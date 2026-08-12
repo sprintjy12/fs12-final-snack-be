@@ -1,5 +1,5 @@
 import productRepository from "../repositories/productRepository.js";
-import { Prisma } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 import AppError from "../utils/appError.js";
 import { ErrorCodes } from "../constants/errorCodes.js";
 
@@ -55,6 +55,7 @@ async function createProduct(input: CreateProductInput) {
 
 //상품 리스트 조회
 async function getProducts(
+  companyId: string,
   categoryId?: string,
   page = 1,
   limit = 8,
@@ -63,7 +64,7 @@ async function getProducts(
   const safePage = Math.max(1, page);
   const safeLimit = Math.min(Math.max(1, limit), 30);
 
-  const where: Prisma.ProductWhereInput = {};
+  const where: Prisma.ProductWhereInput = { companyId };
   if (categoryId) {
     where.categoryId = categoryId;
   }
@@ -92,17 +93,17 @@ async function getProducts(
 }
 
 // 정렬
-function getOrderBy(sort: string): Prisma.ProductOrderByWithRelationInput {
+function getOrderBy(sort: string): Prisma.ProductOrderByWithRelationInput[] {
   switch (sort) {
     case "priceAsc":
-      return { price: "asc" };
+      return [{ price: "asc" }, { id: "asc" }];
     case "priceDesc":
-      return { price: "desc" };
+      return [{ price: "desc" }, { id: "desc" }];
     case "popular":
-      return { purchaseCount: "desc" };
+      return [{ purchaseCount: "desc" }, { id: "desc" }];
     case "latest":
     default:
-      return { createdAt: "desc" };
+      return [{ createdAt: "desc" }, { id: "desc" }];
   }
 }
 
@@ -140,10 +141,14 @@ async function getMyProducts(
 }
 
 // 상품 상세 조회
-async function getProductById(productId: string) {
+async function getProductById(productId: string, companyId: string) {
   const product = await productRepository.findByIdWithDetail(productId);
 
   if (!product) {
+    throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
+  }
+
+  if (product.companyId !== companyId) {
     throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
   }
 
@@ -151,14 +156,18 @@ async function getProductById(productId: string) {
 }
 
 //상품 삭제
-async function deleteProduct(productId: string, userId: string) {
+async function deleteProduct(
+  productId: string,
+  userId: string,
+  userRole: UserRole,
+) {
   const product = await productRepository.findById(productId);
 
   if (!product) {
     throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
   }
 
-  if (product.createdById !== userId) {
+  if (product.createdById !== userId && userRole === "USER") {
     throw new AppError(ErrorCodes.PRODUCT.UNAUTHORIZED_ACCESS);
   }
 
@@ -166,13 +175,24 @@ async function deleteProduct(productId: string, userId: string) {
     throw new AppError(ErrorCodes.PRODUCT.HAS_ORDER_HISTORY);
   }
 
-  await productRepository.deleteById(productId);
+  try {
+    await productRepository.deleteById(productId);
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2003"
+    ) {
+      throw new AppError(ErrorCodes.PRODUCT.HAS_ORDER_HISTORY);
+    }
+    throw err;
+  }
 }
 
 //상품 수정
 async function updateProduct(
   productId: string,
   userId: string,
+  userRole: UserRole,
   input: Partial<CreateProductInput>,
 ) {
   const product = await productRepository.findById(productId);
@@ -181,7 +201,7 @@ async function updateProduct(
     throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
   }
 
-  if (product.createdById !== userId) {
+  if (product.createdById !== userId && userRole === "USER") {
     throw new AppError(ErrorCodes.PRODUCT.UNAUTHORIZED_ACCESS);
   }
 

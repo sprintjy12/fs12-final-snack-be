@@ -5,6 +5,8 @@ import {
   getOrderHistoryDetail,
   getPurchaseRequestList,
   getPurchaseRequestDetail,
+  getMyPurchaseRequestList,
+  getMyPurchaseRequestDetail,
   createDirectOrder,
   createPurchaseRequest,
   cancelPurchaseRequest,
@@ -25,13 +27,9 @@ import {
 const orderRouter = express.Router();
 
 const adminUp = [UserRole.ADMIN, UserRole.SUPER_ADMIN] as const;
-const userUp = [
-  UserRole.USER,
-  UserRole.ADMIN,
-  UserRole.SUPER_ADMIN,
-] as const;
+const userUp = [UserRole.USER, UserRole.ADMIN, UserRole.SUPER_ADMIN] as const;
 
-// "/requests"가 "/:orderId"로 잡히지 않도록 먼저 등록
+// "/requests", "/my-requests"가 "/:orderId"로 잡히지 않도록 먼저 등록
 orderRouter.get(
   "/requests",
   authenticate,
@@ -59,6 +57,21 @@ orderRouter.patch(
   authorize(...userUp),
   validate(orderIdParamSchema, "params"),
   cancelPurchaseRequest,
+);
+
+orderRouter.get(
+  "/my-requests",
+  authenticate,
+  authorize(...userUp),
+  validate(getOrdersQuerySchema, "query"),
+  getMyPurchaseRequestList,
+);
+orderRouter.get(
+  "/my-requests/:orderId",
+  authenticate,
+  authorize(...userUp),
+  validate(orderIdParamSchema, "params"),
+  getMyPurchaseRequestDetail,
 );
 
 orderRouter.post(

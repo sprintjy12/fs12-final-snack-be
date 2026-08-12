@@ -84,6 +84,36 @@ export const ErrorCodes = {
       statusCode: 400,
       message: "이미 탈퇴한 회원입니다.",
     },
+    UNAUTHORIZED_ACCESS: {
+      code: "USER_UNAUTHORIZED_ACCESS",
+      statusCode: 403,
+      message: "같은 회사의 회원만 처리할 수 있습니다.",
+    },
+    CANNOT_CHANGE_SUPER_ADMIN: {
+      code: "USER_CANNOT_CHANGE_SUPER_ADMIN",
+      statusCode: 403,
+      message: "최고 관리자의 권한은 변경할 수 없습니다.",
+    },
+    CANNOT_WITHDRAW_SUPER_ADMIN: {
+      code: "USER_CANNOT_WITHDRAW_SUPER_ADMIN",
+      statusCode: 403,
+      message: "최고 관리자는 탈퇴 처리할 수 없습니다.",
+    },
+    CURRENT_PASSWORD_MISMATCH: {
+      code: "CURRENT_PASSWORD_MISMATCH",
+      statusCode: 400,
+      message: "현재 비밀번호가 일치하지 않습니다.",
+    },
+    SAME_AS_CURRENT_PASSWORD: {
+      code: "SAME_AS_CURRENT_PASSWORD",
+      statusCode: 400,
+      message: "새 비밀번호는 현재 비밀번호와 달라야 합니다.",
+    },
+    PASSWORD_CHANGE_CONFLICT: {
+      code: "PASSWORD_CHANGE_CONFLICT",
+      statusCode: 409,
+      message: "비밀번호가 이미 변경되었습니다. 다시 로그인해주세요.",
+    },
   },
   INVITATION: {
     NOT_FOUND: {
@@ -100,6 +130,21 @@ export const ErrorCodes = {
       code: "INVITATION_ALREADY_USED",
       statusCode: 400,
       message: "이미 사용된 초대입니다.",
+    },
+    ALREADY_EXISTS: {
+      code: "INVITATION_ALREADY_EXISTS",
+      statusCode: 409,
+      message: "이미 유효한 초대가 존재합니다.",
+    },
+    USER_ALREADY_EXISTS: {
+      code: "INVITATION_USER_ALREADY_EXISTS",
+      statusCode: 409,
+      message: "이미 가입된 이메일입니다.",
+    },
+    EMAIL_SEND_FAILED: {
+      code: "INVITATION_EMAIL_SEND_FAILED",
+      statusCode: 502,
+      message: "초대 이메일 발송에 실패했습니다.",
     },
   },
   CATEGORY: {
@@ -193,6 +238,18 @@ export const ErrorCodes = {
       code: "CART_INSUFFICIENT_STOCK",
       statusCode: 400,
       message: "상품 재고가 부족합니다.",
+    },
+  },
+  UPLOAD: {
+    INVALID_CONTENT_TYPE: {
+      code: "UPLOAD_INVALID_CONTENT_TYPE",
+      statusCode: 400,
+      message: "지원하지 않는 이미지 형식입니다.",
+    },
+    INVALID_FILE_SIZE: {
+      code: "UPLOAD_INVALID_FILE_SIZE",
+      statusCode: 400,
+      message: "이미지 크기는 최대 10MB까지 업로드할 수 있습니다.",
     },
   },
   BUDGET: {

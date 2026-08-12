@@ -253,3 +253,18 @@ export const rotateRefreshToken = async ({
     });
   });
 };
+
+/**
+ * 리프레시 토큰 해시로 토큰 삭제
+ * @param tokenHash 리프레시 토큰 해시
+ * @returns 삭제된 토큰 개수
+ */
+export const deleteRefreshTokenByHash = async (
+  tokenHash: string,
+) => {
+  return prisma.refreshToken.deleteMany({
+    where: {
+      tokenHash,
+    },
+  });
+};

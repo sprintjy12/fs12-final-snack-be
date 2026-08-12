@@ -1,7 +1,7 @@
 import prisma from "../config/db";
 import { OrderStatus, OrderType, Prisma } from "@prisma/client";
 import budgetRepository from "./budgetRepository";
-import { SHIPPING_FEE } from "../constants/order";
+import { calculateShippingFee } from "../constants/order";
 
 const orderItemWithProductInclude = {
   product: {
@@ -40,7 +40,9 @@ async function findOrders(params: {
   where: Prisma.OrderWhereInput;
   skip: number;
   take: number;
-  orderBy: Prisma.OrderOrderByWithRelationInput;
+  orderBy:
+    | Prisma.OrderOrderByWithRelationInput
+    | Prisma.OrderOrderByWithRelationInput[];
 }) {
   const { where, skip, take, orderBy } = params;
 
@@ -49,7 +51,10 @@ async function findOrders(params: {
     include: {
       requester: { select: { name: true } },
       processor: { select: { name: true } },
-      orderItems: { select: { productName: true } },
+      orderItems: {
+        select: { productName: true, quantity: true },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      },
     },
     orderBy,
     skip,
@@ -75,6 +80,7 @@ async function findOrderDetailById(orderId: string) {
       },
       orderItems: {
         select: {
+          productId: true,
           productName: true,
           imageUrl: true,
           categoryName: true,
@@ -82,6 +88,7 @@ async function findOrderDetailById(orderId: string) {
           unitPrice: true,
           subtotal: true,
         },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       },
     },
   });
@@ -155,7 +162,10 @@ async function checkMonthlyBudget(
     to: monthRange.to,
   });
 
-  return { withinBudget: spent + amount <= budget, budget, spent };
+  // 0 이하면 미설정/무제한으로 보고 예산 검증을 건너뛴다
+  const withinBudget = budget <= 0 || spent + amount <= budget;
+
+  return { withinBudget, budget, spent };
 }
 
 async function incrementPurchaseCounts(
@@ -352,7 +362,8 @@ async function createDirectOrder(params: {
 
       const { items } = resolved;
       const productAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
-      const totalPrice = productAmount + SHIPPING_FEE;
+      const shippingFee = calculateShippingFee(productAmount);
+      const totalPrice = productAmount + shippingFee;
 
       const { withinBudget, budget, spent } = await checkMonthlyBudget(tx, {
         companyId,
@@ -373,7 +384,7 @@ async function createDirectOrder(params: {
           type: OrderType.DIRECT,
           status: OrderStatus.APPROVED,
           productAmount,
-          shippingFee: SHIPPING_FEE,
+          shippingFee,
           totalPrice,
           approvedAt: new Date(),
           orderItems: { create: items },
@@ -385,7 +396,19 @@ async function createDirectOrder(params: {
         tx.cartItem.deleteMany({ where: { id: { in: cartItemIds }, userId } }),
       ]);
 
-      return { status: "CREATED" as const, order };
+      // 대표 상품은 DB include 순서가 아니라 요청 배열 첫 항목을 사용한다
+      const firstItem = items[0];
+
+      return {
+        status: "CREATED" as const,
+        order,
+        firstItem: {
+          productName: firstItem.productName,
+          categoryName: firstItem.categoryName,
+        },
+        itemCount: items.length,
+        totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
+      };
     },
     { timeout: 10000 },
   );
@@ -429,7 +452,8 @@ async function createPurchaseRequest(params: {
           (sum, item) => sum + item.subtotal,
           0,
         );
-        const totalPrice = productAmount + SHIPPING_FEE;
+        const shippingFee = calculateShippingFee(productAmount);
+        const totalPrice = productAmount + shippingFee;
 
         const order = await tx.order.create({
           data: {
@@ -438,7 +462,7 @@ async function createPurchaseRequest(params: {
             type: OrderType.REQUEST,
             status: OrderStatus.PENDING,
             productAmount,
-            shippingFee: SHIPPING_FEE,
+            shippingFee,
             totalPrice,
             requestMessage,
             orderItems: { create: items },
@@ -455,6 +479,7 @@ async function createPurchaseRequest(params: {
             productName: firstItem.productName,
             categoryName: firstItem.categoryName,
           },
+          itemCount: items.length,
           totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
         };
       },

@@ -48,14 +48,20 @@ async function findMany(
   where: Prisma.ProductWhereInput,
   skip: number,
   take: number,
-  orderBy: Prisma.ProductOrderByWithRelationInput,
+  orderBy:
+    | Prisma.ProductOrderByWithRelationInput
+    | Prisma.ProductOrderByWithRelationInput[],
 ) {
   return prisma.product.findMany({
     where,
     skip,
     take,
     orderBy,
-    include: { category: true },
+    include: {
+      category: {
+        include: { parent: true },
+      },
+    },
   });
 }
 
@@ -68,7 +74,9 @@ async function findManyByUserId(
   userId: string,
   skip: number,
   take: number,
-  orderBy: Prisma.ProductOrderByWithRelationInput,
+  orderBy:
+    | Prisma.ProductOrderByWithRelationInput
+    | Prisma.ProductOrderByWithRelationInput[],
 ) {
   return prisma.product.findMany({
     where: { createdById: userId },
@@ -98,7 +106,9 @@ async function findByIdWithDetail(productId: string) {
   return prisma.product.findUnique({
     where: { id: productId },
     include: {
-      category: true,
+      category: {
+        include: { parent: true },
+      },
       company: true,
       createdBy: {
         select: { id: true, name: true },

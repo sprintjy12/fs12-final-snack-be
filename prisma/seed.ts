@@ -1498,6 +1498,9 @@ async function main() {
           companyId,
           ...def,
         }));
+        if (result.length >= PRODUCTS_PER_COMPANY) {
+          return result.slice(0, PRODUCTS_PER_COMPANY);
+        }
         let i = 0;
         while (result.length < PRODUCTS_PER_COMPANY) {
           const leaf = leafCategories[i % leafCategories.length];

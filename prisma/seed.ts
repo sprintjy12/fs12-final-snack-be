@@ -17,7 +17,8 @@ const PASSWORD_HASH_ROUNDS = 12;
 const DEFAULT_PASSWORD = "Password123!";
 const SEED_TX_TIMEOUT_MS = 600_000;
 const MIN_ROWS = 32;
-const PRODUCTS_PER_COMPANY = 500;
+const PRODUCTS_PER_COMPANY = 300;
+const EXTRA_COMPANY_COUNT = 3; // 스낵팩토리 + 오피스바이트 + 추가 3 = 총 5개 회사
 const ORDERS_PER_COMPANY = 300;
 const INVITATIONS_PER_COMPANY = 300;
 const CART_ITEMS_TARGET = 300;
@@ -234,7 +235,7 @@ async function main() {
       await tx.user.deleteMany();
       await tx.company.deleteMany();
 
-      // ---------- Companies (기존 2 + 추가 = 32) ----------
+      // ---------- Companies (기존 2 + 추가 3 = 5) ----------
       const companyA = await tx.company.create({
         data: {
           id: randomUUID(),
@@ -257,34 +258,7 @@ async function main() {
         "스낵박스",
         "오피스스낵",
         "미니바이트",
-        "카페코너",
-        "간식창고",
-        "바이트랩",
-        "스낵허브",
-        "오피스딜",
-        "테이스트박스",
-        "스낵스테이션",
-        "바이트팩",
-        "간식마켓",
-        "스낵라운지",
-        "오피스리필",
-        "스낵클라우드",
-        "바이트스토어",
-        "페이스트리팩",
-        "드링크박스",
-        "밀키트존",
-        "스낵플러스",
-        "오피스고고",
-        "간식딜리버리",
-        "스낵앤모어",
-        "바이트하우스",
-        "카페스낵",
-        "리필박스",
-        "스낵웨이브",
-        "오피스초이스",
-        "테이스트허브",
-        "스낵빌더",
-      ];
+      ].slice(0, EXTRA_COMPANY_COUNT);
 
       const extraCompanies = await Promise.all(
         extraCompanyNames.map((name, index) =>
@@ -486,10 +460,11 @@ async function main() {
         ),
       );
 
-      // 기타 회사: 회사당 SUPER_ADMIN + USER 1명
-      const extraCompanyUsers = await Promise.all(
-        extraCompanies.flatMap((company, index) => [
-          tx.user.create({
+      // 기타 회사: 회사당 SUPER_ADMIN + ADMIN + USER 12명
+      const EXTRA_STAFF_PER_COMPANY = 12;
+      const extraCompanyUserGroups = await Promise.all(
+        extraCompanies.map(async (company, index) => {
+          const superAdmin = await tx.user.create({
             data: {
               id: randomUUID(),
               companyId: company.id,
@@ -498,18 +473,45 @@ async function main() {
               passwordHash,
               role: UserRole.SUPER_ADMIN,
             },
-          }),
-          tx.user.create({
+          });
+          const admin = await tx.user.create({
             data: {
               id: randomUUID(),
               companyId: company.id,
-              name: `${company.name} 직원`,
-              email: `user@company${index + 1}.seed.com`,
+              name: `${company.name} 관리자`,
+              email: `admin@company${index + 1}.seed.com`,
               passwordHash,
-              role: UserRole.USER,
+              role: UserRole.ADMIN,
             },
-          }),
-        ]),
+          });
+          const staff = await Promise.all(
+            Array.from({ length: EXTRA_STAFF_PER_COMPANY }, (_, i) =>
+              tx.user.create({
+                data: {
+                  id: randomUUID(),
+                  companyId: company.id,
+                  name: koreanNames[
+                    (index * EXTRA_STAFF_PER_COMPANY + i + 8) %
+                      koreanNames.length
+                  ],
+                  email: `user${i + 1}@company${index + 1}.seed.com`,
+                  passwordHash,
+                  role: UserRole.USER,
+                },
+              }),
+            ),
+          );
+          return {
+            company,
+            superAdmin,
+            admin,
+            users: [superAdmin, admin, ...staff],
+          };
+        }),
+      );
+
+      const extraCompanyUsers = extraCompanyUserGroups.flatMap(
+        (group) => group.users,
       );
 
       const usersA = [
@@ -716,7 +718,7 @@ async function main() {
       counts.categories =
         parentCategoryDefs.length + childCategoryDefs.length;
 
-      // ---------- Products (스낵팩토리 32+ / 오피스바이트 16+ / 기타 회사 소량) ----------
+      // ---------- Products (회사당 300개) ----------
       const namedProductDefsA = [
         {
           categoryId: catSnack.id,
@@ -1520,7 +1522,7 @@ async function main() {
         return result;
       };
 
-      // 하위 카테고리마다 기본 상품을 채운 뒤, 회사당 500개로 패딩
+      // 하위 카테고리마다 기본 상품을 채운 뒤, 회사당 300개로 패딩
       const PRODUCTS_PER_CATEGORY_A = 10;
       const usedProductNamesA = new Set(
         namedProductDefsA.map((def) => def.name),
@@ -1668,34 +1670,35 @@ async function main() {
         "product-b",
       );
 
-      // 기타 회사: 회사당 500개
-      const productDefsExtra = extraCompanies.flatMap((company, index) => {
-        const creator = extraCompanyUsers[index * 2]; // SUPER_ADMIN
-        const staff = extraCompanyUsers[index * 2 + 1];
-        const usedNames = new Set<string>();
-        const leaf = leafCategories[index % leafCategories.length];
-        const name = pickCategoryProductName(leaf.name, usedNames, 0);
-        usedNames.add(name);
-        return padProductsToTarget(
-          [
-            {
-              categoryId: leaf.cat.id,
-              categoryName: leaf.name,
-              createdById: creator.id,
-              name,
-              price: 1500 + (index % 10) * 100,
-              stock: 30 + index,
-              purchaseCount: index % 20,
-              imageUrl: seedProductImageUrl(`product-c-${index + 1}-1`),
-              productUrl: `https://example.com/products/product-c-${index + 1}-1`,
-            },
-          ],
-          company.id,
-          [creator.id, staff.id],
-          usedNames,
-          `product-c-${index + 1}`,
-        );
-      });
+      // 기타 회사: 회사당 300개
+      const productDefsExtra = extraCompanyUserGroups.flatMap(
+        (group, index) => {
+          const { company, superAdmin, admin } = group;
+          const usedNames = new Set<string>();
+          const leaf = leafCategories[index % leafCategories.length];
+          const name = pickCategoryProductName(leaf.name, usedNames, 0);
+          usedNames.add(name);
+          return padProductsToTarget(
+            [
+              {
+                categoryId: leaf.cat.id,
+                categoryName: leaf.name,
+                createdById: superAdmin.id,
+                name,
+                price: 1500 + (index % 10) * 100,
+                stock: 30 + index,
+                purchaseCount: index % 20,
+                imageUrl: seedProductImageUrl(`product-c-${index + 1}-1`),
+                productUrl: `https://example.com/products/product-c-${index + 1}-1`,
+              },
+            ],
+            company.id,
+            [superAdmin.id, admin.id],
+            usedNames,
+            `product-c-${index + 1}`,
+          );
+        },
+      );
 
       const allProductDefs: ProductDef[] = [
         ...productDefsA,
@@ -1840,16 +1843,20 @@ async function main() {
           directBuyerId: adminB.id,
           preferRequesterId: userB1.id,
         },
-        ...extraCompanies.map((company, index) => {
-          const superAdmin = extraCompanyUsers[index * 2];
-          const staff = extraCompanyUsers[index * 2 + 1];
+        ...extraCompanyUserGroups.map((group) => {
+          const activeUsers = group.users.filter(
+            (u) => u.status === UserStatus.ACTIVE,
+          );
+          const requesters = activeUsers.filter(
+            (u) => u.role === UserRole.USER || u.role === UserRole.ADMIN,
+          );
           return {
-            companyId: company.id,
-            products: productsByCompanyId.get(company.id) ?? [],
-            requesters: [staff, superAdmin],
-            processorId: superAdmin.id,
-            directBuyerId: superAdmin.id,
-            preferRequesterId: staff.id,
+            companyId: group.company.id,
+            products: productsByCompanyId.get(group.company.id) ?? [],
+            requesters: requesters.length > 0 ? requesters : activeUsers,
+            processorId: group.admin.id,
+            directBuyerId: group.admin.id,
+            preferRequesterId: group.users[2]?.id ?? group.admin.id,
           };
         }),
       ];

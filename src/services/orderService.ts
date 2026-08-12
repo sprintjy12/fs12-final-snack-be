@@ -6,15 +6,20 @@ import { OrderStatus, OrderType, Prisma } from "@prisma/client";
 import { getKstMonthRange, toKstYearMonth } from "../utils/date";
 
 // 정렬 (동점 시 페이지 누락/중복 방지를 위해 id로 2차 정렬)
-function getOrderBy(sort?: string): Prisma.OrderOrderByWithRelationInput[] {
+function getOrderBy(
+  sort?: string,
+  options?: { latestBy?: "createdAt" | "approvedAt" },
+): Prisma.OrderOrderByWithRelationInput[] {
   switch (sort) {
     case "highPrice":
       return [{ totalPrice: "desc" }, { id: "desc" }];
     case "lowPrice":
       return [{ totalPrice: "asc" }, { id: "asc" }];
     case "latest":
-    default:
-      return [{ createdAt: "desc" }, { id: "desc" }];
+    default: {
+      const latestBy = options?.latestBy ?? "createdAt";
+      return [{ [latestBy]: "desc" }, { id: "desc" }];
+    }
   }
 }
 
@@ -72,7 +77,8 @@ async function getOrderHistory(params: {
       where,
       skip: (page - 1) * limit,
       take: limit,
-      orderBy: getOrderBy(sort),
+      // 구매 내역 latest는 승인일 기준
+      orderBy: getOrderBy(sort, { latestBy: "approvedAt" }),
     }),
   ]);
 

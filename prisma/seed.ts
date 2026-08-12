@@ -15,8 +15,22 @@ const prisma = new PrismaClient();
 
 const PASSWORD_HASH_ROUNDS = 12;
 const DEFAULT_PASSWORD = "Password123!";
-const SEED_TX_TIMEOUT_MS = 180_000;
+const SEED_TX_TIMEOUT_MS = 600_000;
 const MIN_ROWS = 32;
+const PRODUCTS_PER_COMPANY = 300;
+const EXTRA_COMPANY_COUNT = 3; // 스낵팩토리 + 오피스바이트 + 추가 3 = 총 5개 회사
+const ORDERS_PER_COMPANY = 300;
+const INVITATIONS_PER_COMPANY = 300;
+const CART_ITEMS_TARGET = 300;
+const CREATE_MANY_CHUNK = 500;
+
+const chunkArray = <T>(items: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+};
 
 const hashToken = (token: string) =>
   createHash("sha256").update(token).digest("hex");
@@ -221,7 +235,7 @@ async function main() {
       await tx.user.deleteMany();
       await tx.company.deleteMany();
 
-      // ---------- Companies (기존 2 + 추가 = 32) ----------
+      // ---------- Companies (기존 2 + 추가 3 = 5) ----------
       const companyA = await tx.company.create({
         data: {
           id: randomUUID(),
@@ -244,34 +258,7 @@ async function main() {
         "스낵박스",
         "오피스스낵",
         "미니바이트",
-        "카페코너",
-        "간식창고",
-        "바이트랩",
-        "스낵허브",
-        "오피스딜",
-        "테이스트박스",
-        "스낵스테이션",
-        "바이트팩",
-        "간식마켓",
-        "스낵라운지",
-        "오피스리필",
-        "스낵클라우드",
-        "바이트스토어",
-        "페이스트리팩",
-        "드링크박스",
-        "밀키트존",
-        "스낵플러스",
-        "오피스고고",
-        "간식딜리버리",
-        "스낵앤모어",
-        "바이트하우스",
-        "카페스낵",
-        "리필박스",
-        "스낵웨이브",
-        "오피스초이스",
-        "테이스트허브",
-        "스낵빌더",
-      ];
+      ].slice(0, EXTRA_COMPANY_COUNT);
 
       const extraCompanies = await Promise.all(
         extraCompanyNames.map((name, index) =>
@@ -473,10 +460,11 @@ async function main() {
         ),
       );
 
-      // 기타 회사: 회사당 SUPER_ADMIN + USER 1명
-      const extraCompanyUsers = await Promise.all(
-        extraCompanies.flatMap((company, index) => [
-          tx.user.create({
+      // 기타 회사: 회사당 SUPER_ADMIN + ADMIN + USER 12명
+      const EXTRA_STAFF_PER_COMPANY = 12;
+      const extraCompanyUserGroups = await Promise.all(
+        extraCompanies.map(async (company, index) => {
+          const superAdmin = await tx.user.create({
             data: {
               id: randomUUID(),
               companyId: company.id,
@@ -485,18 +473,45 @@ async function main() {
               passwordHash,
               role: UserRole.SUPER_ADMIN,
             },
-          }),
-          tx.user.create({
+          });
+          const admin = await tx.user.create({
             data: {
               id: randomUUID(),
               companyId: company.id,
-              name: `${company.name} 직원`,
-              email: `user@company${index + 1}.seed.com`,
+              name: `${company.name} 관리자`,
+              email: `admin@company${index + 1}.seed.com`,
               passwordHash,
-              role: UserRole.USER,
+              role: UserRole.ADMIN,
             },
-          }),
-        ]),
+          });
+          const staff = await Promise.all(
+            Array.from({ length: EXTRA_STAFF_PER_COMPANY }, (_, i) =>
+              tx.user.create({
+                data: {
+                  id: randomUUID(),
+                  companyId: company.id,
+                  name: koreanNames[
+                    (index * EXTRA_STAFF_PER_COMPANY + i + 8) %
+                      koreanNames.length
+                  ],
+                  email: `user${i + 1}@company${index + 1}.seed.com`,
+                  passwordHash,
+                  role: UserRole.USER,
+                },
+              }),
+            ),
+          );
+          return {
+            company,
+            superAdmin,
+            admin,
+            users: [superAdmin, admin, ...staff],
+          };
+        }),
+      );
+
+      const extraCompanyUsers = extraCompanyUserGroups.flatMap(
+        (group) => group.users,
       );
 
       const usersA = [
@@ -517,7 +532,7 @@ async function main() {
       counts.users =
         usersA.length + usersB.length + extraCompanyUsers.length;
 
-      // ---------- Invitations (32+) ----------
+      // ---------- Invitations (회사당 300) ----------
       const invitationData = [
         {
           companyId: companyA.id,
@@ -555,18 +570,42 @@ async function main() {
           expiresAt: daysFromNow(14),
           isUsed: false,
         },
-        ...Array.from({ length: 28 }, (_, i) => ({
-          companyId: i % 2 === 0 ? companyA.id : companyB.id,
-          name: `추가초대${i + 1}`,
-          email: `invitee${i + 10}@${i % 2 === 0 ? "snackfactory" : "officebite"}.com`,
-          role: i % 5 === 0 ? InvitationRole.ADMIN : InvitationRole.USER,
-          tokenHash: hashToken(`invite-token-extra-${i + 1}`),
-          expiresAt: daysFromNow(1 + (i % 20)),
-          isUsed: i % 7 === 0,
-        })),
       ];
 
-      await tx.invitation.createMany({ data: invitationData });
+      const inviteCountA = invitationData.filter(
+        (row) => row.companyId === companyA.id,
+      ).length;
+      const inviteCountB = invitationData.filter(
+        (row) => row.companyId === companyB.id,
+      ).length;
+
+      for (let i = inviteCountA; i < INVITATIONS_PER_COMPANY; i++) {
+        invitationData.push({
+          companyId: companyA.id,
+          name: `추가초대A${i + 1}`,
+          email: `invitee-a-${i + 1}@snackfactory.com`,
+          role: i % 5 === 0 ? InvitationRole.ADMIN : InvitationRole.USER,
+          tokenHash: hashToken(`invite-token-a-extra-${i + 1}`),
+          expiresAt: daysFromNow(1 + (i % 20)),
+          isUsed: i % 7 === 0,
+        });
+      }
+
+      for (let i = inviteCountB; i < INVITATIONS_PER_COMPANY; i++) {
+        invitationData.push({
+          companyId: companyB.id,
+          name: `추가초대B${i + 1}`,
+          email: `invitee-b-${i + 1}@officebite.com`,
+          role: i % 5 === 0 ? InvitationRole.ADMIN : InvitationRole.USER,
+          tokenHash: hashToken(`invite-token-b-extra-${i + 1}`),
+          expiresAt: daysFromNow(1 + (i % 20)),
+          isUsed: i % 7 === 0,
+        });
+      }
+
+      for (const batch of chunkArray(invitationData, CREATE_MANY_CHUNK)) {
+        await tx.invitation.createMany({ data: batch });
+      }
       counts.invitations = invitationData.length;
 
       // ---------- Categories (depth 1 상위 / depth 2 하위, 고정 UUID) ----------
@@ -679,7 +718,7 @@ async function main() {
       counts.categories =
         parentCategoryDefs.length + childCategoryDefs.length;
 
-      // ---------- Products (스낵팩토리 32+ / 오피스바이트 16+ / 기타 회사 소량) ----------
+      // ---------- Products (회사당 300개) ----------
       const namedProductDefsA = [
         {
           categoryId: catSnack.id,
@@ -1424,10 +1463,66 @@ async function main() {
           return available[index % available.length];
         }
         const base = pool[index % Math.max(pool.length, 1)] ?? categoryName;
-        return `${base} ${index + 1}`;
+        let n = index + 1;
+        let candidate = `${base} ${n}`;
+        while (usedNames.has(candidate)) {
+          n += 1;
+          candidate = `${base} ${n}`;
+        }
+        return candidate;
       };
 
-      // 하위 카테고리마다 페이지네이션용 상품 채우기 (기본 limit 8 → 2페이지+)
+      type ProductDef = {
+        id: string;
+        companyId: string;
+        categoryId: string;
+        categoryName: string;
+        createdById: string;
+        name: string;
+        price: number;
+        stock: number;
+        purchaseCount: number;
+        imageUrl: string;
+        productUrl: string;
+      };
+
+      const padProductsToTarget = (
+        defs: Omit<ProductDef, "id" | "companyId">[],
+        companyId: string,
+        creatorIds: string[],
+        usedNames: Set<string>,
+        prefix: string,
+      ): ProductDef[] => {
+        const result: ProductDef[] = defs.map((def) => ({
+          id: randomUUID(),
+          companyId,
+          ...def,
+        }));
+        let i = 0;
+        while (result.length < PRODUCTS_PER_COMPANY) {
+          const leaf = leafCategories[i % leafCategories.length];
+          const name = pickCategoryProductName(leaf.name, usedNames, i);
+          usedNames.add(name);
+          const n = result.length + 1;
+          result.push({
+            id: randomUUID(),
+            companyId,
+            categoryId: leaf.cat.id,
+            categoryName: leaf.name,
+            createdById: creatorIds[i % creatorIds.length],
+            name,
+            price: 900 + (i % 25) * 150,
+            stock: 10 + (i % 20) * 8,
+            purchaseCount: i % 60,
+            imageUrl: seedProductImageUrl(`${prefix}-${n}`),
+            productUrl: `https://example.com/products/${prefix}-${n}`,
+          });
+          i += 1;
+        }
+        return result;
+      };
+
+      // 하위 카테고리마다 기본 상품을 채운 뒤, 회사당 300개로 패딩
       const PRODUCTS_PER_CATEGORY_A = 10;
       const usedProductNamesA = new Set(
         namedProductDefsA.map((def) => def.name),
@@ -1466,7 +1561,13 @@ async function main() {
         });
       });
 
-      const productDefsA = [...namedProductDefsA, ...paddingDefsA];
+      const productDefsA = padProductsToTarget(
+        [...namedProductDefsA, ...paddingDefsA],
+        companyA.id,
+        [adminA.id, superAdminA.id],
+        usedProductNamesA,
+        "product-a",
+      );
 
       const namedProductDefsB = [
         {
@@ -1561,62 +1662,88 @@ async function main() {
         };
       });
 
-      const productDefsB = [...namedProductDefsB, ...generatedDefsB];
+      const productDefsB = padProductsToTarget(
+        [...namedProductDefsB, ...generatedDefsB],
+        companyB.id,
+        [adminB.id, superAdminB.id],
+        usedProductNamesB,
+        "product-b",
+      );
 
-      // 기타 회사: 회사당 1개 (관계 유지)
-      const usedProductNamesExtra = new Set<string>();
-      const productDefsExtra = extraCompanies.map((company, index) => {
-        const creator = extraCompanyUsers[index * 2]; // SUPER_ADMIN
-        const leaf = leafCategories[index % leafCategories.length];
-        const name = pickCategoryProductName(
-          leaf.name,
-          usedProductNamesExtra,
-          index,
-        );
-        usedProductNamesExtra.add(name);
-        return {
-          companyId: company.id,
-          categoryId: leaf.cat.id,
-          categoryName: leaf.name,
-          createdById: creator.id,
-          name,
-          price: 1500 + (index % 10) * 100,
-          stock: 30 + index,
-          purchaseCount: index % 20,
-          imageUrl: seedProductImageUrl(`product-c-${index + 1}`),
-          productUrl: `https://example.com/products/product-c-${index + 1}`,
-        };
-      });
+      // 기타 회사: 회사당 300개
+      const productDefsExtra = extraCompanyUserGroups.flatMap(
+        (group, index) => {
+          const { company, superAdmin, admin } = group;
+          const usedNames = new Set<string>();
+          const leaf = leafCategories[index % leafCategories.length];
+          const name = pickCategoryProductName(leaf.name, usedNames, 0);
+          usedNames.add(name);
+          return padProductsToTarget(
+            [
+              {
+                categoryId: leaf.cat.id,
+                categoryName: leaf.name,
+                createdById: superAdmin.id,
+                name,
+                price: 1500 + (index % 10) * 100,
+                stock: 30 + index,
+                purchaseCount: index % 20,
+                imageUrl: seedProductImageUrl(`product-c-${index + 1}-1`),
+                productUrl: `https://example.com/products/product-c-${index + 1}-1`,
+              },
+            ],
+            company.id,
+            [superAdmin.id, admin.id],
+            usedNames,
+            `product-c-${index + 1}`,
+          );
+        },
+      );
 
-      const allProductDefs = [
-        ...productDefsA.map((d) => ({ ...d, companyId: companyA.id })),
-        ...productDefsB.map((d) => ({ ...d, companyId: companyB.id })),
+      const allProductDefs: ProductDef[] = [
+        ...productDefsA,
+        ...productDefsB,
         ...productDefsExtra,
       ];
 
-      const products = await Promise.all(
-        allProductDefs.map(({ categoryName: _categoryName, ...data }) =>
-          tx.product.create({
-            data: {
-              id: randomUUID(),
-              ...data,
-            },
-          }),
-        ),
-      );
+      for (const batch of chunkArray(
+        allProductDefs.map(({ categoryName: _categoryName, ...data }) => data),
+        CREATE_MANY_CHUNK,
+      )) {
+        await tx.product.createMany({ data: batch });
+      }
 
-      const productMeta: ProductMeta[] = products.map((product, index) => ({
-        product,
-        categoryName: allProductDefs[index].categoryName,
+      const productMeta: ProductMeta[] = allProductDefs.map((def) => ({
+        product: {
+          id: def.id,
+          companyId: def.companyId,
+          name: def.name,
+          price: def.price,
+          imageUrl: def.imageUrl,
+        },
+        categoryName: def.categoryName,
       }));
 
-      const productsA = productMeta.filter(
-        (item) => item.product.companyId === companyA.id,
-      );
-      const productsB = productMeta.filter(
-        (item) => item.product.companyId === companyB.id,
-      );
-      counts.products = products.length;
+      const productsByCompanyId = new Map<string, ProductMeta[]>();
+      for (const meta of productMeta) {
+        const list = productsByCompanyId.get(meta.product.companyId) ?? [];
+        list.push(meta);
+        productsByCompanyId.set(meta.product.companyId, list);
+      }
+
+      const productsA = productsByCompanyId.get(companyA.id) ?? [];
+      const productsB = productsByCompanyId.get(companyB.id) ?? [];
+      counts.products = allProductDefs.length;
+
+      for (const company of companies) {
+        const companyProductCount =
+          productsByCompanyId.get(company.id)?.length ?? 0;
+        if (companyProductCount !== PRODUCTS_PER_COMPANY) {
+          throw new Error(
+            `Seed aborted: ${company.name} products=${companyProductCount}, expected ${PRODUCTS_PER_COMPANY}`,
+          );
+        }
+      }
 
       // ---------- Budgets (회사별 다개월 = 32+) ----------
       const budgetRows: Array<{
@@ -1641,20 +1768,27 @@ async function main() {
         }
       }
 
-      // 기타 회사: 최근 1개월
+      // 기타 회사: 최근 12개월
       for (const [index, company] of extraCompanies.entries()) {
-        budgetRows.push({
-          id: randomUUID(),
-          companyId: company.id,
-          yearMonth: yearMonthOffset(0),
-          amount: company.defaultMonthlyBudget + (index % 3) * 5000,
-        });
+        for (let m = 0; m < 12; m++) {
+          budgetRows.push({
+            id: randomUUID(),
+            companyId: company.id,
+            yearMonth: yearMonthOffset(m),
+            amount:
+              company.defaultMonthlyBudget +
+              (index % 3) * 5000 -
+              (m % 4) * 3000,
+          });
+        }
       }
 
-      await tx.budget.createMany({ data: budgetRows });
+      for (const batch of chunkArray(budgetRows, CREATE_MANY_CHUNK)) {
+        await tx.budget.createMany({ data: batch });
+      }
       counts.budgets = budgetRows.length;
 
-      // ---------- Orders + OrderItems (스낵팩토리 32+ 주문) ----------
+      // ---------- Orders + OrderItems (회사당 300) ----------
       const shippingFee = 3000;
       const statusesCycle = [
         OrderStatus.PENDING,
@@ -1679,191 +1813,191 @@ async function main() {
         null,
       ];
 
-      const orderSpecs: Array<{
+      const usersBActive = usersB.filter(
+        (u) => u.status === UserStatus.ACTIVE,
+      );
+
+      type OrderSeedContext = {
+        companyId: string;
+        products: ProductMeta[];
+        requesters: Array<{ id: string }>;
+        processorId: string;
+        directBuyerId: string;
+        preferRequesterId?: string;
+      };
+
+      const orderContexts: OrderSeedContext[] = [
+        {
+          companyId: companyA.id,
+          products: productsA,
+          requesters: requestersA,
+          processorId: adminA.id,
+          directBuyerId: adminA.id,
+          preferRequesterId: userA1.id,
+        },
+        {
+          companyId: companyB.id,
+          products: productsB,
+          requesters: usersBActive,
+          processorId: adminB.id,
+          directBuyerId: adminB.id,
+          preferRequesterId: userB1.id,
+        },
+        ...extraCompanyUserGroups.map((group) => {
+          const activeUsers = group.users.filter(
+            (u) => u.status === UserStatus.ACTIVE,
+          );
+          const requesters = activeUsers.filter(
+            (u) => u.role === UserRole.USER || u.role === UserRole.ADMIN,
+          );
+          return {
+            companyId: group.company.id,
+            products: productsByCompanyId.get(group.company.id) ?? [],
+            requesters: requesters.length > 0 ? requesters : activeUsers,
+            processorId: group.admin.id,
+            directBuyerId: group.admin.id,
+            preferRequesterId: group.users[2]?.id ?? group.admin.id,
+          };
+        }),
+      ];
+
+      const orderRows: Array<{
+        id: string;
         companyId: string;
         requesterId: string;
         processorId: string | null;
         type: OrderType;
         status: OrderStatus;
+        productAmount: number;
+        shippingFee: number;
+        totalPrice: number;
         requestMessage: string | null;
         responseMessage: string | null;
         approvedAt: Date | null;
         createdAt: Date;
-        items: SeedOrderItem[];
+        updatedAt: Date;
       }> = [];
 
-      // 스낵팩토리 주문 36건
-      for (let i = 0; i < 36; i++) {
-        const status = statusesCycle[i % statusesCycle.length];
-        const requester =
-          requestersA[i % requestersA.length] ?? userA1;
-        const isDirect = i % 11 === 0;
-        const type = isDirect ? OrderType.DIRECT : OrderType.REQUEST;
-        const needsProcessor =
-          status === OrderStatus.APPROVED ||
-          status === OrderStatus.REJECTED ||
-          type === OrderType.DIRECT;
+      const orderItemRows: Array<{
+        id: string;
+        orderId: string;
+        productId: string;
+        unitPrice: number;
+        quantity: number;
+        subtotal: number;
+        productName: string;
+        imageUrl: string | null;
+        categoryName: string;
+        createdAt: Date;
+      }> = [];
 
-        const itemCount = 1 + (i % 4);
-        const items = Array.from({ length: itemCount }, (_, j) => {
-          const meta = productsA[(i + j * 3) % productsA.length];
-          return toOrderItem(meta, 1 + ((i + j) % 12));
-        });
+      for (const ctx of orderContexts) {
+        if (ctx.products.length === 0 || ctx.requesters.length === 0) {
+          throw new Error(
+            `Seed aborted: missing products/requesters for company ${ctx.companyId}`,
+          );
+        }
 
-        orderSpecs.push({
-          companyId: companyA.id,
-          requesterId: isDirect ? adminA.id : requester.id,
-          processorId: needsProcessor ? adminA.id : null,
-          type,
-          status: isDirect ? OrderStatus.APPROVED : status,
-          requestMessage:
-            isDirect
-              ? null
-              : requestMessages[i % requestMessages.length],
-          responseMessage:
-            status === OrderStatus.APPROVED || isDirect
-              ? i % 2 === 0
-                ? "승인되었습니다."
-                : "관리자 직접 구매"
-              : status === OrderStatus.REJECTED
-                ? "이번 달 예산이 부족합니다."
-                : null,
-          approvedAt:
-            status === OrderStatus.APPROVED || isDirect
-              ? daysAgo(Math.max(0, (i % 20) - 1))
-              : null,
-          createdAt: daysAgo(i % 40),
-          items,
-        });
-      }
+        for (let i = 0; i < ORDERS_PER_COMPANY; i++) {
+          const status = statusesCycle[i % statusesCycle.length];
+          const isDirect = i % 11 === 0;
+          const type = isDirect ? OrderType.DIRECT : OrderType.REQUEST;
+          const needsProcessor =
+            status === OrderStatus.APPROVED ||
+            status === OrderStatus.REJECTED ||
+            type === OrderType.DIRECT;
 
-      // 내 구매요청 페이지네이션용 (user1@snackfactory.com, 기본 limit 10 → 2페이지+)
-      for (let i = 0; i < 16; i++) {
-        const status = statusesCycle[i % statusesCycle.length];
-        const needsProcessor =
-          status === OrderStatus.APPROVED ||
-          status === OrderStatus.REJECTED;
+          // 앞쪽 일부는 특정 유저 요청으로 채워 페이지네이션 테스트에 활용
+          const requester =
+            !isDirect && ctx.preferRequesterId && i < 40
+              ? { id: ctx.preferRequesterId }
+              : (ctx.requesters[i % ctx.requesters.length] ??
+                ctx.requesters[0]);
 
-        orderSpecs.push({
-          companyId: companyA.id,
-          requesterId: userA1.id,
-          processorId: needsProcessor ? adminA.id : null,
-          type: OrderType.REQUEST,
-          status,
-          requestMessage:
-            requestMessages[i % requestMessages.length] ??
-            "내 요청 페이지네이션 테스트",
-          responseMessage:
-            status === OrderStatus.APPROVED
-              ? "승인되었습니다."
-              : status === OrderStatus.REJECTED
-                ? "이번 달 예산이 부족합니다."
-                : null,
-          approvedAt:
-            status === OrderStatus.APPROVED
-              ? daysAgo(Math.max(0, (i % 15) - 1))
-              : null,
-          createdAt: daysAgo(i % 30),
-          items: [
-            toOrderItem(
-              productsA[i % productsA.length],
-              1 + (i % 5),
-            ),
-          ],
-        });
-      }
+          const itemCount = 1 + (i % 4);
+          const items = Array.from({ length: itemCount }, (_, j) => {
+            const meta = ctx.products[(i + j * 3) % ctx.products.length];
+            return toOrderItem(meta, 1 + ((i + j) % 12));
+          });
 
-      // 오피스바이트 주문 12건
-      const usersBActive = usersB.filter(
-        (u) => u.status === UserStatus.ACTIVE,
-      );
-      for (let i = 0; i < 12; i++) {
-        const status = statusesCycle[i % statusesCycle.length];
-        const requester = usersBActive[i % usersBActive.length] ?? userB1;
-        const needsProcessor =
-          status === OrderStatus.APPROVED ||
-          status === OrderStatus.REJECTED;
+          const { orderItems, productAmount } = buildOrderItems(items);
+          const finalStatus = isDirect ? OrderStatus.APPROVED : status;
+          const fee =
+            finalStatus === OrderStatus.CANCELLED ||
+            finalStatus === OrderStatus.REJECTED
+              ? 0
+              : shippingFee;
+          const createdAt = daysAgo(i % 90);
+          const orderId = randomUUID();
 
-        orderSpecs.push({
-          companyId: companyB.id,
-          requesterId: requester.id,
-          processorId: needsProcessor ? adminB.id : null,
-          type: i % 5 === 0 ? OrderType.DIRECT : OrderType.REQUEST,
-          status:
-            i % 5 === 0 ? OrderStatus.APPROVED : status,
-          requestMessage: "탕비실 채워주세요.",
-          responseMessage:
-            status === OrderStatus.APPROVED || i % 5 === 0
-              ? "승인 완료"
-              : status === OrderStatus.REJECTED
-                ? "반려"
-                : null,
-          approvedAt:
-            status === OrderStatus.APPROVED || i % 5 === 0
-              ? daysAgo(i + 1)
-              : null,
-          createdAt: daysAgo(i + 1),
-          items: [
-            toOrderItem(
-              productsB[i % productsB.length],
-              2 + (i % 8),
-            ),
-            ...(i % 2 === 0
-              ? [
-                  toOrderItem(
-                    productsB[(i + 2) % productsB.length],
-                    1 + (i % 5),
-                  ),
-                ]
-              : []),
-          ],
-        });
-      }
-
-      for (const spec of orderSpecs) {
-        const { orderItems, productAmount } = buildOrderItems(spec.items);
-        const fee =
-          spec.status === OrderStatus.CANCELLED ||
-          spec.status === OrderStatus.REJECTED
-            ? 0
-            : shippingFee;
-
-        await tx.order.create({
-          data: {
-            id: randomUUID(),
-            companyId: spec.companyId,
-            requesterId: spec.requesterId,
-            processorId: spec.processorId,
-            type: spec.type,
-            status: spec.status,
+          orderRows.push({
+            id: orderId,
+            companyId: ctx.companyId,
+            requesterId: isDirect ? ctx.directBuyerId : requester.id,
+            processorId: needsProcessor ? ctx.processorId : null,
+            type,
+            status: finalStatus,
             productAmount,
             shippingFee: fee,
             totalPrice: productAmount + fee,
-            requestMessage: spec.requestMessage,
-            responseMessage: spec.responseMessage,
-            approvedAt: spec.approvedAt,
-            createdAt: spec.createdAt,
-            updatedAt: spec.createdAt,
-            orderItems: {
-              create: orderItems.map((item) => ({
-                id: randomUUID(),
-                productId: item.productId,
-                unitPrice: item.unitPrice,
-                quantity: item.quantity,
-                subtotal: item.subtotal,
-                productName: item.productName,
-                imageUrl: item.imageUrl,
-                categoryName: item.categoryName,
-                createdAt: spec.createdAt,
-              })),
-            },
-          },
-        });
-        counts.orders += 1;
-        counts.orderItems += orderItems.length;
+            requestMessage: isDirect
+              ? null
+              : (requestMessages[i % requestMessages.length] ??
+                "구매 요청드립니다."),
+            responseMessage:
+              finalStatus === OrderStatus.APPROVED || isDirect
+                ? i % 2 === 0
+                  ? "승인되었습니다."
+                  : "관리자 직접 구매"
+                : finalStatus === OrderStatus.REJECTED
+                  ? "이번 달 예산이 부족합니다."
+                  : null,
+            approvedAt:
+              finalStatus === OrderStatus.APPROVED || isDirect
+                ? daysAgo(Math.max(0, (i % 20) - 1))
+                : null,
+            createdAt,
+            updatedAt: createdAt,
+          });
+
+          for (const item of orderItems) {
+            orderItemRows.push({
+              id: randomUUID(),
+              orderId,
+              productId: item.productId,
+              unitPrice: item.unitPrice,
+              quantity: item.quantity,
+              subtotal: item.subtotal,
+              productName: item.productName,
+              imageUrl: item.imageUrl,
+              categoryName: item.categoryName,
+              createdAt,
+            });
+          }
+        }
       }
 
-      // ---------- CartItems (userId+productId unique, 32+) ----------
+      for (const batch of chunkArray(orderRows, CREATE_MANY_CHUNK)) {
+        await tx.order.createMany({ data: batch });
+      }
+      for (const batch of chunkArray(orderItemRows, CREATE_MANY_CHUNK)) {
+        await tx.orderItem.createMany({ data: batch });
+      }
+      counts.orders = orderRows.length;
+      counts.orderItems = orderItemRows.length;
+
+      for (const ctx of orderContexts) {
+        const companyOrderCount = orderRows.filter(
+          (row) => row.companyId === ctx.companyId,
+        ).length;
+        if (companyOrderCount !== ORDERS_PER_COMPANY) {
+          throw new Error(
+            `Seed aborted: company ${ctx.companyId} orders=${companyOrderCount}, expected ${ORDERS_PER_COMPANY}`,
+          );
+        }
+      }
+
+      // ---------- CartItems (주요 회사 합계 300+) ----------
       const cartRows: Array<{
         id: string;
         userId: string;
@@ -1895,16 +2029,15 @@ async function main() {
       pushCart(userB1.id, productsB[0].product.id, 4);
       pushCart(userB1.id, productsB[2].product.id, 1);
 
-      for (let i = 0; i < activeUsersA.length && cartRows.length < 40; i++) {
-        const user = activeUsersA[i];
-        for (let j = 0; j < 2; j++) {
-          const product = productsA[(i * 2 + j) % productsA.length].product;
-          pushCart(user.id, product.id, 1 + ((i + j) % 5));
-        }
+      for (let i = 0; cartRows.length < CART_ITEMS_TARGET; i++) {
+        const user = activeUsersA[i % activeUsersA.length];
+        const product = productsA[i % productsA.length].product;
+        pushCart(user.id, product.id, 1 + (i % 5));
+        if (i > PRODUCTS_PER_COMPANY * activeUsersA.length) break;
       }
 
-      for (let i = 0; i < usersBActive.length && cartRows.length < 50; i++) {
-        const user = usersBActive[i];
+      for (let i = 0; i < usersBActive.length * 8; i++) {
+        const user = usersBActive[i % usersBActive.length];
         pushCart(
           user.id,
           productsB[i % productsB.length].product.id,
@@ -1912,7 +2045,9 @@ async function main() {
         );
       }
 
-      await tx.cartItem.createMany({ data: cartRows });
+      for (const batch of chunkArray(cartRows, CREATE_MANY_CHUNK)) {
+        await tx.cartItem.createMany({ data: batch });
+      }
       counts.cartItems = cartRows.length;
 
       // ---------- RefreshTokens (32+) ----------
@@ -1953,11 +2088,15 @@ async function main() {
   console.log("📦 Summary");
   console.log(`  companies      : ${counts.companies}`);
   console.log(`  users          : ${counts.users}`);
-  console.log(`  invitations    : ${counts.invitations}`);
+  console.log(`  invitations    : ${counts.invitations} (A/B ${INVITATIONS_PER_COMPANY} each)`);
   console.log(`  categories     : ${counts.categories}`);
-  console.log(`  products       : ${counts.products}`);
+  console.log(
+    `  products       : ${counts.products} (${PRODUCTS_PER_COMPANY}/company × ${counts.companies})`,
+  );
   console.log(`  budgets        : ${counts.budgets}`);
-  console.log(`  orders         : ${counts.orders}`);
+  console.log(
+    `  orders         : ${counts.orders} (${ORDERS_PER_COMPANY}/company × ${counts.companies})`,
+  );
   console.log(`  order_items    : ${counts.orderItems}`);
   console.log(`  cart_items     : ${counts.cartItems}`);
   console.log(`  refresh_tokens : ${counts.refreshTokens}`);

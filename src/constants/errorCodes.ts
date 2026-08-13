@@ -249,7 +249,7 @@ export const ErrorCodes = {
     INVALID_FILE_SIZE: {
       code: "UPLOAD_INVALID_FILE_SIZE",
       statusCode: 400,
-      message: "이미지 크기는 최대 10MB까지 업로드할 수 있습니다.",
+      message: "이미지 크기는 최대 5MB까지 업로드할 수 있습니다.",
     },
   },
   BUDGET: {

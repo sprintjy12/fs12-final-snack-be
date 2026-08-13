@@ -8,7 +8,6 @@ interface CreateProductData {
   companyId: string;
   createdById: string;
   imageUrl?: string;
-  stock?: number;
   productUrl?: string;
 }
 
@@ -19,7 +18,6 @@ async function create(data: CreateProductData) {
       name: data.name,
       price: data.price,
       imageUrl: data.imageUrl,
-      stock: data.stock,
       productUrl: data.productUrl,
       company: {
         connect: {

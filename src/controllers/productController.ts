@@ -27,7 +27,7 @@ async function getProducts(req: Request, res: Response) {
 
 // 상품 등록
 async function createProduct(req: Request, res: Response) {
-  const { name, price, categoryId, imageUrl, stock, productUrl } = req.body;
+  const { name, price, categoryId, imageUrl, productUrl } = req.body;
 
   const userId = req.user?.id;
   if (!userId) {
@@ -43,7 +43,6 @@ async function createProduct(req: Request, res: Response) {
     companyId,
     createdById: userId,
     imageUrl,
-    stock,
     productUrl,
   });
 

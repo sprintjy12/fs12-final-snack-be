@@ -1,4 +1,5 @@
 import productRepository from "../repositories/productRepository.js";
+import categoryService from "./categoryService.js";
 import { Prisma, UserRole } from "@prisma/client";
 import AppError from "../utils/appError.js";
 import { ErrorCodes } from "../constants/errorCodes.js";
@@ -66,7 +67,9 @@ async function getProducts(
 
   const where: Prisma.ProductWhereInput = { companyId };
   if (categoryId) {
-    where.categoryId = categoryId;
+    const categoryIds = await categoryService.resolveCategoryIds(categoryId);
+    where.categoryId =
+      categoryIds.length === 1 ? categoryIds[0] : { in: categoryIds };
   }
 
   const orderBy = getOrderBy(sort);

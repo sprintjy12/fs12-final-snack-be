@@ -9,7 +9,6 @@ export type CartItemWithProduct = Prisma.CartItemGetPayload<{
         name: true;
         price: true;
         imageUrl: true;
-        stock: true;
       };
     };
   };
@@ -26,7 +25,6 @@ async function findByUserId(userId: string): Promise<CartItemWithProduct[]> {
           name: true,
           price: true,
           imageUrl: true,
-          stock: true,
         },
       },
     },
@@ -35,7 +33,11 @@ async function findByUserId(userId: string): Promise<CartItemWithProduct[]> {
 }
 
 // 유저와 상품으로 장바구니 항목 조회
-async function findByUserAndProduct(userId: string, productId: string, tx?: Prisma.TransactionClient) {
+async function findByUserAndProduct(
+  userId: string,
+  productId: string,
+  tx?: Prisma.TransactionClient,
+) {
   const client = tx || prisma;
   return client.cartItem.findUnique({
     where: {
@@ -48,7 +50,12 @@ async function findByUserAndProduct(userId: string, productId: string, tx?: Pris
 }
 
 // 장바구니 추가
-async function create(userId: string, productId: string, quantity: number, tx?: Prisma.TransactionClient) {
+async function create(
+  userId: string,
+  productId: string,
+  quantity: number,
+  tx?: Prisma.TransactionClient,
+) {
   const client = tx || prisma;
   return client.cartItem.create({
     data: {
@@ -60,7 +67,11 @@ async function create(userId: string, productId: string, quantity: number, tx?: 
 }
 
 // 장바구니 수량 수정
-async function updateQuantity(id: string, quantity: number, tx?: Prisma.TransactionClient) {
+async function updateQuantity(
+  id: string,
+  quantity: number,
+  tx?: Prisma.TransactionClient,
+) {
   const client = tx || prisma;
   return client.cartItem.update({
     where: { id },
@@ -76,7 +87,11 @@ async function deleteAll(userId: string) {
 }
 
 // 유저의 장바구니 개별 삭제
-async function deleteById(cartItemId: string, userId: string, tx?: Prisma.TransactionClient) {
+async function deleteById(
+  cartItemId: string,
+  userId: string,
+  tx?: Prisma.TransactionClient,
+) {
   const client = tx || prisma;
   return client.cartItem.deleteMany({
     where: {
@@ -97,7 +112,11 @@ async function deleteManyByIds(cartItemIds: string[], userId: string) {
 }
 
 // 사용자의 장바구니 항목 조회
-async function findByIdAndUser(id: string, userId: string, tx?: Prisma.TransactionClient) {
+async function findByIdAndUser(
+  id: string,
+  userId: string,
+  tx?: Prisma.TransactionClient,
+) {
   const client = tx || prisma;
   return client.cartItem.findFirst({
     where: { id, userId },

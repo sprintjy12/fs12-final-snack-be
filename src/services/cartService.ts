@@ -27,7 +27,6 @@ async function getCart(userId: string) {
 
 // 장바구니 추가
 async function addToCart(userId: string, productId: string, quantity: number) {
-  // 상품 존재 여부만 확인 (재고 검증 없음)
   const product = await prisma.product.findUnique({
     where: { id: productId },
     select: { id: true },
@@ -36,24 +35,10 @@ async function addToCart(userId: string, productId: string, quantity: number) {
     throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
   }
 
-  const existingItem = await cartRepository.findByUserAndProduct(
-    userId,
-    productId,
-  );
-  const targetQuantity = existingItem
-    ? existingItem.quantity + quantity
-    : quantity;
+  const wasExisting = await cartRepository.findByUserAndProduct(userId, productId);
+  const item = await cartRepository.upsertQuantity(userId, productId, quantity);
 
-  if (existingItem) {
-    const item = await cartRepository.updateQuantity(
-      existingItem.id,
-      targetQuantity,
-    );
-    return { created: false, item };
-  } else {
-    const item = await cartRepository.create(userId, productId, targetQuantity);
-    return { created: true, item };
-  }
+  return { created: !wasExisting, item };
 }
 
 // 장바구니 전체 삭제
@@ -85,20 +70,23 @@ async function deleteSelectedCartItems(userId: string, cartItemIds: string[]) {
 
 // 상품 수량 수정
 async function updateCartItem(userId: string, cartItemId: string, delta: number) {
-  const cartItem = await cartRepository.findByIdAndUser(cartItemId, userId);
-  if (!cartItem) {
-    throw new AppError(ErrorCodes.CART.ITEM_NOT_FOUND);
-  }
+  return prisma.$transaction(async (tx) => {
+    const cartItem = await cartRepository.findByIdAndUser(cartItemId, userId, tx);
+    if (!cartItem) {
+      throw new AppError(ErrorCodes.CART.ITEM_NOT_FOUND);
+    }
+  
+    const newQuantity = cartItem.quantity + delta;
+  
+    if (newQuantity <= 0) {
+      await cartRepository.deleteById(cartItemId, userId);
+      return { deleted: true, item: null };
+    }
+  
+    const updated = await cartRepository.updateQuantity(cartItemId, newQuantity, tx);
+    return { deleted: false, item: updated };
 
-  const newQuantity = cartItem.quantity + delta;
-
-  if (newQuantity <= 0) {
-    await cartRepository.deleteById(cartItemId, userId);
-    return { deleted: true, item: null };
-  }
-
-  const updated = await cartRepository.updateQuantity(cartItemId, newQuantity);
-  return { deleted: false, item: updated };
+  })
 }
 
 export default {

@@ -49,23 +49,6 @@ async function findByUserAndProduct(
   });
 }
 
-// 장바구니 추가
-async function create(
-  userId: string,
-  productId: string,
-  quantity: number,
-  tx?: Prisma.TransactionClient,
-) {
-  const client = tx || prisma;
-  return client.cartItem.create({
-    data: {
-      userId,
-      productId,
-      quantity,
-    },
-  });
-}
-
 // 장바구니 수량 수정
 async function updateQuantity(
   id: string,
@@ -76,6 +59,26 @@ async function updateQuantity(
   return client.cartItem.update({
     where: { id },
     data: { quantity },
+  });
+}
+
+// 장바구니 추가/수량 증가
+async function upsertQuantity(
+  userId: string,
+  productId: string,
+  quantity: number,
+  tx?: Prisma.TransactionClient,
+) {
+  const client = tx || prisma;
+  return client.cartItem.upsert({
+    where: {
+      userId_productId: {
+        userId,
+        productId,
+      },
+    },
+    create: { userId, productId, quantity },
+    update: { quantity: { increment: quantity } },
   });
 }
 
@@ -126,10 +129,10 @@ async function findByIdAndUser(
 export default {
   findByUserId,
   findByUserAndProduct,
-  create,
   updateQuantity,
   deleteAll,
   deleteById,
   deleteManyByIds,
   findByIdAndUser,
+  upsertQuantity,
 };

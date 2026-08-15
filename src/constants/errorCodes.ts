@@ -160,11 +160,6 @@ export const ErrorCodes = {
       statusCode: 404,
       message: "상품을 찾을 수 없습니다.",
     },
-    INSUFFICIENT_STOCK: {
-      code: "PRODUCT_INSUFFICIENT_STOCK",
-      statusCode: 400,
-      message: "상품 재고가 부족합니다.",
-    },
     UNAUTHORIZED_ACCESS: {
       code: "PRODUCT_UNAUTHORIZED_ACCESS",
       statusCode: 403,
@@ -194,11 +189,6 @@ export const ErrorCodes = {
       code: "PRODUCT_INVALID_IMAGE_URL",
       statusCode: 400,
       message: "상품 이미지가 필요합니다.",
-    },
-    INVALID_STOCK: {
-      code: "PRODUCT_INVALID_STOCK",
-      statusCode: 400,
-      message: "재고 수량이 올바르지 않습니다.",
     },
   },
   ORDER: {
@@ -233,11 +223,6 @@ export const ErrorCodes = {
       code: "CART_ITEM_NOT_FOUND",
       statusCode: 404,
       message: "장바구니에서 상품을 찾을 수 없습니다.",
-    },
-    INSUFFICIENT_STOCK: {
-      code: "CART_INSUFFICIENT_STOCK",
-      statusCode: 400,
-      message: "상품 재고가 부족합니다.",
     },
   },
   UPLOAD: {

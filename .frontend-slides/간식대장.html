@@ -2535,7 +2535,7 @@
               <div class="rr-row">
                 <div class="rr-name" data-edit>이상윤</div>
                 <div data-edit>—</div>
-                <div data-edit>—</div>
+                <div data-edit>랜딩페이지, 403페이지 구현</div>
               </div>
             </div>
           </div>
@@ -2748,12 +2748,13 @@
                 <h2 data-edit>눌러보고 바로 쓰는 샘플 페이지</h2>
                 <h3 data-edit>도입 배경</h3>
                 <p data-edit>
-                  Button, Modal, Toast를 만들어도 확인 모달과 폼 모달 중 뭘 쓰는지,
-                  어디서 import해 어떻게 호출하는지 README만으로는 감이 오지 않았습니다.
+                  Button, Modal, Toast를 만들어도 확인 모달과 폼 모달 중 뭘
+                  쓰는지, 어디서 import해 어떻게 호출하는지 README만으로는 감이
+                  오지 않았습니다.
                 </p>
                 <p data-edit>
-                  화면을 직접 열고 동작을 확인한 뒤 코드를 가져다 쓰는
-                  ‘사용 설명서 + 확인 화면’으로 팀 생산성을 높였습니다.
+                  화면을 직접 열고 동작을 확인한 뒤 코드를 가져다 쓰는 ‘사용
+                  설명서 + 확인 화면’으로 팀 생산성을 높였습니다.
                 </p>
                 <div class="sample-badges">
                   <span class="sample-badge">/modal-sample</span>
@@ -2769,25 +2770,37 @@
                     <div class="n">01</div>
                     <h3 data-edit>실무 컴포넌트 연동 · 무인증 접근</h3>
                     <ul>
-                      <li data-edit><strong>RouteGuard</strong> 예외 → 로그인 없이 오픈</li>
-                      <li data-edit><strong>Button · Modal · showToast</strong> 실사용</li>
-                      <li data-edit>샘플 = 서비스 <strong>동일 동작</strong></li>
+                      <li data-edit>
+                        <strong>RouteGuard</strong> 예외 → 로그인 없이 오픈
+                      </li>
+                      <li data-edit>
+                        <strong>Button · Modal · showToast</strong> 실사용
+                      </li>
+                      <li data-edit>
+                        샘플 = 서비스 <strong>동일 동작</strong>
+                      </li>
                     </ul>
                   </div>
                   <div class="sample-point">
                     <div class="n">02</div>
                     <h3 data-edit>표준 아키텍처 · 코드 패턴</h3>
                     <ul>
-                      <li data-edit><strong>Modal vs ModalShell</strong> 선택 가이드</li>
-                      <li data-edit><strong>Component → Hook → API → Axios</strong></li>
-                      <li data-edit>새 도메인도 <strong>같은 패턴으로 확장</strong></li>
+                      <li data-edit>
+                        <strong>Modal vs ModalShell</strong> 선택 가이드
+                      </li>
+                      <li data-edit>
+                        <strong>Component → Hook → API → Axios</strong>
+                      </li>
+                      <li data-edit>
+                        새 도메인도 <strong>같은 패턴으로 확장</strong>
+                      </li>
                     </ul>
                   </div>
                 </div>
                 <div class="sample-device">
                   <div class="sample-laptop">
                     <div class="sample-laptop-cam"></div>
-                    <img src="assets/modal-sample.png" alt="모달 샘플 화면">
+                    <img src="assets/modal-sample.png" alt="모달 샘플 화면" />
                   </div>
                   <div class="sample-laptop-base"></div>
                 </div>
@@ -2805,14 +2818,20 @@
               </div>
               <span class="tag-pill">ModalShell</span>
             </div>
-            <h2 class="reveal" style="font-size: 36px; margin-bottom: 22px" data-edit>
+            <h2
+              class="reveal"
+              style="font-size: 36px; margin-bottom: 22px"
+              data-edit
+            >
               모달 아키텍처 개선: 껍데기(ModalShell)와 내용의 분리
             </h2>
             <div class="arch-grid grow">
               <div class="card arch-card reveal d1">
                 <div class="n">01</div>
                 <h3 data-edit>도입 배경 및 문제점</h3>
-                <div class="arch-kicker" data-edit>Before · 모놀리식 모달의 한계</div>
+                <div class="arch-kicker" data-edit>
+                  Before · 모놀리식 모달의 한계
+                </div>
                 <p data-edit>
                   확인 모달과 폼 모달(초대, 권한 변경 등)은 레이아웃과 목적이
                   완전히 다릅니다. 하나의 컴포넌트에 억지로 우겨넣다 보니
@@ -2822,10 +2841,14 @@
               <div class="card arch-card reveal d2">
                 <div class="n">02</div>
                 <h3 data-edit>해결 방안</h3>
-                <div class="arch-kicker" data-edit>관심사의 분리 · Separation of Concerns</div>
+                <div class="arch-kicker" data-edit>
+                  관심사의 분리 · Separation of Concerns
+                </div>
                 <div class="arch-split">
                   <div class="arch-chip">
-                    <div class="label" data-edit>껍데기 <span>(동작)</span></div>
+                    <div class="label" data-edit>
+                      껍데기 <span>(동작)</span>
+                    </div>
                     <p data-edit>
                       Overlay, Portal, ESC 닫기, 스크롤 잠금, 포커스 트랩 등
                       모달의 공통 동작만 담당합니다.
@@ -2834,8 +2857,8 @@
                   <div class="arch-chip">
                     <div class="label" data-edit>콘텐츠 <span>(UI)</span></div>
                     <p data-edit>
-                      안쪽 폼이나 확인 문구는 각 페이지와 도메인 UI가
-                      직접 담당합니다.
+                      안쪽 폼이나 확인 문구는 각 페이지와 도메인 UI가 직접
+                      담당합니다.
                     </p>
                   </div>
                 </div>
@@ -2847,29 +2870,30 @@
                 <div class="arch-benefit">
                   <div class="label" data-edit>확장성 · 유지보수</div>
                   <p data-edit>
-                    확인 모달과 폼 모달을 분리해 props 폭발을 막고,
-                    시안에 맞게 유연한 UI를 구현합니다.
+                    확인 모달과 폼 모달을 분리해 props 폭발을 막고, 시안에 맞게
+                    유연한 UI를 구현합니다.
                   </p>
                 </div>
                 <div class="arch-benefit">
                   <div class="label" data-edit>팀 생산성</div>
                   <p data-edit>
-                    /modal-sample과 연계해, 껍데기를 고민할 필요 없이
-                    내용만 가져다 빠르게 개발합니다.
+                    /modal-sample과 연계해, 껍데기를 고민할 필요 없이 내용만
+                    가져다 빠르게 개발합니다.
                   </p>
                 </div>
                 <div class="arch-benefit">
                   <div class="label" data-edit>단일 책임 · 중앙화</div>
                   <p data-edit>
                     모달 열기/닫기나 레이어 버그가 나면
-                    <strong>ModalShell 한 곳만 수정</strong>하면
-                    프로젝트 전체에 일괄 적용됩니다.
+                    <strong>ModalShell 한 곳만 수정</strong>하면 프로젝트 전체에
+                    일괄 적용됩니다.
                   </p>
                 </div>
               </div>
             </div>
             <p class="sample-quote reveal d4" data-edit>
-              공통은 ‘동작’만, 화면은 시안대로. 확장성을 위해 껍데기를 분리했습니다.
+              공통은 ‘동작’만, 화면은 시안대로. 확장성을 위해 껍데기를
+              분리했습니다.
             </p>
           </div>
         </section>
@@ -2883,7 +2907,11 @@
               </div>
               <span class="tag-pill">Error</span>
             </div>
-            <h2 class="reveal" style="font-size: 36px; margin-bottom: 14px" data-edit>
+            <h2
+              class="reveal"
+              style="font-size: 36px; margin-bottom: 14px"
+              data-edit
+            >
               에러는 이 길을 따라 막힙니다
             </h2>
             <p class="err-callout reveal" data-edit>
@@ -2891,8 +2919,8 @@
               나머지는 500으로 숨깁니다.
             </p>
             <p class="err-philosophy reveal d1" data-edit>
-              핵심 · 메시지 문자열이 아닌 <strong>code 기반</strong>의
-              안전한 프론트엔드 분기 구조를 만들었습니다.
+              핵심 · 메시지 문자열이 아닌 <strong>code 기반</strong>의 안전한
+              프론트엔드 분기 구조를 만들었습니다.
             </p>
             <div class="err-pipe grow">
               <div class="err-node reveal d1">
@@ -2925,8 +2953,8 @@
                   <h3 data-edit>Service</h3>
                   <div class="err-kicker" data-edit>ErrorCodes + AppError</div>
                   <p data-edit>
-                    도메인 규칙은 <strong>throw AppError</strong>.
-                    Prisma 에러는 사전에 변환하고
+                    도메인 규칙은 <strong>throw AppError</strong>. Prisma 에러는
+                    사전에 변환하고
                     <strong>{ success, code, message }</strong>로 줍니다.
                   </p>
                   <div class="err-gate">의도한 실패 · code</div>
@@ -2938,8 +2966,8 @@
                   <h3 data-edit>전역 Handler</h3>
                   <div class="err-kicker" data-edit>errorHandler</div>
                   <p data-edit>
-                    못 잡은 에러는 스택을 서버 로그에만 남기고,
-                    클라이언트에는 <strong>500</strong>만 전달합니다.
+                    못 잡은 에러는 스택을 서버 로그에만 남기고, 클라이언트에는
+                    <strong>500</strong>만 전달합니다.
                   </p>
                   <div class="err-gate">500 · INTERNAL_SERVER_ERROR</div>
                 </div>
@@ -2956,16 +2984,16 @@
               <div class="err-why-item">
                 <div class="label" data-edit>보안 · 예외 일관성</div>
                 <p data-edit>
-                  민감한 스택 노출을 막고, 전 레이어에서 같은 응답 포맷과
-                  예외 처리 원칙을 유지합니다.
+                  민감한 스택 노출을 막고, 전 레이어에서 같은 응답 포맷과 예외
+                  처리 원칙을 유지합니다.
                 </p>
               </div>
               <div class="err-why-item">
                 <div class="label" data-edit>컨트롤러가 얇다</div>
                 <p data-edit>
                   실패할 때마다 <strong>res.status(404).json(...)</strong>을
-                  쓰지 않습니다. 서비스는 throw AppError만,
-                  응답 모양은 errorHandler 한곳이 정합니다.
+                  쓰지 않습니다. 서비스는 throw AppError만, 응답 모양은
+                  errorHandler 한곳이 정합니다.
                 </p>
               </div>
             </div>
@@ -2981,7 +3009,11 @@
               </div>
               <span class="tag-pill">Security</span>
             </div>
-            <h2 class="reveal" style="font-size: 36px; margin-bottom: 18px" data-edit>
+            <h2
+              class="reveal"
+              style="font-size: 36px; margin-bottom: 18px"
+              data-edit
+            >
               보안 및 인증·인가 아키텍처
             </h2>
             <div class="sec-pair reveal d1">
@@ -3001,7 +3033,9 @@
                   </div>
                   <div class="sec-row">
                     <div class="k">목적</div>
-                    <div class="v" data-edit>짧은 수명으로 탈취 피해 최소화</div>
+                    <div class="v" data-edit>
+                      짧은 수명으로 탈취 피해 최소화
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3014,11 +3048,15 @@
                 <div class="sec-token-body">
                   <div class="sec-row">
                     <div class="k">위치</div>
-                    <div class="v" data-edit>쿠키 · path=/api/auth · JS 접근 차단</div>
+                    <div class="v" data-edit>
+                      쿠키 · path=/api/auth · JS 접근 차단
+                    </div>
                   </div>
                   <div class="sec-row">
                     <div class="k">DB</div>
-                    <div class="v" data-edit><strong>SHA-256 해시만 저장</strong></div>
+                    <div class="v" data-edit>
+                      <strong>SHA-256 해시만 저장</strong>
+                    </div>
                   </div>
                   <div class="sec-row">
                     <div class="k">재발급</div>
@@ -3072,7 +3110,9 @@
                   <div class="conc-num">01</div>
                   <div>
                     <h3 data-edit>예산 초과 방지</h3>
-                    <p class="conc-prob" data-edit>지출 컬럼 없음 · 동시 통과</p>
+                    <p class="conc-prob" data-edit>
+                      지출 컬럼 없음 · 동시 통과
+                    </p>
                   </div>
                 </div>
                 <div class="conc-mid">
@@ -3104,14 +3144,18 @@
                   <div class="conc-num">03</div>
                   <div>
                     <h3 data-edit>장바구니 중복 주문</h3>
-                    <p class="conc-prob" data-edit>같은 cartItemIds · 중복 생성</p>
+                    <p class="conc-prob" data-edit>
+                      같은 cartItemIds · 중복 생성
+                    </p>
                   </div>
                 </div>
                 <div class="conc-mid">
                   <div class="conc-arrow">➔</div>
                 </div>
                 <div class="conc-right">
-                  <div class="conc-kw" data-edit>Claim 패턴 (deleteMany 선점)</div>
+                  <div class="conc-kw" data-edit>
+                    Claim 패턴 (deleteMany 선점)
+                  </div>
                   <p data-edit>count 불일치 → 롤백</p>
                 </div>
               </div>
@@ -3171,8 +3215,8 @@
                   <div class="ts-body">
                     <div class="kw" data-edit>JWT = 누구 · DB = 권한</div>
                     <p data-edit>
-                      매 요청 role / status를 DB에서 읽습니다. 재로그인 없이 다음
-                      요청부터 반영됩니다.
+                      매 요청 role / status를 DB에서 읽습니다. 재로그인 없이
+                      다음 요청부터 반영됩니다.
                     </p>
                   </div>
                 </div>
@@ -3222,7 +3266,8 @@ req.user = {
                     <div class="kw" data-edit>F5 후 쿠키가 사라짐</div>
                     <p data-edit>
                       Application &gt; Cookies에 있던 refreshToken이
-                      새로고침하면 빠졌습니다. 유실이거나 백엔드 Clear로 오인했습니다.
+                      새로고침하면 빠졌습니다. 유실이거나 백엔드 Clear로
+                      오인했습니다.
                     </p>
                   </div>
                 </div>
@@ -3234,8 +3279,8 @@ req.user = {
                   <div class="ts-body">
                     <div class="kw" data-edit>DevTools의 시각적 착각</div>
                     <p data-edit>
-                      Path=/api/auth라 Application이 루트 경로 기준으로
-                      안 보여준 것뿐입니다. refresh는 200으로 재발급됐습니다.
+                      Path=/api/auth라 Application이 루트 경로 기준으로 안
+                      보여준 것뿐입니다. refresh는 200으로 재발급됐습니다.
                     </p>
                   </div>
                 </div>
@@ -3247,8 +3292,8 @@ req.user = {
                   <div class="ts-body">
                     <div class="kw" data-edit>Network가 진실</div>
                     <p data-edit>
-                      Request Cookies로 흐름을 확인합니다.
-                      Silent Refresh는 아직이라, 401 → refresh → 재시도는 다음에 붙입니다.
+                      Request Cookies로 흐름을 확인합니다. Silent Refresh는
+                      아직이라, 401 → refresh → 재시도는 다음에 붙입니다.
                     </p>
                   </div>
                 </div>
@@ -3276,52 +3321,61 @@ HttpOnly · Max-Age=604800
               <div class="eyebrow"><span class="accent-line"></span>앞으로</div>
               <span class="tag-pill">Next</span>
             </div>
-            <h2 class="reveal" style="font-size: 42px; margin-bottom: 8px" data-edit>
+            <h2
+              class="reveal"
+              style="font-size: 42px; margin-bottom: 8px"
+              data-edit
+            >
               추가 예정 사항
             </h2>
             <p
               class="reveal"
-              style="font-size: 16px; letter-spacing: 0.12em; color: var(--primary); font-weight: 600; margin-bottom: 28px; font-family: var(--font-latin)"
+              style="
+                font-size: 16px;
+                letter-spacing: 0.12em;
+                color: var(--primary);
+                font-weight: 600;
+                margin-bottom: 28px;
+                font-family: var(--font-latin);
+              "
             >
               ADVANCED REQUIREMENTS
             </p>
             <div class="next-grid">
               <div class="card next-card reveal d1">
                 <div class="next-ico">
-                  <img src="assets/icon-recover.svg" alt="">
+                  <img src="assets/icon-recover.svg" alt="" />
                 </div>
                 <h3 data-edit>회원 복구 기능</h3>
                 <div class="next-rule"></div>
                 <p data-edit>
-                  탈퇴 회원 정보 복구와 비밀번호 재설정으로
-                  계정 운영을 안전하게 이어갑니다.
+                  탈퇴 회원 정보 복구와 비밀번호 재설정으로 계정 운영을 안전하게
+                  이어갑니다.
                 </p>
               </div>
               <div class="card next-card reveal d2">
                 <div class="next-ico">
-                  <img src="assets/icon-search.svg" alt="">
+                  <img src="assets/icon-search.svg" alt="" />
                 </div>
                 <h3 data-edit>상품 리스트 검색창</h3>
                 <div class="next-rule"></div>
                 <p data-edit>
-                  상품명·카테고리로 바로 찾아
-                  목록에서 고르는 시간을 줄입니다.
+                  상품명·카테고리로 바로 찾아 목록에서 고르는 시간을 줄입니다.
                 </p>
               </div>
               <div class="card next-card reveal d3">
                 <div class="next-ico">
-                  <img src="assets/icon-chart.svg" alt="">
+                  <img src="assets/icon-chart.svg" alt="" />
                 </div>
                 <h3 data-edit>예산 통계 그래프</h3>
                 <div class="next-rule"></div>
                 <p data-edit>
-                  월별 사용 현황을 시각화해
-                  예산 소진을 한눈에 봅니다.
+                  월별 사용 현황을 시각화해 예산 소진을 한눈에 봅니다.
                 </p>
               </div>
               <div class="card next-card reveal d4">
                 <div class="next-ico">
-                  <img src="assets/icon-clock.svg" alt="">
+                  <img src="assets/icon-clock.svg" alt="" />
                 </div>
                 <h3 data-edit>크론잡 도입</h3>
                 <div class="next-rule"></div>
@@ -3330,16 +3384,16 @@ HttpOnly · Max-Age=604800
                     <div class="ex-n">1 · 우선</div>
                     <h4 data-edit>만료 refresh 삭제</h4>
                     <p data-edit>
-                      매일 <strong>expiresAt &lt; now</strong>를 지워
-                      세션 테이블만 줄입니다.
+                      매일 <strong>expiresAt &lt; now</strong>를 지워 세션
+                      테이블만 줄입니다.
                     </p>
                   </div>
                   <div class="next-ex">
                     <div class="ex-n">2 · 다음</div>
                     <h4 data-edit>만료 초대 정리</h4>
                     <p data-edit>
-                      <strong>isUsed: false</strong>로 쌓인 행을 치워
-                      관리 목록을 깨끗하게 유지합니다.
+                      <strong>isUsed: false</strong>로 쌓인 행을 치워 관리
+                      목록을 깨끗하게 유지합니다.
                     </p>
                   </div>
                 </div>
@@ -3366,16 +3420,26 @@ HttpOnly · Max-Age=604800
               <div class="eval-col eval-hero reveal d1">
                 <div class="eval-bubble">
                   <p data-edit>
-                    마지막 프로젝트인 만큼 자신이 원하는 파트에 좀 더 집중할 수 있도록 각자 선택을 할 기회가 주어져서 좋았다.
+                    마지막 프로젝트인 만큼 자신이 원하는 파트에 좀 더 집중할 수
+                    있도록 각자 선택을 할 기회가 주어져서 좋았다.
                   </p>
                   <p data-edit>
-                    AI를 단순히 내 작업을 시키는 도구가 아니라, 나와 함께 프로젝트를 완성해나가는 동반자로 사용할 수 있는 방법에 대해 고민할 수 있는 경험이 되고 있어서 만족스러웠다.
+                    AI를 단순히 내 작업을 시키는 도구가 아니라, 나와 함께
+                    프로젝트를 완성해나가는 동반자로 사용할 수 있는 방법에 대해
+                    고민할 수 있는 경험이 되고 있어서 만족스러웠다.
                   </p>
                   <p data-edit>
-                    하나의 문제를 해결하기 위한 방법이 다양했기 때문에, ‘지금 내가 할 수 있는 선택지가 과연 최선이었을까, 더 나은 방식은 없었을까’ 싶은 고민이 매 순간 들었다. 그래서 기주님을 (정말로) 많이 귀찮게 해드렸다… (죄송합니다🤤💭)
+                    하나의 문제를 해결하기 위한 방법이 다양했기 때문에, ‘지금
+                    내가 할 수 있는 선택지가 과연 최선이었을까, 더 나은 방식은
+                    없었을까’ 싶은 고민이 매 순간 들었다. 그래서 기주님을
+                    (정말로) 많이 귀찮게 해드렸다… (죄송합니다🤤💭)
                   </p>
                   <p data-edit>
-                    매번 팀 순회 때마다 기주님께서 우리 프로젝트에 도움이 될만한 기술이나 모듈을 많이 소개해주셨는데, 어떤 것들은 실제 도입으로 이루어지기도 했고, 어떤 것들은 개인적인 경험이나 검토에 그치기도 했으나 그 과정에서 프로젝트를 바라보는 시야가 조금 더 트였다는 생각을 했다.
+                    매번 팀 순회 때마다 기주님께서 우리 프로젝트에 도움이 될만한
+                    기술이나 모듈을 많이 소개해주셨는데, 어떤 것들은 실제
+                    도입으로 이루어지기도 했고, 어떤 것들은 개인적인 경험이나
+                    검토에 그치기도 했으나 그 과정에서 프로젝트를 바라보는
+                    시야가 조금 더 트였다는 생각을 했다.
                   </p>
                 </div>
                 <div class="eval-person">
@@ -3390,13 +3454,16 @@ HttpOnly · Max-Age=604800
                 <div class="eval-col reveal d2">
                   <div class="eval-bubble">
                     <p data-edit>
-                      ai를 적극적으로 사용하다보니 속도가 붙어서 팀원들을 많이 도와줄 수 있었다
+                      ai를 적극적으로 사용하다보니 속도가 붙어서 팀원들을 많이
+                      도와줄 수 있었다
                     </p>
                     <p data-edit>
-                      내 코드를 더 고민하고자 하는 시간이 많진 않았어서 아쉬웠다.
+                      내 코드를 더 고민하고자 하는 시간이 많진 않았어서
+                      아쉬웠다.
                     </p>
                     <p data-edit>
-                      다양한 기술이 있는걸 알게 되었고 남은 시간 동안 더 코드에 적용하고 고민해보고싶다.
+                      다양한 기술이 있는걸 알게 되었고 남은 시간 동안 더 코드에
+                      적용하고 고민해보고싶다.
                     </p>
                   </div>
                   <div class="eval-person">
@@ -3410,7 +3477,9 @@ HttpOnly · Max-Age=604800
                 <div class="eval-col reveal d3">
                   <div class="eval-bubble">
                     <p data-edit>
-                      처음 소통이 조금 원활하지 않았던 부분이 조금 아쉬웠던 것 같고, 그래도 그 이후 같이 열심히 소통하면서 으샤으샤 했던 부분이 잘한점 이라고 생각합니다.
+                      처음 소통이 조금 원활하지 않았던 부분이 조금 아쉬웠던 것
+                      같고, 그래도 그 이후 같이 열심히 소통하면서 으샤으샤 했던
+                      부분이 잘한점 이라고 생각합니다.
                     </p>
                   </div>
                   <div class="eval-person">
@@ -3434,7 +3503,8 @@ HttpOnly · Max-Age=604800
                     </p>
                     <p data-edit>
                       인증 흐름과 보안의 중요성을 직접 경험했고, 조율하는 과정도
-                      배웠습니다. 최종 발표까지 인증·인가를 더 리팩토링하겠습니다.
+                      배웠습니다. 최종 발표까지 인증·인가를 더
+                      리팩토링하겠습니다.
                     </p>
                   </div>
                   <div class="eval-person">
@@ -3448,12 +3518,14 @@ HttpOnly · Max-Age=604800
                 <div class="eval-col reveal d5">
                   <div class="eval-bubble">
                     <p data-edit>
-                      NEXT_PUBLIC_USE_MOCK 토글로 백엔드 완성 전에도 프론트 작업 진행 → 병목(bottleneck) 없이 개발 git worktree(wt)를 활용해 여러 작업을 병렬로 진행함
+                      NEXT_PUBLIC_USE_MOCK 토글로 백엔드 완성 전에도 프론트 작업
+                      진행 → 병목(bottleneck) 없이 개발 git worktree(wt)를
+                      활용해 여러 작업을 병렬로 진행함
                     </p>
                     <p data-edit>
                       localStorage로 먼저 붙였다가 실제 API로 갈아엎었습니다.
-                      테스트엔 필요했지만 최선이었는지는 남고, 시안과 다른 페이지
-                      때문에 일정도 밀렸습니다.
+                      테스트엔 필요했지만 최선이었는지는 남고, 시안과 다른
+                      페이지 때문에 일정도 밀렸습니다.
                     </p>
                     <p data-edit>
                       팀원과의 API 인터페이스 소통이 개발 속도를 좌우한다는 걸

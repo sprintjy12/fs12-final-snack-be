@@ -1,4 +1,5 @@
 import productRepository from "../repositories/productRepository.js";
+import categoryService from "./categoryService.js";
 import { Prisma, UserRole } from "@prisma/client";
 import AppError from "../utils/appError.js";
 import { ErrorCodes } from "../constants/errorCodes.js";
@@ -10,7 +11,6 @@ export interface CreateProductInput {
   name: string;
   price: number;
   imageUrl: string;
-  stock?: number;
   productUrl?: string;
 }
 
@@ -34,18 +34,10 @@ async function createProduct(input: CreateProductInput) {
     throw new AppError(ErrorCodes.PRODUCT.INVALID_IMAGE_URL);
   }
 
-  if (
-    input.stock !== undefined &&
-    (!Number.isInteger(input.stock) || input.stock < 0)
-  ) {
-    throw new AppError(ErrorCodes.PRODUCT.INVALID_STOCK);
-  }
-
   return productRepository.create({
     name: name.trim(),
     price,
     imageUrl: input.imageUrl,
-    stock: input.stock ?? 0,
     productUrl: input.productUrl,
     categoryId,
     companyId,
@@ -66,7 +58,9 @@ async function getProducts(
 
   const where: Prisma.ProductWhereInput = { companyId };
   if (categoryId) {
-    where.categoryId = categoryId;
+    const categoryIds = await categoryService.resolveCategoryIds(categoryId);
+    where.categoryId =
+      categoryIds.length === 1 ? categoryIds[0] : { in: categoryIds };
   }
 
   const orderBy = getOrderBy(sort);
@@ -210,13 +204,6 @@ async function updateProduct(
     (!Number.isInteger(input.price) || input.price <= 0)
   ) {
     throw new AppError(ErrorCodes.PRODUCT.INVALID_PRICE);
-  }
-
-  if (
-    input.stock !== undefined &&
-    (!Number.isInteger(input.stock) || input.stock < 0)
-  ) {
-    throw new AppError(ErrorCodes.PRODUCT.INVALID_STOCK);
   }
 
   // categoryId를 Prisma.ProductUpdateInput 형태로 변환합니다.

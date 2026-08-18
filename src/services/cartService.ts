@@ -4,12 +4,6 @@ import AppError from "../utils/appError";
 import { ErrorCodes } from "../constants/errorCodes";
 import prisma from "../config/db";
 
-type LockedCartItem = {
-  id: string;
-  productId: string;
-  quantity: number;
-};
-
 //장바구니 조회
 async function getCart(userId: string) {
   const cartItems: CartItemWithProduct[] =
@@ -33,48 +27,18 @@ async function getCart(userId: string) {
 
 // 장바구니 추가
 async function addToCart(userId: string, productId: string, quantity: number) {
-  return prisma.$transaction(async (tx) => {
-    // 1. 상품 조회 (FOR UPDATE 락만 추가)
-    const [product] = await tx.$queryRaw<{ stock: number }[]>`
-      SELECT stock FROM products WHERE id = ${productId}::uuid FOR UPDATE
-    `;
-    if (!product) {
-      throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
-    }
-
-    // 2. 기존 장바구니 아이템 조회 (tx만 사용)
-    const existingItem = await cartRepository.findByUserAndProduct(
-      userId,
-      productId,
-      tx,
-    );
-    const targetQuantity = existingItem
-      ? existingItem.quantity + quantity
-      : quantity;
-
-    // 3. 재고 확인
-    if (product.stock < targetQuantity) {
-      throw new AppError(ErrorCodes.PRODUCT.INSUFFICIENT_STOCK);
-    }
-
-    // 4. 추가 또는 업데이트
-    if (existingItem) {
-      const item = await cartRepository.updateQuantity(
-        existingItem.id,
-        targetQuantity,
-        tx,
-      );
-      return { created: false, item };
-    } else {
-      const item = await cartRepository.create(
-        userId,
-        productId,
-        targetQuantity,
-        tx,
-      );
-      return { created: true, item };
-    }
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { id: true },
   });
+  if (!product) {
+    throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
+  }
+
+  const wasExisting = await cartRepository.findByUserAndProduct(userId, productId);
+  const item = await cartRepository.upsertQuantity(userId, productId, quantity);
+
+  return { created: !wasExisting, item };
 }
 
 // 장바구니 전체 삭제
@@ -107,47 +71,22 @@ async function deleteSelectedCartItems(userId: string, cartItemIds: string[]) {
 // 상품 수량 수정
 async function updateCartItem(userId: string, cartItemId: string, delta: number) {
   return prisma.$transaction(async (tx) => {
-    // 1. 락 없이 productId만 먼저 조회
-    const cartItemRow = await tx.cartItem.findFirst({
-      where: { id: cartItemId, userId },
-      select: { productId: true },
-    });
-    if (!cartItemRow) {
+    const cartItem = await cartRepository.findByIdAndUser(cartItemId, userId, tx);
+    if (!cartItem) {
       throw new AppError(ErrorCodes.CART.ITEM_NOT_FOUND);
     }
-
-    // 2. products 먼저 잠금 (addToCart와 순서 통일)
-    const [product] = await tx.$queryRaw<{ stock: number }[]>`
-      SELECT stock FROM products WHERE id = ${cartItemRow.productId}::uuid FOR UPDATE
-    `;
-    if (!product) {
-      throw new AppError(ErrorCodes.PRODUCT.NOT_FOUND);
-    }
-
-    // 3. 그 다음 cart_items 잠금 — 최신 quantity 재조회
-    const [lockedCartItem] = await tx.$queryRaw<LockedCartItem[]>`
-      SELECT id, "productId", quantity
-      FROM cart_items
-      WHERE id = ${cartItemId}::uuid AND "userId" = ${userId}::uuid
-      FOR UPDATE
-    `;
-    if (!lockedCartItem) {
-      throw new AppError(ErrorCodes.CART.ITEM_NOT_FOUND);
-    }
-
-    const newQuantity = lockedCartItem.quantity + delta;
-
+  
+    const newQuantity = cartItem.quantity + delta;
+  
     if (newQuantity <= 0) {
-      await cartRepository.deleteById(cartItemId, userId, tx);
+      await cartRepository.deleteById(cartItemId, userId);
       return { deleted: true, item: null };
     }
-    if (product.stock < newQuantity) {
-      throw new AppError(ErrorCodes.CART.INSUFFICIENT_STOCK);
-    }
-
+  
     const updated = await cartRepository.updateQuantity(cartItemId, newQuantity, tx);
     return { deleted: false, item: updated };
-  });
+
+  })
 }
 
 export default {

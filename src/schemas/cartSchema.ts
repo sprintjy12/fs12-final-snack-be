@@ -28,7 +28,7 @@ export const updateCartItemSchema = z.object({
       return val;
     }, z.number())
     .refine((v) => Number.isInteger(v), "증감값은 정수여야 합니다.")
-    .refine((v) => v === 1 || v === -1, "증감값은 +1 또는 -1이어야 합니다."),
+    .refine((v) => v !== 0, "증감값은 0이 될 수 없습니다."),
 });
 
 export const deleteSelectedCartSchema = z.object({

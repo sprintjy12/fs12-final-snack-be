@@ -1,0 +1,3832 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>간식대장 — 고급프로젝트 모의 발표</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ===========================================
+           THEME — Blue Professional, accent #fa6602
+           Cream canvas + single orange accent.
+           Korean: Noto Sans KR, letter-spacing 0, no uppercase.
+           =========================================== */
+      :root {
+        --bg: #fdfae7;
+        --primary: #fa6602;
+        --text: #111111;
+        --text-muted: #6b6b6b;
+        --text-light: #9a9a9a;
+        --accent-light: rgba(250, 102, 2, 0.08);
+        --accent-medium: rgba(250, 102, 2, 0.15);
+        --border: rgba(250, 102, 2, 0.2);
+        --card-bg: rgba(250, 102, 2, 0.04);
+        --stage-bg: #111111;
+        --slide-bg: #fdfae7;
+        --font-display: "Noto Sans KR", "Space Grotesk", sans-serif;
+        --font-body: "Noto Sans KR", "Inter", sans-serif;
+        --font-latin: "Space Grotesk", "Noto Sans KR", sans-serif;
+        --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+        --duration-normal: 0.5s;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* ===========================================
+           FIXED 16:9 STAGE — viewport-base.css (full)
+           =========================================== */
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--stage-bg, #000);
+      }
+      .deck-viewport {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        background: var(--stage-bg, #000);
+      }
+      .deck-stage {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        transform-origin: 0 0;
+        background: var(--slide-bg, #fff);
+      }
+      .slide {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        display: block;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        background: var(--slide-bg, #fff);
+      }
+      .slide.active,
+      .slide.visible {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        z-index: 1;
+      }
+      img,
+      video,
+      canvas,
+      svg {
+        max-width: 100%;
+        max-height: 100%;
+      }
+      .deck-controls {
+        position: fixed;
+        left: 50%;
+        bottom: 22px;
+        transform: translateX(-50%);
+        z-index: 1000;
+      }
+      @media print {
+        html,
+        body {
+          width: 1920px;
+          height: auto;
+          overflow: visible;
+          background: #fff;
+        }
+        .deck-viewport {
+          position: static;
+          overflow: visible;
+          background: #fff;
+        }
+        .deck-stage {
+          position: static;
+          width: auto;
+          height: auto;
+          transform: none !important;
+          background: none;
+        }
+        .slide {
+          position: relative;
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          pointer-events: auto !important;
+          width: 1920px;
+          height: 1080px;
+          break-after: page;
+          page-break-after: always;
+        }
+        .slide:last-child {
+          break-after: auto;
+          page-break-after: auto;
+        }
+        .reveal {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+        .deck-controls,
+        .progress-bar,
+        .slide-counter,
+        .nav-cluster,
+        .edit-hotzone,
+        .edit-toggle,
+        .kbd-hint {
+          display: none !important;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.2s !important;
+        }
+      }
+
+      /* ===========================================
+           SLIDE SHELL
+           =========================================== */
+      .slide-inner {
+        width: 1920px;
+        height: 1080px;
+        padding: 64px 88px 110px;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        position: relative;
+      }
+      .slide-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 28px;
+        flex-shrink: 0;
+      }
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 22px;
+        color: var(--primary);
+        letter-spacing: 0;
+        line-height: 1.3;
+      }
+      .accent-line {
+        width: 60px;
+        height: 4px;
+        background: var(--primary);
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+      .tag-pill {
+        font-family: var(--font-latin);
+        font-weight: 500;
+        font-size: 16px;
+        color: var(--primary);
+        background: var(--accent-light);
+        border-radius: 100px;
+        padding: 8px 20px;
+        letter-spacing: 0;
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: var(--font-display);
+        color: var(--text);
+        letter-spacing: 0;
+        font-weight: 700;
+      }
+      h2 {
+        font-size: 56px;
+        font-weight: 700;
+        line-height: 1.25;
+        margin-bottom: 48px;
+        max-width: 1600px;
+      }
+      h3 {
+        font-size: 28px;
+        font-weight: 600;
+        line-height: 1.35;
+      }
+      p,
+      li {
+        font-family: var(--font-body);
+        font-weight: 400;
+        color: var(--text-muted);
+        letter-spacing: 0;
+        line-height: 1.55;
+      }
+
+      /* ===========================================
+           CARDS & CHROME
+           =========================================== */
+      .card {
+        background: var(--card-bg);
+        border: 1.5px solid var(--border);
+        border-radius: 14px;
+        padding: 36px 40px;
+      }
+      .card-sm {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 28px 32px;
+      }
+      .highlight {
+        background: var(--accent-light);
+        border-left: 4px solid var(--primary);
+        border-radius: 12px;
+        padding: 28px 36px;
+      }
+      .num {
+        font-family: var(--font-latin);
+        font-weight: 700;
+        color: var(--primary);
+      }
+
+      /* ===========================================
+           LAYOUT GRIDS
+           =========================================== */
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 28px;
+      }
+      .grid-4 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 24px;
+      }
+      .grow {
+        flex: 1;
+        min-height: 0;
+      }
+
+      /* ===========================================
+           COVER
+           =========================================== */
+      .cover {
+        padding: 0;
+        overflow: hidden;
+      }
+      .cover-deco {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 38%;
+        height: 100%;
+        background: var(--accent-light);
+        clip-path: polygon(22% 0, 100% 0, 100% 100%, 0 100%);
+      }
+      .cover-dots {
+        position: absolute;
+        right: 96px;
+        bottom: 140px;
+        display: grid;
+        grid-template-columns: repeat(3, 6px);
+        gap: 12px;
+        opacity: 0.35;
+        z-index: 2;
+      }
+      .cover-dots span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--primary);
+      }
+      .cover-body {
+        position: relative;
+        z-index: 1;
+        height: 100%;
+        padding: 80px 96px 100px;
+        display: flex;
+        flex-direction: column;
+      }
+      .cover h1 {
+        font-size: 148px;
+        line-height: 1.12;
+        margin: 24px 0 28px;
+      }
+      .cover-lede {
+        font-size: 34px;
+        line-height: 1.5;
+        max-width: 980px;
+        color: var(--text-muted);
+      }
+      .cover-meta {
+        margin-top: auto;
+        display: flex;
+        gap: 56px;
+      }
+      .cover-meta .label {
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--primary);
+        margin-bottom: 8px;
+      }
+      .cover-meta .value {
+        font-family: var(--font-body);
+        font-size: 26px;
+        font-weight: 500;
+        color: var(--text);
+        line-height: 1.45;
+      }
+
+      /* ===========================================
+           SPECIFIC SLIDES
+           =========================================== */
+      .agenda-item {
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+        padding: 22px 8px 22px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .agenda-item .num {
+        font-size: 32px;
+        line-height: 1;
+        padding-top: 4px;
+        min-width: 58px;
+      }
+      .agenda-item h3 {
+        margin-bottom: 6px;
+        font-size: 26px;
+      }
+      .agenda-item p {
+        font-size: 22px;
+      }
+
+      .role-card h3 {
+        margin-bottom: 16px;
+      }
+      .role-card p {
+        font-size: 24px;
+      }
+
+      .flow-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 24px;
+      }
+      .flow-step {
+        flex: 1;
+        background: var(--card-bg);
+        border: 1.5px solid var(--border);
+        border-radius: 14px;
+        padding: 14px 12px;
+        text-align: center;
+      }
+      .flow-step .num {
+        display: block;
+        font-size: 18px;
+        margin-bottom: 6px;
+      }
+      .flow-step h3 {
+        font-size: 22px;
+        font-weight: 600;
+      }
+      .flow-arrow {
+        font-family: var(--font-latin);
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--primary);
+        flex-shrink: 0;
+      }
+      .role-mini {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        padding: 22px;
+        overflow: hidden;
+      }
+      .role-mini h3 {
+        margin-bottom: 8px;
+        font-size: 26px;
+      }
+      .role-mini p {
+        font-size: 20px;
+        line-height: 1.4;
+        flex-shrink: 0;
+      }
+      .roles-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 22px;
+        align-items: stretch;
+        min-height: 0;
+      }
+      .role-shot-wrap {
+        position: relative;
+        flex: 1;
+        min-height: 72px;
+        margin-top: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 10px;
+        background: transparent;
+      }
+      .role-shot-wrap.is-fixed {
+        flex: none;
+      }
+      .role-shot {
+        display: block;
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        object-position: center;
+        pointer-events: none;
+      }
+      .shot-handle {
+        display: none;
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 22px;
+        cursor: ns-resize;
+        background: linear-gradient(transparent, rgba(250, 102, 2, 0.35));
+        z-index: 2;
+      }
+      .shot-handle::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: 6px;
+        width: 48px;
+        height: 4px;
+        margin-left: -24px;
+        border-radius: 4px;
+        background: var(--primary);
+      }
+      body.editing .role-shot-wrap {
+        outline: 1px dashed var(--primary);
+        cursor: pointer;
+      }
+      body.editing .shot-handle {
+        display: block;
+      }
+
+      .struct-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        min-height: 0;
+      }
+      .struct-col {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        padding: 28px 32px 28px;
+      }
+      .struct-kicker {
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--primary);
+        letter-spacing: 0;
+        margin-bottom: 6px;
+      }
+      .struct-col > h3 {
+        font-size: 30px;
+        margin-bottom: 18px;
+      }
+      .struct-point {
+        font-size: 22px;
+        color: var(--text);
+        line-height: 1.45;
+        margin-bottom: 8px;
+      }
+      .struct-point span {
+        color: var(--text-muted);
+      }
+      .struct-tree {
+        margin-top: 14px;
+        font-family: var(--font-latin);
+        font-size: 18px;
+        line-height: 1.5;
+        color: var(--text-muted);
+        background: var(--accent-light);
+        border-radius: 12px;
+        padding: 16px 20px;
+        letter-spacing: 0;
+        flex: 1;
+      }
+      .struct-tree b {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .struct-tree .cmt {
+        font-family: var(--font-body);
+        color: var(--text-light);
+      }
+      .layer-mini {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin: 12px 0 4px;
+      }
+      .chip-sm {
+        font-size: 16px;
+        padding: 8px 12px;
+        border-radius: 10px;
+      }
+      .arrow-sm {
+        font-size: 18px;
+      }
+
+      .stack-col h3 {
+        color: var(--primary);
+        margin-bottom: 24px;
+        font-size: 26px;
+      }
+      .stack-col li {
+        font-size: 26px;
+        list-style: none;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+        font-weight: 500;
+      }
+      .stack-col li span {
+        color: var(--text-muted);
+        font-weight: 400;
+        margin-left: 12px;
+      }
+
+      .layer {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .chip {
+        background: var(--primary);
+        color: var(--bg);
+        font-family: var(--font-latin);
+        font-weight: 600;
+        font-size: 22px;
+        padding: 16px 22px;
+        border-radius: 12px;
+        letter-spacing: 0;
+      }
+      .chip-muted {
+        background: var(--card-bg);
+        color: var(--text);
+        border: 1.5px solid var(--border);
+      }
+      .arrow {
+        font-family: var(--font-latin);
+        font-size: 28px;
+        color: var(--primary);
+        font-weight: 700;
+      }
+
+      .rr-table {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        border: 1.5px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        min-height: 0;
+      }
+      .rr-head,
+      .rr-row {
+        display: grid;
+        grid-template-columns: 240px 1.05fr 1.45fr;
+        align-items: center;
+      }
+      .rr-head {
+        background: var(--accent-light);
+        flex-shrink: 0;
+      }
+      .rr-head > div {
+        padding: 22px 36px;
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--primary);
+        letter-spacing: 0;
+      }
+      .rr-row {
+        flex: 1;
+        border-top: 1px solid var(--border);
+      }
+      .rr-row > div {
+        padding: 0 36px;
+        font-size: 24px;
+        line-height: 1.45;
+        color: var(--text-muted);
+        letter-spacing: 0;
+      }
+      .rr-name {
+        font-family: var(--font-display);
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text) !important;
+      }
+
+      .collab-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 24px;
+        align-items: stretch;
+        min-height: 0;
+      }
+      .collab-card {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 36px 34px 40px;
+      }
+      .collab-num {
+        font-family: var(--font-latin);
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 14px;
+      }
+      .collab-card h3 {
+        font-size: 30px;
+        line-height: 1.35;
+        margin-bottom: 32px;
+      }
+      .collab-item {
+        margin-bottom: 24px;
+      }
+      .collab-item:last-child {
+        margin-bottom: 0;
+      }
+      .collab-label {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 8px;
+        letter-spacing: 0;
+      }
+      .collab-item p {
+        font-size: 21px;
+        line-height: 1.5;
+      }
+      .step {
+        text-align: center;
+      }
+      .step-circle {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: var(--bg);
+        font-family: var(--font-latin);
+        font-weight: 700;
+        font-size: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+      }
+      .step h3 {
+        margin-bottom: 12px;
+        font-size: 26px;
+      }
+      .step p {
+        font-size: 22px;
+      }
+
+      .process-sub {
+        font-size: 22px;
+        color: var(--text-muted);
+        margin: -12px 0 28px;
+        letter-spacing: 0;
+      }
+      .process-sub b {
+        color: var(--primary);
+        font-weight: 600;
+      }
+      .process-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 18px;
+        align-items: stretch;
+        min-height: 0;
+      }
+      .process-card {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 28px 24px 26px;
+        min-height: 0;
+      }
+      .process-num {
+        font-family: var(--font-latin);
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 12px;
+      }
+      .process-card h3 {
+        font-size: 24px;
+        line-height: 1.35;
+        margin-bottom: 16px;
+      }
+      .process-card > p {
+        font-size: 19px;
+        line-height: 1.5;
+      }
+      .process-ssot {
+        margin-top: 16px;
+        background: var(--accent-light);
+        border-left: 4px solid var(--primary);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+      .process-ssot .k {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--primary);
+        margin-bottom: 8px;
+      }
+      .process-ssot p {
+        font-size: 17px;
+        line-height: 1.45;
+        color: var(--text);
+      }
+      .process-ph {
+        margin-top: 14px;
+        padding-top: 0;
+        min-height: 0;
+        flex: 0 0 auto;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 10px;
+      }
+      .process-ph img {
+        width: 100%;
+        height: auto;
+        max-height: 220px;
+        object-fit: contain;
+        object-position: top center;
+        border-radius: 8px;
+        border: 1.5px solid var(--border);
+        background: #fff;
+      }
+      .quote-mark {
+        font-family: var(--font-latin);
+        font-size: 140px;
+        font-weight: 700;
+        color: var(--primary);
+        opacity: 0.18;
+        line-height: 0.5;
+        margin-bottom: 24px;
+      }
+      .quote-body {
+        font-family: var(--font-display);
+        font-size: 48px;
+        font-weight: 600;
+        color: var(--text);
+        line-height: 1.4;
+        letter-spacing: 0;
+        max-width: 1500px;
+      }
+      .quote-cite {
+        margin-top: 36px;
+        font-size: 24px;
+        color: var(--text-muted);
+      }
+
+      .auth-table {
+        display: grid;
+        grid-template-columns: 200px 1fr 1fr;
+        gap: 0;
+        border: 1.5px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .auth-table div {
+        padding: 28px 32px;
+        font-size: 24px;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--font-body);
+      }
+      .auth-table .head {
+        background: var(--accent-light);
+        font-family: var(--font-display);
+        font-weight: 600;
+        color: var(--primary);
+      }
+      .auth-table .key {
+        font-weight: 600;
+        color: var(--text);
+      }
+      .auth-table .val {
+        color: var(--text-muted);
+      }
+
+      .vs {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 32px;
+        align-items: center;
+      }
+      .vs-card {
+        padding: 40px 44px;
+      }
+      .vs-card .label {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--primary);
+        margin-bottom: 16px;
+      }
+      .code {
+        font-family: var(--font-latin);
+        font-size: 32px;
+        font-weight: 600;
+        color: var(--text);
+        line-height: 1.5;
+      }
+      .vs-arrow {
+        font-family: var(--font-latin);
+        font-size: 48px;
+        color: var(--primary);
+        font-weight: 700;
+      }
+
+      .closing-circles {
+        position: absolute;
+        left: 50%;
+        top: 48%;
+        transform: translate(-50%, -50%);
+        width: 640px;
+        height: 640px;
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        opacity: 0.4;
+        pointer-events: none;
+      }
+      .closing-circles::after {
+        content: "";
+        position: absolute;
+        inset: 90px;
+        border: 1px solid var(--border);
+        border-radius: 50%;
+      }
+      .cta {
+        display: inline-block;
+        background: var(--primary);
+        color: var(--bg);
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 22px;
+        padding: 18px 36px;
+        border-radius: 100px;
+      }
+
+      /* ===========================================
+           REVEAL ANIMATIONS
+           =========================================== */
+      .reveal {
+        opacity: 0;
+        transform: translateY(28px);
+        transition:
+          opacity var(--duration-normal) var(--ease-out-expo),
+          transform var(--duration-normal) var(--ease-out-expo);
+      }
+      .slide.visible .reveal {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .slide.visible .reveal:nth-child(1) {
+        transition-delay: 0.06s;
+      }
+      .slide.visible .reveal:nth-child(2) {
+        transition-delay: 0.12s;
+      }
+      .slide.visible .reveal:nth-child(3) {
+        transition-delay: 0.18s;
+      }
+      .slide.visible .reveal:nth-child(4) {
+        transition-delay: 0.24s;
+      }
+      .slide.visible .reveal:nth-child(5) {
+        transition-delay: 0.3s;
+      }
+      .slide.visible .d1 {
+        transition-delay: 0.08s;
+      }
+      .slide.visible .d2 {
+        transition-delay: 0.16s;
+      }
+      .slide.visible .d3 {
+        transition-delay: 0.24s;
+      }
+      .slide.visible .d4 {
+        transition-delay: 0.32s;
+      }
+      .slide.visible .d5 {
+        transition-delay: 0.4s;
+      }
+
+      /* ===========================================
+           VIEWPORT CHROME (outside the 1920×1080 stage)
+           =========================================== */
+      .progress-bar {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        height: 3px;
+        background: var(--primary);
+        width: 0;
+        z-index: 2000;
+        transition: width 0.4s ease;
+      }
+      .slide-counter {
+        position: fixed;
+        left: 28px;
+        bottom: 22px;
+        z-index: 2000;
+        font-family: var(--font-latin);
+        font-size: 14px;
+        font-weight: 500;
+        color: #cfcfcf;
+      }
+      .nav-cluster {
+        position: fixed;
+        right: 28px;
+        bottom: 16px;
+        z-index: 2000;
+        display: flex;
+        gap: 10px;
+      }
+      .nav-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 1.5px solid var(--border);
+        background: var(--bg);
+        color: var(--primary);
+        font-size: 20px;
+        cursor: pointer;
+      }
+      .nav-btn:hover:not(:disabled) {
+        background: var(--primary);
+        color: var(--bg);
+      }
+      .nav-btn:disabled {
+        opacity: 0.3;
+        cursor: default;
+      }
+      .kbd-hint {
+        position: fixed;
+        left: 50%;
+        bottom: 22px;
+        transform: translateX(-50%);
+        z-index: 2000;
+        font-family: var(--font-body);
+        font-size: 13px;
+        color: #888;
+      }
+
+      /* ===========================================
+           INLINE EDITING
+           =========================================== */
+      .edit-hotzone {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 80px;
+        height: 80px;
+        z-index: 10000;
+        cursor: pointer;
+      }
+      .edit-toggle {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        z-index: 10001;
+        background: var(--primary);
+        color: var(--bg);
+        border: none;
+        border-radius: 100px;
+        padding: 8px 16px;
+        font-family: var(--font-latin);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .edit-toggle.show,
+      .edit-toggle.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      body.editing [data-edit] {
+        outline: 1px dashed var(--primary);
+        outline-offset: 4px;
+        cursor: text;
+      }
+      .db-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        flex: 1;
+        min-height: 0;
+      }
+      .db-row {
+        display: grid;
+        grid-template-columns: 1fr 64px 1.05fr;
+        align-items: stretch;
+        flex: 1;
+        min-height: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      .db-left {
+        display: flex;
+        align-items: center;
+        gap: 28px;
+        padding: 36px 40px;
+      }
+      .db-num {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: var(--bg);
+        font-family: var(--font-latin);
+        font-size: 22px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .db-left h3 {
+        font-size: 32px;
+        line-height: 1.3;
+        margin-bottom: 12px;
+      }
+      .db-left p {
+        font-size: 24px;
+        line-height: 1.5;
+        color: var(--text);
+      }
+      .db-mid {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .db-arrow {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: var(--bg);
+        font-family: var(--font-latin);
+        font-size: 22px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 20px rgba(250, 102, 2, 0.28);
+      }
+      .db-right {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 36px 44px;
+        background: var(--accent-medium);
+        border-left: 6px solid var(--primary);
+      }
+      .db-gain {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 8px;
+      }
+      .db-kw {
+        font-family: var(--font-display);
+        font-size: 36px;
+        font-weight: 700;
+        line-height: 1.25;
+        color: var(--primary);
+      }
+      .db-right p {
+        margin-top: 10px;
+        font-size: 22px;
+        line-height: 1.4;
+        color: var(--text);
+      }
+      .sample-layout {
+        display: grid;
+        grid-template-columns: 0.92fr 1.08fr;
+        gap: 48px;
+        flex: 1;
+        min-height: 0;
+        align-items: stretch;
+      }
+      .sample-why {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .sample-why h2 {
+        font-size: 42px;
+        line-height: 1.28;
+        margin-bottom: 28px;
+      }
+      .sample-why h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--primary);
+        margin-bottom: 12px;
+      }
+      .sample-why p {
+        font-size: 22px;
+        line-height: 1.5;
+        margin-bottom: 12px;
+        max-width: 720px;
+      }
+      .sample-why p:last-of-type {
+        margin-bottom: 0;
+        color: var(--text);
+      }
+      .sample-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: auto;
+        padding-top: 28px;
+      }
+      .sample-badge {
+        font-family: var(--font-latin);
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--primary);
+        background: var(--accent-light);
+        border: 1.5px solid var(--border);
+        border-radius: 100px;
+        padding: 8px 16px;
+        letter-spacing: 0;
+      }
+      .sample-how {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        padding: 32px 36px 28px;
+        background: var(--accent-light);
+        border: 1.5px solid var(--border);
+        border-left: 5px solid var(--primary);
+        border-radius: 16px;
+      }
+      .sample-how-label {
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--primary);
+        margin-bottom: 22px;
+        letter-spacing: 0;
+      }
+      .sample-points {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+      }
+      .sample-point {
+        padding: 0;
+        border: none;
+        background: transparent;
+      }
+      .sample-point .n {
+        font-family: var(--font-latin);
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 4px;
+      }
+      .sample-point h3 {
+        font-size: 22px;
+        line-height: 1.3;
+        margin-bottom: 10px;
+      }
+      .sample-point ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .sample-point li {
+        font-size: 18px;
+        line-height: 1.45;
+        color: var(--text-muted);
+        padding-left: 14px;
+        position: relative;
+        margin-bottom: 4px;
+      }
+      .sample-point li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.55em;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--primary);
+      }
+      .sample-point strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+      .sample-device {
+        width: 100%;
+        max-width: none;
+        margin: 20px 0 0;
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .sample-laptop {
+        background: #1a1a1a;
+        border-radius: 12px 12px 0 0;
+        padding: 12px 10px 8px;
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .sample-laptop-cam {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #3a3a3a;
+        margin: 0 auto 8px;
+        flex-shrink: 0;
+      }
+      .sample-laptop img {
+        width: 100%;
+        flex: 1;
+        min-height: 0;
+        height: auto;
+        object-fit: cover;
+        object-position: top center;
+        display: block;
+        border-radius: 3px;
+        background: transparent;
+      }
+      .sample-laptop-base {
+        height: 12px;
+        background: linear-gradient(#d4d4d4, #b8b8b8);
+        border-radius: 0 0 8px 8px;
+        position: relative;
+      }
+      .sample-laptop-base::after {
+        content: "";
+        display: block;
+        width: 72px;
+        height: 5px;
+        margin: 0 auto;
+        background: #9a9a9a;
+        border-radius: 0 0 4px 4px;
+      }
+      .sample-quote {
+        margin-top: 20px;
+        background: var(--accent-light);
+        border-left: 4px solid var(--primary);
+        border-radius: 12px;
+        padding: 18px 24px;
+        font-size: 22px;
+        line-height: 1.5;
+        color: var(--text);
+      }
+      .point-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        min-height: 0;
+      }
+      .point-card {
+        padding: 28px 30px;
+      }
+      .point-card .n {
+        font-family: var(--font-latin);
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 10px;
+      }
+      .point-card h3 {
+        font-size: 24px;
+        margin-bottom: 12px;
+      }
+      .point-card p {
+        font-size: 20px;
+        line-height: 1.5;
+      }
+      .arch-grid {
+        display: grid;
+        grid-template-columns: 1fr 1.15fr 1fr;
+        gap: 20px;
+        flex: 1;
+        min-height: 0;
+      }
+      .arch-card {
+        padding: 24px 26px;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .arch-card .n {
+        font-family: var(--font-latin);
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 6px;
+      }
+      .arch-card h3 {
+        font-size: 22px;
+        line-height: 1.3;
+        margin-bottom: 6px;
+      }
+      .arch-kicker {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--primary);
+        margin-bottom: 12px;
+        line-height: 1.35;
+      }
+      .arch-card > p {
+        font-size: 18px;
+        line-height: 1.45;
+      }
+      .arch-card strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+      .arch-split {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .arch-chip {
+        background: rgba(250, 102, 2, 0.08);
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+      .arch-chip .label {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+      .arch-chip .label span {
+        color: var(--primary);
+      }
+      .arch-chip p {
+        font-size: 16px;
+        line-height: 1.4;
+      }
+      .arch-benefit {
+        margin-bottom: 14px;
+      }
+      .arch-benefit:last-child {
+        margin-bottom: 0;
+      }
+      .arch-benefit .label {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+      .arch-benefit p {
+        font-size: 17px;
+        line-height: 1.42;
+      }
+      .arch-benefit strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+      .err-callout {
+        background: var(--accent-light);
+        border-left: 4px solid var(--primary);
+        border-radius: 12px;
+        padding: 14px 22px;
+        font-size: 20px;
+        line-height: 1.45;
+        color: var(--text);
+        margin-bottom: 8px;
+        flex-shrink: 0;
+      }
+      .err-philosophy {
+        font-size: 18px;
+        line-height: 1.45;
+        color: var(--text-muted);
+        margin-bottom: 22px;
+        flex-shrink: 0;
+      }
+      .err-philosophy strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+      .err-pipe {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 18px;
+        flex: 1;
+        min-height: 0;
+        margin-bottom: 16px;
+        align-items: stretch;
+      }
+      .err-pipe::before {
+        content: "";
+        position: absolute;
+        top: 21px;
+        left: 8%;
+        right: 8%;
+        height: 3px;
+        background: var(--primary);
+        opacity: 0.28;
+        z-index: 0;
+      }
+      .err-node {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        padding: 0;
+        background: transparent;
+        border: none;
+      }
+      .err-dot {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: var(--bg);
+        font-family: var(--font-latin);
+        font-size: 16px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 14px;
+        box-shadow: 0 0 0 6px var(--bg);
+        flex-shrink: 0;
+      }
+      .err-body {
+        flex: 1;
+        min-height: 0;
+        background: var(--card-bg);
+        border: 1.5px solid var(--border);
+        border-radius: 14px;
+        padding: 20px 18px 16px;
+        display: flex;
+        flex-direction: column;
+      }
+      .err-body h3 {
+        font-size: 22px;
+        line-height: 1.25;
+        margin-bottom: 4px;
+      }
+      .err-kicker {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--primary);
+        margin-bottom: 10px;
+      }
+      .err-body p {
+        font-size: 16px;
+        line-height: 1.4;
+      }
+      .err-body strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+      .err-gate {
+        margin-top: auto;
+        padding: 8px 10px;
+        border-radius: 100px;
+        background: var(--accent-light);
+        font-family: var(--font-latin);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--primary);
+        text-align: center;
+        line-height: 1.3;
+      }
+      .err-why-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+        flex-shrink: 0;
+      }
+      .err-why-item {
+        background: var(--card-bg);
+        border: 1.5px solid var(--border);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+      .err-why-item .label {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 6px;
+      }
+      .err-why-item p {
+        font-size: 16px;
+        line-height: 1.38;
+      }
+      .err-why-item strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+      .sec-pair {
+        display: grid;
+        grid-template-columns: 1fr 72px 1fr;
+        gap: 0 18px;
+        align-items: stretch;
+        margin-bottom: 22px;
+        flex: 1;
+        min-height: 280px;
+      }
+      .sec-token {
+        padding: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .sec-token-head {
+        padding: 26px 32px;
+        background: var(--accent-light);
+        border-bottom: 1.5px solid var(--border);
+      }
+      .sec-token-head .kind {
+        font-family: var(--font-latin);
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 6px;
+      }
+      .sec-token-head h3 {
+        font-size: 40px;
+        margin: 0;
+      }
+      .sec-token-body {
+        padding: 12px 16px 20px;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        justify-content: space-evenly;
+      }
+      .sec-row {
+        display: grid;
+        grid-template-columns: 96px 1fr;
+        gap: 16px;
+        align-items: start;
+        padding: 18px 22px;
+        border-bottom: 1px solid var(--border);
+      }
+      .sec-row:last-child {
+        border-bottom: none;
+      }
+      .sec-row .k {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--primary);
+        padding-top: 4px;
+      }
+      .sec-row .v {
+        font-size: 24px;
+        line-height: 1.45;
+        color: var(--text);
+      }
+      .sec-row strong {
+        color: var(--primary);
+        font-weight: 700;
+      }
+      .sec-vs {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-latin);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--bg);
+      }
+      .sec-vs span {
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .sec-grid {
+        display: flex;
+        justify-content: center;
+        gap: 36px;
+        flex-shrink: 0;
+      }
+      .sec-card {
+        width: 210px;
+        height: 210px;
+        border-radius: 50%;
+        padding: 28px 22px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        background: var(--accent-light);
+      }
+      .sec-card .n {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: var(--bg);
+        font-family: var(--font-latin);
+        font-size: 16px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
+      }
+      .sec-card h3 {
+        font-size: 18px;
+        line-height: 1.25;
+        margin-bottom: 6px;
+      }
+      .sec-card p {
+        font-size: 15px;
+        line-height: 1.35;
+      }
+      .sec-card strong {
+        color: var(--primary);
+        font-weight: 700;
+      }
+      .conc-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        flex: 1;
+        min-height: 0;
+      }
+      .conc-row {
+        display: grid;
+        grid-template-columns: 420px 64px 1fr;
+        align-items: stretch;
+        gap: 0;
+        flex: 1;
+        min-height: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      .conc-left {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 28px 36px;
+      }
+      .conc-num {
+        font-family: var(--font-latin);
+        font-size: 42px;
+        font-weight: 700;
+        color: var(--primary);
+        line-height: 1;
+        width: 64px;
+        flex-shrink: 0;
+      }
+      .conc-left h3 {
+        font-size: 26px;
+        line-height: 1.3;
+        margin-bottom: 10px;
+      }
+      .conc-prob {
+        font-size: 20px;
+        line-height: 1.4;
+        color: var(--text-muted);
+      }
+      .conc-mid {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .conc-arrow {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: var(--bg);
+        font-family: var(--font-latin);
+        font-size: 22px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 20px rgba(250, 102, 2, 0.28);
+      }
+      .conc-right {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 28px 40px 28px 44px;
+        background: var(--accent-medium);
+        border-left: 6px solid var(--primary);
+      }
+      .conc-kw {
+        font-family: var(--font-display);
+        font-size: 38px;
+        font-weight: 700;
+        line-height: 1.2;
+        color: var(--primary);
+      }
+      .conc-right p {
+        margin-top: 8px;
+        font-size: 20px;
+        line-height: 1.4;
+        color: var(--text);
+      }
+
+      .ts-layout {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 24px;
+        flex: 1;
+        min-height: 0;
+      }
+      .ts-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-height: 0;
+      }
+      .ts-row {
+        display: grid;
+        grid-template-columns: 132px 1fr;
+        align-items: center;
+        flex: 1;
+        min-height: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      .ts-label {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 4px;
+        height: 100%;
+        background: var(--accent-light);
+        border-right: 1.5px solid var(--border);
+      }
+      .ts-label .n {
+        font-family: var(--font-latin);
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--primary);
+      }
+      .ts-label h3 {
+        font-size: 24px;
+      }
+      .ts-row.solve .ts-label {
+        background: var(--primary);
+      }
+      .ts-row.solve .ts-label .n,
+      .ts-row.solve .ts-label h3 {
+        color: var(--bg);
+      }
+      .ts-body {
+        padding: 22px 28px;
+      }
+      .ts-body .kw {
+        font-family: var(--font-display);
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--text);
+      }
+      .ts-row.solve .ts-body {
+        background: var(--accent-medium);
+      }
+      .ts-row.solve .ts-body .kw {
+        color: var(--primary);
+      }
+      .ts-body p {
+        margin-top: 8px;
+        font-size: 18px;
+        line-height: 1.4;
+      }
+      .ts-code {
+        display: flex;
+        flex-direction: column;
+        padding: 32px 36px;
+        background: var(--accent-medium);
+        min-height: 0;
+      }
+      .ts-code .cap {
+        font-family: var(--font-latin);
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 20px;
+      }
+      .ts-code pre {
+        margin: 0;
+        font-family: var(--font-latin);
+        font-size: 22px;
+        line-height: 1.55;
+        color: var(--text);
+        white-space: pre;
+        overflow: hidden;
+      }
+      .ts-code .cm {
+        color: var(--primary);
+        font-weight: 700;
+      }
+      .ts-code .hi {
+        color: var(--primary);
+        font-weight: 700;
+      }
+      .ts-punch {
+        flex-shrink: 0;
+        margin-top: 20px;
+        background: var(--accent-medium);
+        border: 2px solid var(--primary);
+        border-radius: 14px;
+        padding: 22px 40px;
+        text-align: center;
+        font-family: var(--font-display);
+        font-size: 34px;
+        font-weight: 700;
+        line-height: 1.35;
+        color: var(--text);
+      }
+      .ts-punch .neq {
+        display: inline-block;
+        margin: 0 14px;
+        font-family: var(--font-latin);
+        color: var(--primary);
+      }
+      .next-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 22px;
+        flex: 1;
+        min-height: 0;
+        align-content: center;
+        align-items: stretch;
+      }
+      .next-card {
+        padding: 28px 24px 26px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        min-height: 0;
+      }
+      .next-ico {
+        width: 72px;
+        height: 72px;
+        margin-bottom: 16px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .next-ico img {
+        width: 64px;
+        height: 64px;
+        object-fit: contain;
+        background: transparent;
+      }
+      .next-card h3 {
+        font-size: 30px;
+        line-height: 1.3;
+        margin-bottom: 14px;
+      }
+      .next-rule {
+        width: 56px;
+        height: 3px;
+        background: var(--primary);
+        border-radius: 2px;
+        margin-bottom: 16px;
+        flex-shrink: 0;
+      }
+      .next-card > p {
+        font-size: 22px;
+        line-height: 1.5;
+        color: var(--text-muted);
+      }
+      .next-exs {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        text-align: left;
+      }
+      .next-ex {
+        padding: 0;
+        background: none;
+        border: none;
+      }
+      .next-ex .ex-n {
+        font-family: var(--font-latin);
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 6px;
+      }
+      .next-ex h4 {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: var(--text);
+      }
+      .next-ex p {
+        font-size: 18px;
+        line-height: 1.4;
+        color: var(--text-muted);
+      }
+      .next-ex strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+      .eval-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 56px;
+        flex: 1;
+        min-height: 0;
+      }
+      .eval-col {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .eval-bubble {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        background: #fff;
+        border: 2.5px solid var(--border);
+        border-radius: 36px 36px 36px 12px;
+        padding: 32px 36px 30px;
+      }
+      .eval-col:nth-child(2) .eval-bubble {
+        border-radius: 36px 36px 12px 36px;
+      }
+      .eval-bubble::after {
+        content: "";
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        background: #fff;
+        border-right: 2.5px solid var(--border);
+        border-bottom: 2.5px solid var(--border);
+        bottom: -12px;
+        left: 44px;
+        transform: rotate(45deg);
+        border-radius: 0 0 5px 0;
+      }
+      .eval-col:nth-child(2) .eval-bubble::after {
+        left: auto;
+        right: 44px;
+      }
+      .eval-bubble p {
+        font-size: 20px;
+        line-height: 1.5;
+      }
+      .eval-bubble p + p {
+        margin-top: 14px;
+      }
+      .eval-person {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 28px;
+        padding-left: 12px;
+        flex-shrink: 0;
+      }
+      .eval-col:nth-child(2) .eval-person {
+        flex-direction: row-reverse;
+        padding-left: 0;
+        padding-right: 12px;
+        text-align: right;
+      }
+      .eval-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: var(--bg);
+        font-family: var(--font-display);
+        font-size: 26px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 6px 16px rgba(250, 102, 2, 0.28);
+      }
+      .eval-person h3 {
+        font-size: 26px;
+      }
+      .eval-person .role {
+        margin-top: 2px;
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--primary);
+      }
+      .eval-split {
+        display: grid;
+        grid-template-columns: 0.92fr 1.08fr;
+        gap: 28px;
+        flex: 1;
+        min-height: 0;
+      }
+      .eval-split .eval-bubble {
+        border: 2.5px solid var(--border);
+        border-radius: 28px 28px 28px 12px;
+        background: #fff;
+        padding: 22px 24px 20px;
+      }
+      .eval-split .eval-bubble p {
+        font-size: 18px;
+        line-height: 1.5;
+      }
+      .eval-split .eval-bubble p + p {
+        margin-top: 10px;
+      }
+      .eval-split .eval-bubble::after {
+        width: 18px;
+        height: 18px;
+        bottom: -10px;
+        left: 36px;
+        border-right: 2.5px solid var(--border);
+        border-bottom: 2.5px solid var(--border);
+      }
+      .eval-split .eval-person {
+        margin-top: 18px;
+        gap: 12px;
+      }
+      .eval-split .eval-avatar {
+        width: 52px;
+        height: 52px;
+        font-size: 20px;
+      }
+      .eval-split .eval-person h3 {
+        font-size: 22px;
+      }
+      .eval-split .eval-person .role {
+        font-size: 15px;
+      }
+      .eval-hero {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .eval-hero .eval-bubble {
+        padding: 32px 36px 28px;
+      }
+      .eval-quad {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 18px;
+        min-height: 0;
+      }
+      .eval-quad .eval-col:nth-child(even) .eval-bubble {
+        border-radius: 28px 28px 12px 28px;
+      }
+      .eval-quad .eval-col:nth-child(even) .eval-bubble::after {
+        left: auto;
+        right: 36px;
+      }
+      .eval-quad .eval-col:nth-child(even) .eval-person {
+        flex-direction: row-reverse;
+        text-align: right;
+        padding-left: 0;
+        padding-right: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="edit-hotzone"></div>
+    <button class="edit-toggle" id="editToggle" title="Edit mode (E)">
+      Edit
+    </button>
+
+    <div class="deck-viewport">
+      <main class="deck-stage" id="deckStage">
+        <!-- === SLIDE 01 COVER === -->
+        <section class="slide cover active" data-eyebrow="">
+          <div class="cover-deco"></div>
+          <div class="cover-dots" aria-hidden="true">
+            <span></span><span></span><span></span> <span></span><span></span
+            ><span></span> <span></span><span></span><span></span>
+          </div>
+          <div class="cover-body">
+            <div class="eyebrow reveal d1">
+              <span class="accent-line"></span
+              ><span data-edit
+                >코드잇 풀스택 12기 · 고급프로젝트 모의 발표</span
+              >
+            </div>
+            <h1 class="reveal d2" data-edit>간식대장</h1>
+            <p class="cover-lede reveal d3" data-edit>
+              기업 단위로 흩어진 간식 구매를 한곳에 모으고,<br />예산과 승인
+              흐름까지 관리하는 사내 서비스.
+            </p>
+            <div class="cover-meta reveal d4">
+              <div>
+                <div class="label">발표</div>
+                <div class="value" data-edit>한희나 · 팀장</div>
+              </div>
+              <div>
+                <div class="label">팀원</div>
+                <div class="value" data-edit>
+                  원세빈 · 김상우 · 이지연 · 이상윤
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 02 AGENDA === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow"><span class="accent-line"></span>오늘</div>
+              <span class="tag-pill">Agenda</span>
+            </div>
+            <h2 class="reveal" data-edit>이 순서로 이야기합니다</h2>
+            <div class="grid-2 grow">
+              <div>
+                <div class="agenda-item reveal d1">
+                  <span class="num">01</span>
+                  <div>
+                    <h3 data-edit>서비스</h3>
+                    <p data-edit>왜 만들었고, 누가 쓰는지</p>
+                  </div>
+                </div>
+                <div class="agenda-item reveal d2">
+                  <span class="num">02</span>
+                  <div>
+                    <h3 data-edit>팀과 협업</h3>
+                    <p data-edit>역할, 이슈, 리뷰</p>
+                  </div>
+                </div>
+                <div class="agenda-item reveal d3">
+                  <span class="num">03</span>
+                  <div>
+                    <h3 data-edit>수행 절차</h3>
+                    <p data-edit>설계부터 개발까지</p>
+                  </div>
+                </div>
+                <div class="agenda-item reveal d4">
+                  <span class="num">04</span>
+                  <div>
+                    <h3 data-edit>프로젝트 구현</h3>
+                    <p data-edit>프론트 · 백엔드</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="agenda-item reveal d1">
+                  <span class="num">05</span>
+                  <div>
+                    <h3 data-edit>트러블슈팅</h3>
+                    <p data-edit>권한은 DB 가 진실</p>
+                  </div>
+                </div>
+                <div class="agenda-item reveal d2">
+                  <span class="num">06</span>
+                  <div>
+                    <h3 data-edit>앞으로 계획</h3>
+                    <p data-edit>심화 요구사항 · 크론잡</p>
+                  </div>
+                </div>
+                <div class="agenda-item reveal d3">
+                  <span class="num">07</span>
+                  <div>
+                    <h3 data-edit>팀 자체 평가</h3>
+                    <p data-edit>원세빈 · 한희나 · 이지연 · 김상우 · 이상윤</p>
+                  </div>
+                </div>
+                <div class="agenda-item reveal d4">
+                  <span class="num">08</span>
+                  <div>
+                    <h3 data-edit>시연 · Q&amp;A</h3>
+                    <p data-edit>흐름을 보여 드리고, 질문 받겠습니다</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 03 OVERVIEW === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow">
+                <span class="accent-line"></span>프로젝트 개요
+              </div>
+              <span class="tag-pill">Service</span>
+            </div>
+            <h2
+              class="reveal"
+              style="margin-bottom: 8px; font-size: 48px"
+              data-edit
+            >
+              사내 간식 구매 관리 서비스
+            </h2>
+            <p
+              class="overview-lede reveal d1"
+              style="margin-bottom: 56px"
+              data-edit
+            >
+              메신저 · 엑셀 · 개인 카드에 흩어진 구매를, 상품부터 예산까지 한
+              워크플로로 묶습니다.
+            </p>
+            <div class="flow-row reveal d2">
+              <div class="flow-step">
+                <span class="num">01</span>
+                <h3 data-edit>상품</h3>
+              </div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-step">
+                <span class="num">02</span>
+                <h3 data-edit>장바구니</h3>
+              </div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-step">
+                <span class="num">03</span>
+                <h3 data-edit>구매 요청</h3>
+              </div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-step">
+                <span class="num">04</span>
+                <h3 data-edit>승인 · 반려</h3>
+              </div>
+              <span class="flow-arrow">→</span>
+              <div class="flow-step">
+                <span class="num">05</span>
+                <h3 data-edit>예산</h3>
+              </div>
+            </div>
+            <div class="roles-row grow">
+              <div class="card role-mini reveal d3">
+                <h3 data-edit>구성원</h3>
+                <p data-edit>골라서 담고, 요청하고, 상태를 봅니다.</p>
+                <div class="role-shot-wrap" data-shot="cart">
+                  <img
+                    class="role-shot"
+                    src="assets/cart.png"
+                    alt="구성원 장바구니 화면"
+                  />
+                  <div class="shot-handle"></div>
+                </div>
+              </div>
+              <div class="card role-mini reveal d4">
+                <h3 data-edit>관리자</h3>
+                <p data-edit>예산과 함께 승인하거나, 즉시 구매합니다.</p>
+                <div class="role-shot-wrap" data-shot="purchase">
+                  <img
+                    class="role-shot"
+                    src="assets/purchase-requests.png"
+                    alt="관리자 구매 요청 화면"
+                  />
+                  <div class="shot-handle"></div>
+                </div>
+              </div>
+              <div class="card role-mini reveal d5">
+                <h3 data-edit>최고 관리자</h3>
+                <p data-edit>초대 · 권한 · 월 예산을 설정합니다.</p>
+                <div class="role-shot-wrap" data-shot="members">
+                  <img
+                    class="role-shot"
+                    src="assets/member-management.png"
+                    alt="최고 관리자 회원 관리 화면"
+                  />
+                  <div class="shot-handle"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 04 STACK === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow">
+                <span class="accent-line"></span>개발 환경
+              </div>
+              <span class="tag-pill">Stack</span>
+            </div>
+            <h2 class="reveal" data-edit>이렇게 만들었습니다</h2>
+            <div class="grid-2 grow">
+              <div class="card stack-col reveal d1">
+                <h3 data-edit>프론트엔드</h3>
+                <ul>
+                  <li>Next.js 16 <span>App Router, React 19</span></li>
+                  <li>TanStack Query <span>서버 상태</span></li>
+                  <li>Zod + Axios <span>검증 · 쿠키 인증</span></li>
+                  <li>Tailwind CSS 4</li>
+                </ul>
+              </div>
+              <div class="card stack-col reveal d2">
+                <h3 data-edit>백엔드</h3>
+                <ul>
+                  <li>Express + TypeScript</li>
+                  <li>Prisma · PostgreSQL</li>
+                  <li>JWT · S3 · Resend</li>
+                  <li>AWS EC2</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 05 STRUCTURE === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow">
+                <span class="accent-line"></span>프로젝트 구조
+              </div>
+              <span class="tag-pill">Architecture</span>
+            </div>
+            <h2
+              class="reveal"
+              style="font-size: 44px; margin-bottom: 28px"
+              data-edit
+            >
+              기능은 도메인 단위, 나머지는 공통 레이어
+            </h2>
+            <div class="struct-grid grow">
+              <div class="card struct-col reveal d1">
+                <div class="struct-kicker">프론트엔드</div>
+                <h3 data-edit>Next.js App Router</h3>
+                <p class="struct-point" data-edit>
+                  <b>app/</b> 라우트 그룹으로 인증 <span>((auth))</span> 과
+                  서비스 <span>((private))</span> 를 분리합니다.
+                </p>
+                <p class="struct-point" data-edit>
+                  <b>features/</b> 는 도메인 UI, <b>components/</b> 는 공통 UI
+                  입니다.
+                </p>
+                <p class="struct-point" data-edit>
+                  화면 데이터는 TanStack Query, 폼·응답은 Zod. RouteGuard 와 GNB
+                  는 권한별로 달라집니다.
+                </p>
+                <div class="struct-tree">
+                  <b>app/</b><br />
+                  &nbsp;&nbsp;<b>(auth)/</b>
+                  <span class="cmt">로그인 · 회원가입 · 초대 가입</span><br />
+                  &nbsp;&nbsp;<b>(private)/</b>
+                  <span class="cmt">admin · budget · purchase · profile</span
+                  ><br />
+                  &nbsp;&nbsp;<b>products/</b>
+                  <span class="cmt">목록 · 상세 · 내 상품</span><br />
+                  &nbsp;&nbsp;<b>cart/</b><br />
+                  <b>api/</b>
+                  <span class="cmt">auth · product · cart · order · budget</span
+                  ><br />
+                  <b>hooks/</b> · <b>schemas/</b> · <b>types/</b> · <b>lib/</b>
+                </div>
+              </div>
+              <div class="card struct-col reveal d2">
+                <div class="struct-kicker">백엔드</div>
+                <h3 data-edit>Express + Prisma</h3>
+                <p class="struct-point" data-edit>
+                  Routes → Controllers → Services → Repositories 단방향
+                  레이어입니다.
+                </p>
+                <p class="struct-point" data-edit>
+                  DB 접근은 Repositories 에만 두고, 미들웨어 체인으로
+                  인증·권한·검증을 탑니다.
+                </p>
+                <div class="layer-mini">
+                  <span class="chip chip-sm">Router</span>
+                  <span class="arrow arrow-sm">→</span>
+                  <span class="chip chip-sm">authenticate</span>
+                  <span class="arrow arrow-sm">→</span>
+                  <span class="chip chip-sm">authorize</span>
+                  <span class="arrow arrow-sm">→</span>
+                  <span class="chip chip-sm">Zod</span>
+                  <span class="arrow arrow-sm">→</span>
+                  <span class="chip chip-sm chip-muted">Controller</span>
+                  <span class="arrow arrow-sm">→</span>
+                  <span class="chip chip-sm chip-muted">Service</span>
+                  <span class="arrow arrow-sm">→</span>
+                  <span class="chip chip-sm chip-muted">Repository</span>
+                  <span class="arrow arrow-sm">→</span>
+                  <span class="chip chip-sm">Prisma</span>
+                </div>
+                <div class="struct-tree">
+                  <b>routes/</b>
+                  <span class="cmt">URL · 메서드 · 누가 타는지</span><br />
+                  <b>controllers/</b>
+                  <span class="cmt">req 값만 꺼내 응답으로</span><br />
+                  <b>services/</b>
+                  <span class="cmt">예산 · 상태 · 중복 규칙</span><br />
+                  <b>repositories/</b>
+                  <span class="cmt">Prisma 조회 · 트랜잭션 · 락</span><br />
+                  <b>middlewares/</b> · <b>schemas/</b> · <b>utils/</b><br />
+                  <b>prisma/</b> schema · seed
+                  <span class="cmt">Company · User · Order · Budget</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 06 TEAM === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow">
+                <span class="accent-line"></span>R&amp;R
+              </div>
+              <span class="tag-pill">Team</span>
+            </div>
+            <h2
+              class="reveal"
+              style="margin-bottom: 24px; font-size: 48px"
+              data-edit
+            >
+              팀 구성 및 역할
+            </h2>
+            <div class="rr-table grow reveal d1">
+              <div class="rr-head">
+                <div data-edit>이름</div>
+                <div data-edit>공통 역할</div>
+                <div data-edit>개발 영역</div>
+              </div>
+              <div class="rr-row">
+                <div class="rr-name" data-edit>한희나</div>
+                <div data-edit>팀장, 노션, 시연 영상, 발표</div>
+                <div data-edit>인증·회원·권한 (풀스택)</div>
+              </div>
+              <div class="rr-row">
+                <div class="rr-name" data-edit>이지연</div>
+                <div data-edit>
+                  기초 세팅, GitHub, 배포·인프라, 팀 캘린더, 팀장 대리
+                </div>
+                <div data-edit>공통 모듈·관리자 영역 (FE)</div>
+              </div>
+              <div class="rr-row">
+                <div class="rr-name" data-edit>원세빈</div>
+                <div data-edit>발표 자료 (PPT)</div>
+                <div data-edit>
+                  구매·예산 (BE) / 구매·회원·예산·상품 연동 (FE)
+                </div>
+              </div>
+              <div class="rr-row">
+                <div class="rr-name" data-edit>김상우</div>
+                <div data-edit>팀 문서</div>
+                <div data-edit>
+                  상품·장바구니 (BE) / 상품·장바구니 연동 (FE)
+                </div>
+              </div>
+              <div class="rr-row">
+                <div class="rr-name" data-edit>이상윤</div>
+                <div data-edit>—</div>
+                <div data-edit>일반 사용자·상품 영역 (FE)</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 07 COLLAB === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow"><span class="accent-line"></span>협업</div>
+              <span class="tag-pill">Workflow</span>
+            </div>
+            <h2
+              class="reveal"
+              style="font-size: 48px; margin-bottom: 32px"
+              data-edit
+            >
+              협업 및 개발 프로세스
+            </h2>
+            <div class="collab-grid grow">
+              <div class="card collab-card reveal d1">
+                <div class="collab-num">01</div>
+                <h3 data-edit>이슈 트래킹 및 일정 관리</h3>
+                <div class="collab-item">
+                  <div class="collab-label" data-edit>GitHub Issues</div>
+                  <p data-edit>
+                    기능 구현 및 버그 단위를 이슈로 등록하여 체계적으로
+                    관리합니다.
+                  </p>
+                </div>
+                <div class="collab-item">
+                  <div class="collab-label" data-edit>Notion 캘린더</div>
+                  <p data-edit>
+                    전체 일정을 공유하고 마감일(Deadline)을 설정합니다.
+                  </p>
+                </div>
+                <div class="collab-item">
+                  <div class="collab-label" data-edit>데일리 스크럼</div>
+                  <p data-edit>매일 진행 상황과 이슈를 공유하고 점검합니다.</p>
+                </div>
+              </div>
+              <div class="card collab-card reveal d2">
+                <div class="collab-num">02</div>
+                <h3 data-edit>체계적인 코드 리뷰</h3>
+                <div class="collab-item">
+                  <div class="collab-label" data-edit>1차 자동 리뷰</div>
+                  <p data-edit>AI 툴 CodeRabbit으로 빠르게 자동 검증합니다.</p>
+                </div>
+                <div class="collab-item">
+                  <div class="collab-label" data-edit>2차 상세 리뷰</div>
+                  <p data-edit>담당 팀원(리뷰어)이 꼼꼼히 크로스 체크합니다.</p>
+                </div>
+              </div>
+              <div class="card collab-card reveal d3">
+                <div class="collab-num">03</div>
+                <h3 data-edit>개발 컨벤션 및 규칙</h3>
+                <div class="collab-item">
+                  <div class="collab-label" data-edit>형상 관리</div>
+                  <p data-edit>
+                    Git 브랜치 전략과 커밋 메시지 규칙을 지킵니다.
+                  </p>
+                </div>
+                <div class="collab-item">
+                  <div class="collab-label" data-edit>프론트엔드</div>
+                  <p data-edit>
+                    함수, 이벤트, 매개변수 네이밍 규칙을 통일합니다.
+                  </p>
+                </div>
+                <div class="collab-item">
+                  <div class="collab-label" data-edit>백엔드</div>
+                  <p data-edit>
+                    표준 응답 포맷(Response)과 에러 핸들링을 합의하고
+                    착수합니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 08 PROCESS === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow">
+                <span class="accent-line"></span>수행 절차
+              </div>
+              <span class="tag-pill">Process</span>
+            </div>
+            <h2
+              class="reveal"
+              style="font-size: 48px; margin-bottom: 20px"
+              data-edit
+            >
+              설계를 먼저 맞추고 코드를 썼습니다
+            </h2>
+            <p class="process-sub reveal d1" data-edit>
+              주요 활용 자료 · <b>유저 플로우</b> · 페이지 플로우 · API 명세 ·
+              ERD
+            </p>
+            <div class="process-grid grow">
+              <div class="card process-card reveal d1">
+                <div class="process-num">01</div>
+                <h3 data-edit>서비스 분석 및 구조 파악</h3>
+                <p data-edit>
+                  플로우 차트 검토로 유저 이용 경로와 핵심 기능 흐름을 분석하고,
+                  전체 서비스 뼈대를 확립합니다.
+                </p>
+              </div>
+              <div class="card process-card reveal d2">
+                <div class="process-num">02</div>
+                <h3 data-edit>R&amp;R 분담 및 ERD 설계</h3>
+                <p data-edit>
+                  팀 전체가 모여 데이터베이스 구조와 데이터 흐름을 구상하고
+                  역할을 나눕니다.
+                </p>
+              </div>
+              <div class="card process-card reveal d3">
+                <div class="process-num">03</div>
+                <h3 data-edit>통신 규격 정의</h3>
+                <p data-edit>
+                  백엔드 담당자를 중심으로 API 명세서를 작성합니다. Endpoint,
+                  Request / Response를 사전에 정의하고 공유합니다.
+                </p>
+                <div class="process-ph">
+                  <img src="assets/api-spec.png" alt="API 명세서 예시" />
+                </div>
+              </div>
+              <div class="card process-card reveal d4">
+                <div class="process-num">04</div>
+                <h3 data-edit>개발 착수 및 구현</h3>
+                <p data-edit>
+                  확정된 설계 문서와 API 명세를 바탕으로 파트별 기능 개발과 통합
+                  구현에 들어갑니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 09 DB DESIGN === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow">
+                <span class="accent-line"></span>데이터 설계
+              </div>
+              <span class="tag-pill">SSOT</span>
+            </div>
+            <h2
+              class="reveal"
+              style="font-size: 40px; margin-bottom: 22px"
+              data-edit
+            >
+              핵심 DB 설계 및 아키텍처
+            </h2>
+            <div class="db-grid grow">
+              <div class="card db-row reveal d1">
+                <div class="db-left">
+                  <div class="db-num">01</div>
+                  <div>
+                    <h3 data-edit>지출 관리</h3>
+                    <p data-edit>Budget = 월 한도만<br />지출 = 승인 주문 합</p>
+                  </div>
+                </div>
+                <div class="db-mid">
+                  <div class="db-arrow">➔</div>
+                </div>
+                <div class="db-right">
+                  <div class="db-gain">장점</div>
+                  <div class="db-kw" data-edit>숫자가 안 어긋남</div>
+                  <p data-edit>캐시 컬럼이 없어 승인·취소와 항상 같음</p>
+                </div>
+              </div>
+              <div class="card db-row reveal d2">
+                <div class="db-left">
+                  <div class="db-num">02</div>
+                  <div>
+                    <h3 data-edit>주문 · 이력</h3>
+                    <p data-edit>
+                      OrderItem 스냅샷 · Cart는 참조<br />REQUEST / DIRECT 한
+                      Order
+                    </p>
+                  </div>
+                </div>
+                <div class="db-mid">
+                  <div class="db-arrow">➔</div>
+                </div>
+                <div class="db-right">
+                  <div class="db-gain">장점</div>
+                  <div class="db-kw" data-edit>영수증 불변 · 로직 공유</div>
+                  <p data-edit>가격이 바뀌어도 이력 유지, 예산 검사 한곳</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 10 FE SAMPLE 1 === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow">
+                <span class="accent-line"></span>프론트 구현
+              </div>
+              <span class="tag-pill">Sample</span>
+            </div>
+            <div class="sample-layout">
+              <div class="sample-why reveal">
+                <h2 data-edit>눌러보고 바로 쓰는 샘플 페이지</h2>
+                <h3 data-edit>도입 배경</h3>
+                <p data-edit>
+                  Button, Modal, Toast를 만들어도 확인 모달과 폼 모달 중 뭘 쓰는지,
+                  어디서 import해 어떻게 호출하는지 README만으로는 감이 오지 않았습니다.
+                </p>
+                <p data-edit>
+                  화면을 직접 열고 동작을 확인한 뒤 코드를 가져다 쓰는
+                  ‘사용 설명서 + 확인 화면’으로 팀 생산성을 높였습니다.
+                </p>
+                <div class="sample-badges">
+                  <span class="sample-badge">/modal-sample</span>
+                  <span class="sample-badge">/toast-sample</span>
+                  <span class="sample-badge">/posts-sample</span>
+                  <span class="sample-badge">/upload-test</span>
+                </div>
+              </div>
+              <div class="sample-how reveal d1">
+                <div class="sample-how-label">어떻게 구현했는가</div>
+                <div class="sample-points">
+                  <div class="sample-point">
+                    <div class="n">01</div>
+                    <h3 data-edit>실무 컴포넌트 연동 · 무인증 접근</h3>
+                    <ul>
+                      <li data-edit><strong>RouteGuard</strong> 예외 → 로그인 없이 오픈</li>
+                      <li data-edit><strong>Button · Modal · showToast</strong> 실사용</li>
+                      <li data-edit>샘플 = 서비스 <strong>동일 동작</strong></li>
+                    </ul>
+                  </div>
+                  <div class="sample-point">
+                    <div class="n">02</div>
+                    <h3 data-edit>표준 아키텍처 · 코드 패턴</h3>
+                    <ul>
+                      <li data-edit><strong>Modal vs ModalShell</strong> 선택 가이드</li>
+                      <li data-edit><strong>Component → Hook → API → Axios</strong></li>
+                      <li data-edit>새 도메인도 <strong>같은 패턴으로 확장</strong></li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="sample-device">
+                  <div class="sample-laptop">
+                    <div class="sample-laptop-cam"></div>
+                    <img src="assets/modal-sample.png" alt="모달 샘플 화면">
+                  </div>
+                  <div class="sample-laptop-base"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 11 FE SAMPLE 2 === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow">
+                <span class="accent-line"></span>프론트 구현
+              </div>
+              <span class="tag-pill">ModalShell</span>
+            </div>
+            <h2 class="reveal" style="font-size: 36px; margin-bottom: 22px" data-edit>
+              모달 아키텍처 개선: 껍데기(ModalShell)와 내용의 분리
+            </h2>
+            <div class="arch-grid grow">
+              <div class="card arch-card reveal d1">
+                <div class="n">01</div>
+                <h3 data-edit>도입 배경 및 문제점</h3>
+                <div class="arch-kicker" data-edit>Before · 모놀리식 모달의 한계</div>
+                <p data-edit>
+                  확인 모달과 폼 모달(초대, 권한 변경 등)은 레이아웃과 목적이
+                  완전히 다릅니다. 하나의 컴포넌트에 억지로 우겨넣다 보니
+                  <strong>Props가 무한히 늘고 조건문이 복잡해졌습니다.</strong>
+                </p>
+              </div>
+              <div class="card arch-card reveal d2">
+                <div class="n">02</div>
+                <h3 data-edit>해결 방안</h3>
+                <div class="arch-kicker" data-edit>관심사의 분리 · Separation of Concerns</div>
+                <div class="arch-split">
+                  <div class="arch-chip">
+                    <div class="label" data-edit>껍데기 <span>(동작)</span></div>
+                    <p data-edit>
+                      Overlay, Portal, ESC 닫기, 스크롤 잠금, 포커스 트랩 등
+                      모달의 공통 동작만 담당합니다.
+                    </p>
+                  </div>
+                  <div class="arch-chip">
+                    <div class="label" data-edit>콘텐츠 <span>(UI)</span></div>
+                    <p data-edit>
+                      안쪽 폼이나 확인 문구는 각 페이지와 도메인 UI가
+                      직접 담당합니다.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="card arch-card reveal d3">
+                <div class="n">03</div>
+                <h3 data-edit>도입 효과</h3>
+                <div class="arch-kicker" data-edit>Benefits</div>
+                <div class="arch-benefit">
+                  <div class="label" data-edit>확장성 · 유지보수</div>
+                  <p data-edit>
+                    확인 모달과 폼 모달을 분리해 props 폭발을 막고,
+                    시안에 맞게 유연한 UI를 구현합니다.
+                  </p>
+                </div>
+                <div class="arch-benefit">
+                  <div class="label" data-edit>팀 생산성</div>
+                  <p data-edit>
+                    /modal-sample과 연계해, 껍데기를 고민할 필요 없이
+                    내용만 가져다 빠르게 개발합니다.
+                  </p>
+                </div>
+                <div class="arch-benefit">
+                  <div class="label" data-edit>단일 책임 · 중앙화</div>
+                  <p data-edit>
+                    모달 열기/닫기나 레이어 버그가 나면
+                    <strong>ModalShell 한 곳만 수정</strong>하면
+                    프로젝트 전체에 일괄 적용됩니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p class="sample-quote reveal d4" data-edit>
+              공통은 ‘동작’만, 화면은 시안대로. 확장성을 위해 껍데기를 분리했습니다.
+            </p>
+          </div>
+        </section>
+
+        <!-- === SLIDE 12 ERROR HANDLING === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow">
+                <span class="accent-line"></span>백엔드 구현
+              </div>
+              <span class="tag-pill">Error</span>
+            </div>
+            <h2 class="reveal" style="font-size: 36px; margin-bottom: 14px" data-edit>
+              에러는 이 길을 따라 막힙니다
+            </h2>
+            <p class="err-callout reveal" data-edit>
+              Zod가 입력을 막고, Service가 ErrorCodes로 의도한 실패를 던지며,
+              나머지는 500으로 숨깁니다.
+            </p>
+            <p class="err-philosophy reveal d1" data-edit>
+              핵심 · 메시지 문자열이 아닌 <strong>code 기반</strong>의
+              안전한 프론트엔드 분기 구조를 만들었습니다.
+            </p>
+            <div class="err-pipe grow">
+              <div class="err-node reveal d1">
+                <div class="err-dot">01</div>
+                <div class="err-body">
+                  <h3 data-edit>Router</h3>
+                  <div class="err-kicker" data-edit>입구</div>
+                  <p data-edit>
+                    URL·메서드·누가 타는지. 요청이 파이프라인에 들어오는
+                    시작점입니다.
+                  </p>
+                  <div class="err-gate">통과</div>
+                </div>
+              </div>
+              <div class="err-node reveal d2">
+                <div class="err-dot">02</div>
+                <div class="err-body">
+                  <h3 data-edit>Zod 검증</h3>
+                  <div class="err-kicker" data-edit>zodValidate</div>
+                  <p data-edit>
+                    비즈니스 로직 진입 전, 스키마가 안 맞으면 즉시
+                    <strong>400</strong>과 필드 에러를 반환합니다.
+                  </p>
+                  <div class="err-gate">400 · fieldErrors</div>
+                </div>
+              </div>
+              <div class="err-node reveal d3">
+                <div class="err-dot">03</div>
+                <div class="err-body">
+                  <h3 data-edit>Service</h3>
+                  <div class="err-kicker" data-edit>ErrorCodes + AppError</div>
+                  <p data-edit>
+                    도메인 규칙은 <strong>throw AppError</strong>.
+                    Prisma 에러는 사전에 변환하고
+                    <strong>{ success, code, message }</strong>로 줍니다.
+                  </p>
+                  <div class="err-gate">의도한 실패 · code</div>
+                </div>
+              </div>
+              <div class="err-node reveal d4">
+                <div class="err-dot">04</div>
+                <div class="err-body">
+                  <h3 data-edit>전역 Handler</h3>
+                  <div class="err-kicker" data-edit>errorHandler</div>
+                  <p data-edit>
+                    못 잡은 에러는 스택을 서버 로그에만 남기고,
+                    클라이언트에는 <strong>500</strong>만 전달합니다.
+                  </p>
+                  <div class="err-gate">500 · INTERNAL_SERVER_ERROR</div>
+                </div>
+              </div>
+            </div>
+            <div class="err-why-row reveal d4">
+              <div class="err-why-item">
+                <div class="label" data-edit>프론트엔드 연동 안정성</div>
+                <p data-edit>
+                  에러 문구가 바뀌어도 프론트는 고정된
+                  <strong>code</strong>(예: ORDER_NOT_FOUND)로만 분기합니다.
+                </p>
+              </div>
+              <div class="err-why-item">
+                <div class="label" data-edit>보안 · 예외 일관성</div>
+                <p data-edit>
+                  민감한 스택 노출을 막고, 전 레이어에서 같은 응답 포맷과
+                  예외 처리 원칙을 유지합니다.
+                </p>
+              </div>
+              <div class="err-why-item">
+                <div class="label" data-edit>컨트롤러가 얇다</div>
+                <p data-edit>
+                  실패할 때마다 <strong>res.status(404).json(...)</strong>을
+                  쓰지 않습니다. 서비스는 throw AppError만,
+                  응답 모양은 errorHandler 한곳이 정합니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 13 AUTH SECURITY === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow">
+                <span class="accent-line"></span>백엔드 구현
+              </div>
+              <span class="tag-pill">Security</span>
+            </div>
+            <h2 class="reveal" style="font-size: 36px; margin-bottom: 18px" data-edit>
+              보안 및 인증·인가 아키텍처
+            </h2>
+            <div class="sec-pair reveal d1">
+              <div class="card sec-token">
+                <div class="sec-token-head">
+                  <div class="kind">JWT · 15분</div>
+                  <h3 data-edit>Access Token</h3>
+                </div>
+                <div class="sec-token-body">
+                  <div class="sec-row">
+                    <div class="k">위치</div>
+                    <div class="v" data-edit>Authorization: Bearer</div>
+                  </div>
+                  <div class="sec-row">
+                    <div class="k">DB</div>
+                    <div class="v" data-edit>저장하지 않음</div>
+                  </div>
+                  <div class="sec-row">
+                    <div class="k">목적</div>
+                    <div class="v" data-edit>짧은 수명으로 탈취 피해 최소화</div>
+                  </div>
+                </div>
+              </div>
+              <div class="sec-vs"><span>VS</span></div>
+              <div class="card sec-token">
+                <div class="sec-token-head">
+                  <div class="kind">HttpOnly · 7일</div>
+                  <h3 data-edit>Refresh Token</h3>
+                </div>
+                <div class="sec-token-body">
+                  <div class="sec-row">
+                    <div class="k">위치</div>
+                    <div class="v" data-edit>쿠키 · path=/api/auth · JS 접근 차단</div>
+                  </div>
+                  <div class="sec-row">
+                    <div class="k">DB</div>
+                    <div class="v" data-edit><strong>SHA-256 해시만 저장</strong></div>
+                  </div>
+                  <div class="sec-row">
+                    <div class="k">재발급</div>
+                    <div class="v" data-edit>
+                      <strong>Refresh Rotation</strong> · 동시 요청은
+                      <strong>P2025</strong>로 무효
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sec-grid">
+              <div class="card sec-card reveal d2">
+                <div class="n">01</div>
+                <h3 data-edit>DB 기반 인증</h3>
+                <p data-edit>매 요청 role / status 조회</p>
+              </div>
+              <div class="card sec-card reveal d3">
+                <div class="n">02</div>
+                <h3 data-edit>Dummy Bcrypt</h3>
+                <p data-edit>타이밍 공격 방어</p>
+              </div>
+              <div class="card sec-card reveal d4">
+                <div class="n">03</div>
+                <h3 data-edit>IDOR 차단</h3>
+                <p data-edit>companyId 이중 비교</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 14 CONCURRENCY === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow">
+                <span class="accent-line"></span>백엔드 구현
+              </div>
+              <span class="tag-pill">Concurrency Control</span>
+            </div>
+            <h2
+              class="reveal"
+              style="font-size: 40px; margin-bottom: 20px"
+              data-edit
+            >
+              동시성 제어 및 데이터 정합성 보장 전략
+            </h2>
+            <div class="conc-grid grow">
+              <div class="card conc-row reveal d1">
+                <div class="conc-left">
+                  <div class="conc-num">01</div>
+                  <div>
+                    <h3 data-edit>예산 초과 방지</h3>
+                    <p class="conc-prob" data-edit>지출 컬럼 없음 · 동시 통과</p>
+                  </div>
+                </div>
+                <div class="conc-mid">
+                  <div class="conc-arrow">➔</div>
+                </div>
+                <div class="conc-right">
+                  <div class="conc-kw" data-edit>FOR UPDATE 직렬화</div>
+                  <p data-edit>회사 행 락 · 승인/즉시구매만</p>
+                </div>
+              </div>
+              <div class="card conc-row reveal d2">
+                <div class="conc-left">
+                  <div class="conc-num">02</div>
+                  <div>
+                    <h3 data-edit>중복 처리 방지</h3>
+                    <p class="conc-prob" data-edit>동시 승인 · 중복 처리</p>
+                  </div>
+                </div>
+                <div class="conc-mid">
+                  <div class="conc-arrow">➔</div>
+                </div>
+                <div class="conc-right">
+                  <div class="conc-kw" data-edit>PENDING 조건부 갱신</div>
+                  <p data-edit>P2025 → 409</p>
+                </div>
+              </div>
+              <div class="card conc-row reveal d3">
+                <div class="conc-left">
+                  <div class="conc-num">03</div>
+                  <div>
+                    <h3 data-edit>장바구니 중복 주문</h3>
+                    <p class="conc-prob" data-edit>같은 cartItemIds · 중복 생성</p>
+                  </div>
+                </div>
+                <div class="conc-mid">
+                  <div class="conc-arrow">➔</div>
+                </div>
+                <div class="conc-right">
+                  <div class="conc-kw" data-edit>Claim 패턴 (deleteMany 선점)</div>
+                  <p data-edit>count 불일치 → 롤백</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 15 TROUBLESHOOTING === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow">
+                <span class="accent-line"></span>트러블슈팅
+              </div>
+              <span class="tag-pill">Source of Truth</span>
+            </div>
+            <h2
+              class="reveal"
+              style="font-size: 36px; margin-bottom: 22px"
+              data-edit
+            >
+              JWT 상태 불일치 → 권한의 단일 출처를 DB로
+            </h2>
+            <div class="ts-layout grow">
+              <div class="ts-grid">
+                <div class="card ts-row reveal d1">
+                  <div class="ts-label">
+                    <div class="n">01</div>
+                    <h3 data-edit>문제</h3>
+                  </div>
+                  <div class="ts-body">
+                    <div class="kw" data-edit>승격 403 · 강등 15분</div>
+                    <p data-edit>
+                      권한을 올려도 바로 막히고, 내려도 Access가 끝날 때까지 옛
+                      권한이 남았습니다.
+                    </p>
+                  </div>
+                </div>
+                <div class="card ts-row reveal d2">
+                  <div class="ts-label">
+                    <div class="n">02</div>
+                    <h3 data-edit>원인</h3>
+                  </div>
+                  <div class="ts-body">
+                    <div class="kw" data-edit>JWT가 권한을 쥐고 있음</div>
+                    <p data-edit>
+                      인가는 payload.role 기준. 이미 준 토큰은 서버가 바꿀 수
+                      없습니다.
+                    </p>
+                  </div>
+                </div>
+                <div class="card ts-row solve reveal d3">
+                  <div class="ts-label">
+                    <div class="n">03</div>
+                    <h3 data-edit>해결</h3>
+                  </div>
+                  <div class="ts-body">
+                    <div class="kw" data-edit>JWT = 누구 · DB = 권한</div>
+                    <p data-edit>
+                      매 요청 role / status를 DB에서 읽습니다. 재로그인 없이 다음
+                      요청부터 반영됩니다.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="card ts-code reveal d2">
+                <div class="cap">authenticate</div>
+                <pre>const payload = verifyAccessToken(accessToken);
+
+const user = await findUserForAuthentication(
+  payload.sub
+);
+
+req.user = {
+  id: user.id,
+  companyId: user.companyId,
+  <span class="hi">role: user.role,</span>  <span class="cm">// JWT가 아니라 DB</span>
+};</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 15b TROUBLESHOOTING 2 === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow">
+                <span class="accent-line"></span>트러블슈팅
+              </div>
+              <span class="tag-pill">DevTools의 함정</span>
+            </div>
+            <h2
+              class="reveal"
+              style="font-size: 36px; margin-bottom: 22px"
+              data-edit
+            >
+              새로고침 시 Refresh Token 삭제 착오 사건
+            </h2>
+            <div class="ts-layout grow">
+              <div class="ts-grid">
+                <div class="card ts-row reveal d1">
+                  <div class="ts-label">
+                    <div class="n">01</div>
+                    <h3 data-edit>문제</h3>
+                  </div>
+                  <div class="ts-body">
+                    <div class="kw" data-edit>F5 후 쿠키가 사라짐</div>
+                    <p data-edit>
+                      Application &gt; Cookies에 있던 refreshToken이
+                      새로고침하면 빠졌습니다. 유실이거나 백엔드 Clear로 오인했습니다.
+                    </p>
+                  </div>
+                </div>
+                <div class="card ts-row reveal d2">
+                  <div class="ts-label">
+                    <div class="n">02</div>
+                    <h3 data-edit>원인</h3>
+                  </div>
+                  <div class="ts-body">
+                    <div class="kw" data-edit>DevTools의 시각적 착각</div>
+                    <p data-edit>
+                      Path=/api/auth라 Application이 루트 경로 기준으로
+                      안 보여준 것뿐입니다. refresh는 200으로 재발급됐습니다.
+                    </p>
+                  </div>
+                </div>
+                <div class="card ts-row solve reveal d3">
+                  <div class="ts-label">
+                    <div class="n">03</div>
+                    <h3 data-edit>해결</h3>
+                  </div>
+                  <div class="ts-body">
+                    <div class="kw" data-edit>Network가 진실</div>
+                    <p data-edit>
+                      Request Cookies로 흐름을 확인합니다.
+                      Silent Refresh는 아직이라, 401 → refresh → 재시도는 다음에 붙입니다.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="card ts-code reveal d2">
+                <div class="cap">검증</div>
+                <pre>Set-Cookie: refreshToken=...
+Path=/api/auth
+HttpOnly · Max-Age=604800
+
+/api/auth/refresh
+<span class="hi">200 OK</span>  <span class="cm">// 재발급 성공</span></pre>
+              </div>
+            </div>
+            <div class="ts-punch reveal d4" data-edit>
+              Application 탭에서 안 보임 <span class="neq">≠</span> 토큰 삭제됨
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 16 ROADMAP === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow"><span class="accent-line"></span>앞으로</div>
+              <span class="tag-pill">Next</span>
+            </div>
+            <h2 class="reveal" style="font-size: 42px; margin-bottom: 8px" data-edit>
+              추가 예정 사항
+            </h2>
+            <p
+              class="reveal"
+              style="font-size: 16px; letter-spacing: 0.12em; color: var(--primary); font-weight: 600; margin-bottom: 28px; font-family: var(--font-latin)"
+            >
+              ADVANCED REQUIREMENTS
+            </p>
+            <div class="next-grid">
+              <div class="card next-card reveal d1">
+                <div class="next-ico">
+                  <img src="assets/icon-recover.svg" alt="">
+                </div>
+                <h3 data-edit>회원 복구 기능</h3>
+                <div class="next-rule"></div>
+                <p data-edit>
+                  탈퇴 회원 정보 복구와 비밀번호 재설정으로
+                  계정 운영을 안전하게 이어갑니다.
+                </p>
+              </div>
+              <div class="card next-card reveal d2">
+                <div class="next-ico">
+                  <img src="assets/icon-search.svg" alt="">
+                </div>
+                <h3 data-edit>상품 리스트 검색창</h3>
+                <div class="next-rule"></div>
+                <p data-edit>
+                  상품명·카테고리로 바로 찾아
+                  목록에서 고르는 시간을 줄입니다.
+                </p>
+              </div>
+              <div class="card next-card reveal d3">
+                <div class="next-ico">
+                  <img src="assets/icon-chart.svg" alt="">
+                </div>
+                <h3 data-edit>예산 통계 그래프</h3>
+                <div class="next-rule"></div>
+                <p data-edit>
+                  월별 사용 현황을 시각화해
+                  예산 소진을 한눈에 봅니다.
+                </p>
+              </div>
+              <div class="card next-card reveal d4">
+                <div class="next-ico">
+                  <img src="assets/icon-clock.svg" alt="">
+                </div>
+                <h3 data-edit>크론잡 도입</h3>
+                <div class="next-rule"></div>
+                <div class="next-exs">
+                  <div class="next-ex">
+                    <div class="ex-n">1 · 우선</div>
+                    <h4 data-edit>만료 refresh 삭제</h4>
+                    <p data-edit>
+                      매일 <strong>expiresAt &lt; now</strong>를 지워
+                      세션 테이블만 줄입니다.
+                    </p>
+                  </div>
+                  <div class="next-ex">
+                    <div class="ex-n">2 · 다음</div>
+                    <h4 data-edit>만료 초대 정리</h4>
+                    <p data-edit>
+                      <strong>isUsed: false</strong>로 쌓인 행을 치워
+                      관리 목록을 깨끗하게 유지합니다.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 17 TEAM RETRO === -->
+        <section class="slide">
+          <div class="slide-inner">
+            <div class="slide-header reveal">
+              <div class="eyebrow"><span class="accent-line"></span>회고</div>
+              <span class="tag-pill">Retro</span>
+            </div>
+            <h2
+              class="reveal"
+              style="font-size: 44px; margin-bottom: 20px"
+              data-edit
+            >
+              팀 자체 평가
+            </h2>
+            <div class="eval-split grow">
+              <div class="eval-col eval-hero reveal d1">
+                <div class="eval-bubble">
+                  <p data-edit>
+                    마지막 프로젝트인 만큼 자신이 원하는 파트에 좀 더 집중할 수 있도록 각자 선택을 할 기회가 주어져서 좋았다.
+                  </p>
+                  <p data-edit>
+                    AI를 단순히 내 작업을 시키는 도구가 아니라, 나와 함께 프로젝트를 완성해나가는 동반자로 사용할 수 있는 방법에 대해 고민할 수 있는 경험이 되고 있어서 만족스러웠다.
+                  </p>
+                  <p data-edit>
+                    하나의 문제를 해결하기 위한 방법이 다양했기 때문에, ‘지금 내가 할 수 있는 선택지가 과연 최선이었을까, 더 나은 방식은 없었을까’ 싶은 고민이 매 순간 들었다. 그래서 기주님을 (정말로) 많이 귀찮게 해드렸다… (죄송합니다🤤💭)
+                  </p>
+                  <p data-edit>
+                    매번 팀 순회 때마다 기주님께서 우리 프로젝트에 도움이 될만한 기술이나 모듈을 많이 소개해주셨는데, 어떤 것들은 실제 도입으로 이루어지기도 했고, 어떤 것들은 개인적인 경험이나 검토에 그치기도 했으나 그 과정에서 프로젝트를 바라보는 시야가 조금 더 트였다는 생각을 했다.
+                  </p>
+                </div>
+                <div class="eval-person">
+                  <div class="eval-avatar">지</div>
+                  <div>
+                    <h3 data-edit>이지연</h3>
+                    <div class="role" data-edit>공통 모듈 · 관리자 FE</div>
+                  </div>
+                </div>
+              </div>
+              <div class="eval-quad">
+                <div class="eval-col reveal d2">
+                  <div class="eval-bubble">
+                    <p data-edit>
+                      ai를 적극적으로 사용하다보니 속도가 붙어서 팀원들을 많이 도와줄 수 있었다
+                    </p>
+                    <p data-edit>
+                      내 코드를 더 고민하고자 하는 시간이 많진 않았어서 아쉬웠다.
+                    </p>
+                    <p data-edit>
+                      다양한 기술이 있는걸 알게 되었고 남은 시간 동안 더 코드에 적용하고 고민해보고싶다.
+                    </p>
+                  </div>
+                  <div class="eval-person">
+                    <div class="eval-avatar">원</div>
+                    <div>
+                      <h3 data-edit>원세빈</h3>
+                      <div class="role" data-edit>구매·예산 · 발표 자료</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="eval-col reveal d3">
+                  <div class="eval-bubble">
+                    <p data-edit>
+                      처음 소통이 조금 원활하지 않았던 부분이 조금 아쉬웠던 것 같고, 그래도 그 이후 같이 열심히 소통하면서 으샤으샤 했던 부분이 잘한점 이라고 생각합니다.
+                    </p>
+                  </div>
+                  <div class="eval-person">
+                    <div class="eval-avatar">김</div>
+                    <div>
+                      <h3 data-edit>김상우</h3>
+                      <div class="role" data-edit>상품·장바구니 · 팀 문서</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="eval-col reveal d4">
+                  <div class="eval-bubble">
+                    <p data-edit>
+                      첫 팀장과 인증·인가를 같이 맡았습니다. 서비스 전체에 닿는
+                      부분이라 설계부터 구현까지 고민이 많았고, 잘 해낸 건지
+                      아쉬움이 남습니다.
+                    </p>
+                    <p data-edit>
+                      개인적인 사정으로 자리를 많이 비워 미안했지만, 팀원분들이
+                      각자의 역할을 끝까지 해 주셔서 감사했습니다.
+                    </p>
+                    <p data-edit>
+                      인증 흐름과 보안의 중요성을 직접 경험했고, 조율하는 과정도
+                      배웠습니다. 최종 발표까지 인증·인가를 더 리팩토링하겠습니다.
+                    </p>
+                  </div>
+                  <div class="eval-person">
+                    <div class="eval-avatar">한</div>
+                    <div>
+                      <h3 data-edit>한희나</h3>
+                      <div class="role" data-edit>팀장 · 인증·인가</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="eval-col reveal d5">
+                  <div class="eval-bubble">
+                    <p data-edit>
+                      NEXT_PUBLIC_USE_MOCK 토글로 백엔드 완성 전에도 프론트 작업 진행 → 병목(bottleneck) 없이 개발 git worktree(wt)를 활용해 여러 작업을 병렬로 진행함
+                    </p>
+                    <p data-edit>
+                      localStorage로 먼저 붙였다가 실제 API로 갈아엎었습니다.
+                      테스트엔 필요했지만 최선이었는지는 남고, 시안과 다른 페이지
+                      때문에 일정도 밀렸습니다.
+                    </p>
+                    <p data-edit>
+                      팀원과의 API 인터페이스 소통이 개발 속도를 좌우한다는 걸
+                      체감했습니다.
+                    </p>
+                  </div>
+                  <div class="eval-person">
+                    <div class="eval-avatar">이</div>
+                    <div>
+                      <h3 data-edit>이상윤</h3>
+                      <div class="role" data-edit>일반 사용자 · 상품 FE</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- === SLIDE 19 DEMO / QA === -->
+        <section class="slide cover">
+          <div class="closing-circles"></div>
+          <div
+            class="cover-body"
+            style="align-items: flex-start; justify-content: center"
+          >
+            <div class="eyebrow reveal d1">
+              <span class="accent-line"></span
+              ><span data-edit>시연 · Q&amp;A</span>
+            </div>
+            <h1
+              class="reveal d2"
+              style="font-size: 108px; margin: 28px 0"
+              data-edit
+            >
+              직접 보여 드리겠습니다
+            </h1>
+            <p class="cover-lede reveal d3" data-edit>
+              구매 요청부터 승인, 예산까지 한 흐름으로.<br />질문이 있으면
+              이어서 받겠습니다.
+            </p>
+            <div class="reveal d4" style="margin-top: 48px">
+              <span class="cta" data-edit>간식대장 · 2조</span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="slide-counter" id="slideCounter">01 / 18</div>
+    <div class="kbd-hint">← → 또는 Space</div>
+    <div class="nav-cluster">
+      <button class="nav-btn" id="prevBtn" aria-label="이전">‹</button>
+      <button class="nav-btn" id="nextBtn" aria-label="다음">›</button>
+    </div>
+
+    <script>
+      /* ===========================================
+           SLIDE CONTROLLER
+           Keyboard, wheel, swipe, progress, scale.
+           =========================================== */
+      class SlidePresentation {
+        constructor() {
+          this.slides = document.querySelectorAll(".slide");
+          this.currentSlide = 0;
+          this.stage = document.getElementById("deckStage");
+          this.progress = document.getElementById("progressBar");
+          this.counter = document.getElementById("slideCounter");
+          this.prevBtn = document.getElementById("prevBtn");
+          this.nextBtn = document.getElementById("nextBtn");
+          this.touchStartX = 0;
+          this.wheelLock = false;
+          this.setupStageScale();
+          this.setupKeyboardNav();
+          this.setupTouchNav();
+          this.setupWheelNav();
+          this.prevBtn.addEventListener("click", () => this.prev());
+          this.nextBtn.addEventListener("click", () => this.next());
+          this.showSlide(0);
+        }
+
+        setupStageScale() {
+          const scale = () => {
+            const factor = Math.min(
+              window.innerWidth / 1920,
+              window.innerHeight / 1080,
+            );
+            const x = (window.innerWidth - 1920 * factor) / 2;
+            const y = (window.innerHeight - 1080 * factor) / 2;
+            this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+          };
+          scale();
+          window.addEventListener("resize", scale);
+        }
+
+        setupKeyboardNav() {
+          document.addEventListener("keydown", (e) => {
+            if (e.target.getAttribute("contenteditable")) return;
+            if (["ArrowRight", " ", "PageDown"].includes(e.key)) {
+              e.preventDefault();
+              this.next();
+            } else if (["ArrowLeft", "PageUp"].includes(e.key)) {
+              e.preventDefault();
+              this.prev();
+            } else if (e.key === "Home") {
+              e.preventDefault();
+              this.showSlide(0);
+            } else if (e.key === "End") {
+              e.preventDefault();
+              this.showSlide(this.slides.length - 1);
+            }
+          });
+        }
+
+        setupTouchNav() {
+          document.addEventListener(
+            "touchstart",
+            (e) => {
+              this.touchStartX = e.changedTouches[0].screenX;
+            },
+            { passive: true },
+          );
+          document.addEventListener(
+            "touchend",
+            (e) => {
+              const dx = e.changedTouches[0].screenX - this.touchStartX;
+              if (dx < -50) this.next();
+              if (dx > 50) this.prev();
+            },
+            { passive: true },
+          );
+        }
+
+        setupWheelNav() {
+          window.addEventListener(
+            "wheel",
+            (e) => {
+              if (this.wheelLock) return;
+              if (Math.abs(e.deltaY) < 40) return;
+              this.wheelLock = true;
+              if (e.deltaY > 0) this.next();
+              else this.prev();
+              setTimeout(() => {
+                this.wheelLock = false;
+              }, 500);
+            },
+            { passive: true },
+          );
+        }
+
+        pad(n) {
+          return String(n).padStart(2, "0");
+        }
+
+        showSlide(index) {
+          this.currentSlide = Math.max(
+            0,
+            Math.min(index, this.slides.length - 1),
+          );
+          this.slides.forEach((slide, i) => {
+            slide.classList.toggle("active", i === this.currentSlide);
+            slide.classList.toggle("visible", i === this.currentSlide);
+          });
+          const total = this.slides.length;
+          this.progress.style.width =
+            ((this.currentSlide + 1) / total) * 100 + "%";
+          this.counter.textContent =
+            this.pad(this.currentSlide + 1) + " / " + this.pad(total);
+          this.prevBtn.disabled = this.currentSlide === 0;
+          this.nextBtn.disabled = this.currentSlide === total - 1;
+        }
+
+        next() {
+          this.showSlide(this.currentSlide + 1);
+        }
+        prev() {
+          this.showSlide(this.currentSlide - 1);
+        }
+      }
+
+      const deck = new SlidePresentation();
+
+      /* ===========================================
+           INLINE EDITOR
+           Hover top-left or press E. Click text, Ctrl+S to save.
+           =========================================== */
+      const STORAGE_KEY = "snack-captain-deck-edits-v2";
+      const SHOT_KEY = "snack-captain-deck-shots";
+
+      class InlineEditor {
+        constructor() {
+          this.isActive = false;
+          this.toggleBtn = document.getElementById("editToggle");
+          this.restore();
+          this.restoreShots();
+          this.setupShots();
+        }
+
+        targets() {
+          return document.querySelectorAll("[data-edit]");
+        }
+
+        wraps() {
+          return document.querySelectorAll(".role-shot-wrap");
+        }
+
+        stageScale() {
+          return Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+        }
+
+        toggleEditMode() {
+          this.isActive = !this.isActive;
+          document.body.classList.toggle("editing", this.isActive);
+          this.toggleBtn.classList.toggle("active", this.isActive);
+          this.toggleBtn.textContent = this.isActive ? "Editing" : "Edit";
+          this.targets().forEach((el) => {
+            el.contentEditable = this.isActive ? "true" : "false";
+          });
+        }
+
+        save() {
+          const data = Array.from(this.targets()).map((el) => el.innerHTML);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          this.saveShots();
+        }
+
+        saveShots() {
+          const shots = {};
+          this.wraps().forEach((wrap) => {
+            const id = wrap.dataset.shot;
+            const img = wrap.querySelector("img");
+            shots[id] = {
+              height: wrap.classList.contains("is-fixed")
+                ? wrap.style.height
+                : null,
+              src: img.getAttribute("src"),
+            };
+          });
+          localStorage.setItem(SHOT_KEY, JSON.stringify(shots));
+        }
+
+        restore() {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          try {
+            const data = JSON.parse(raw);
+            const els = this.targets();
+            if (!Array.isArray(data) || data.length !== els.length) return;
+            data.forEach((html, i) => {
+              if (els[i]) els[i].innerHTML = html;
+            });
+          } catch (err) {
+            /* ignore bad cache */
+          }
+        }
+
+        restoreShots() {
+          const raw = localStorage.getItem(SHOT_KEY);
+          if (!raw) return;
+          try {
+            const shots = JSON.parse(raw);
+            this.wraps().forEach((wrap) => {
+              const saved = shots[wrap.dataset.shot];
+              if (!saved) return;
+              const img = wrap.querySelector("img");
+              if (saved.src) img.src = saved.src;
+              if (saved.height) {
+                wrap.style.height = saved.height;
+                wrap.classList.add("is-fixed");
+              }
+            });
+          } catch (err) {
+            /* ignore */
+          }
+        }
+
+        setupShots() {
+          this.wraps().forEach((wrap) => {
+            const handle = wrap.querySelector(".shot-handle");
+            const img = wrap.querySelector("img");
+
+            handle.addEventListener("mousedown", (e) => {
+              if (!this.isActive) return;
+              e.preventDefault();
+              e.stopPropagation();
+              const startY = e.clientY;
+              const startH =
+                wrap.getBoundingClientRect().height / this.stageScale();
+              const move = (ev) => {
+                const dy = (ev.clientY - startY) / this.stageScale();
+                const next = Math.max(72, Math.min(520, startH + dy));
+                wrap.style.height = next + "px";
+                wrap.classList.add("is-fixed");
+              };
+              const up = () => {
+                window.removeEventListener("mousemove", move);
+                window.removeEventListener("mouseup", up);
+                this.saveShots();
+              };
+              window.addEventListener("mousemove", move);
+              window.addEventListener("mouseup", up);
+            });
+
+            wrap.addEventListener("click", (e) => {
+              if (!this.isActive) return;
+              if (e.target === handle) return;
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = "image/*";
+              input.onchange = () => {
+                const file = input.files && input.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                  img.src = reader.result;
+                  this.saveShots();
+                };
+                reader.readAsDataURL(file);
+              };
+              input.click();
+            });
+          });
+        }
+
+        exportFile() {
+          this.save();
+          const blob = new Blob([document.documentElement.outerHTML], {
+            type: "text/html",
+          });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "간식대장.html";
+          a.click();
+        }
+      }
+
+      const editor = new InlineEditor();
+      const hotzone = document.querySelector(".edit-hotzone");
+      const editToggle = document.getElementById("editToggle");
+      let hideTimeout = null;
+
+      editToggle.addEventListener("click", () => editor.toggleEditMode());
+      hotzone.addEventListener("mouseenter", () => {
+        clearTimeout(hideTimeout);
+        editToggle.classList.add("show");
+      });
+      hotzone.addEventListener("mouseleave", () => {
+        hideTimeout = setTimeout(() => {
+          if (!editor.isActive) editToggle.classList.remove("show");
+        }, 400);
+      });
+      editToggle.addEventListener("mouseenter", () =>
+        clearTimeout(hideTimeout),
+      );
+      editToggle.addEventListener("mouseleave", () => {
+        hideTimeout = setTimeout(() => {
+          if (!editor.isActive) editToggle.classList.remove("show");
+        }, 400);
+      });
+      hotzone.addEventListener("click", () => editor.toggleEditMode());
+      document.addEventListener("keydown", (e) => {
+        if (
+          (e.key === "e" || e.key === "E") &&
+          !e.target.getAttribute("contenteditable")
+        ) {
+          editor.toggleEditMode();
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+          e.preventDefault();
+          editor.save();
+        }
+      });
+    </script>
+  </body>
+</html>

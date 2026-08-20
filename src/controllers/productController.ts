@@ -14,7 +14,12 @@ async function getProducts(req: Request, res: Response) {
     limit = 8,
     sort = "latest",
   } = req.query;
-  const companyId = req.user!.companyId;
+
+  const companyId = req.user?.companyId;
+
+  if (!companyId) {
+    throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
+  }
 
   const result = await productService.getProducts(
     companyId,
@@ -37,11 +42,11 @@ async function createProduct(req: Request, res: Response) {
   const { name, price, categoryId, imageUrl, productUrl } = req.body;
 
   const userId = req.user?.id;
-  if (!userId) {
+  const companyId = req.user?.companyId;
+
+  if (!userId || !companyId) {
     throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
   }
-
-  const companyId = req.user!.companyId;
 
   const product = await productService.createProduct({
     name,
@@ -126,7 +131,12 @@ async function updateProduct(req: Request, res: Response) {
 // 상품 상세 조회
 async function getProductById(req: Request, res: Response) {
   const { productId } = req.params as { productId: string };
-  const companyId = req.user!.companyId;
+
+  const companyId = req.user?.companyId;
+
+  if (!companyId) {
+    throw new AppError(ErrorCodes.AUTH.UNAUTHORIZED);
+  }
 
   const product = await productService.getProductById(productId, companyId);
 

@@ -52,6 +52,7 @@ async function getProducts(
   page = 1,
   limit = 8,
   sort = "latest",
+  search?: string,
 ) {
   const safePage = Math.max(1, page);
   const safeLimit = Math.min(Math.max(1, limit), 30);
@@ -61,6 +62,10 @@ async function getProducts(
     const categoryIds = await categoryService.resolveCategoryIds(categoryId);
     where.categoryId =
       categoryIds.length === 1 ? categoryIds[0] : { in: categoryIds };
+  }
+
+  if (search) {
+    where.name = { contains: search, mode: "insensitive" };
   }
 
   const orderBy = getOrderBy(sort);

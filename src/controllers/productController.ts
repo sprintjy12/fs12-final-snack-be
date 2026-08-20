@@ -7,7 +7,13 @@ import { ErrorCodes } from "../constants/errorCodes.js";
 
 // 상품 목록 조회
 async function getProducts(req: Request, res: Response) {
-  const { categoryId, page = 1, limit = 8, sort = "latest" } = req.query;
+  const {
+    categoryId,
+    search,
+    page = 1,
+    limit = 8,
+    sort = "latest",
+  } = req.query;
   const companyId = req.user!.companyId;
 
   const result = await productService.getProducts(
@@ -16,6 +22,7 @@ async function getProducts(req: Request, res: Response) {
     page as number,
     limit as number,
     sort as string,
+    search as string | undefined,
   );
 
   res.status(200).json({

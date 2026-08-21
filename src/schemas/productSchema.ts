@@ -4,6 +4,7 @@ import { z } from "zod";
 // 상품 목록 조회 쿼리
 export const getProductsQuerySchema = z.object({
   categoryId: z.string().uuid().optional(),
+  search: z.string().trim().min(1).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(30).default(8),
   sort: z

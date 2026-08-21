@@ -90,6 +90,7 @@ model Product {
   company       Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdBy     User        @relation("ProductCreator", fields: [createdById], references: [id])
 
+  @@index([companyId, name])
   @@map("products")
 }
 

@@ -74,6 +74,50 @@ async function updateBudgetSettings(params: {
   return getBudgetSettings(companyId);
 }
 
+// 선택한 연월의 예산과 카테고리별 지출 통계
+async function getMonthlyBudgetSummary(
+  companyId: string,
+  yearMonth: string,
+) {
+  const [year, month] = yearMonth.split("-").map(Number);
+  const monthRange = getKstMonthRange({ year, month: month - 1 });
+
+  const [monthlyBudget, defaultMonthlyBudget, spending] = await Promise.all([
+    budgetRepository.findBudgetAmount(companyId, yearMonth),
+    budgetRepository.findDefaultMonthlyBudget(companyId),
+    orderRepository.aggregateApprovedMonthlySpending({
+      companyId,
+      from: monthRange.from,
+      to: monthRange.to,
+    }),
+  ]);
+
+  const budget = monthlyBudget ?? defaultMonthlyBudget;
+  const isUnlimited = budget <= 0;
+  const categories = spending.categories
+    .sort((a, b) => b.amount - a.amount)
+    .map((category) => ({
+      ...category,
+      percentage:
+        spending.productAmount === 0
+          ? 0
+          : Number(
+              ((category.amount / spending.productAmount) * 100).toFixed(2),
+            ),
+    }));
+
+  return {
+    yearMonth,
+    budget,
+    spent: spending.spent,
+    productAmount: spending.productAmount,
+    shippingFee: spending.shippingFee,
+    remaining: isUnlimited ? null : budget - spending.spent,
+    isUnlimited,
+    categories,
+  };
+}
+
 // 예산/지출 현황 조회
 async function getBudgetSummary(companyId: string) {
   const currentMonth = toKstYearMonth(new Date());
@@ -182,5 +226,6 @@ export default {
   getCurrentMonthBudget,
   getBudgetSettings,
   updateBudgetSettings,
+  getMonthlyBudgetSummary,
   getBudgetSummary,
 };

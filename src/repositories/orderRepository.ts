@@ -121,6 +121,46 @@ async function sumApprovedOrderTotal(params: {
   return sumApprovedTotal(prisma, params);
 }
 
+// 선택한 월의 승인 주문 금액과 카테고리별 상품 금액 집계
+async function aggregateApprovedMonthlySpending(params: {
+  companyId: string;
+  from: Date;
+  to: Date;
+}) {
+  const { companyId, from, to } = params;
+  const approvedOrderWhere = {
+    companyId,
+    status: OrderStatus.APPROVED,
+    approvedAt: { gte: from, lt: to },
+  };
+
+  const [totals, categories] = await Promise.all([
+    prisma.order.aggregate({
+      where: approvedOrderWhere,
+      _sum: {
+        totalPrice: true,
+        productAmount: true,
+        shippingFee: true,
+      },
+    }),
+    prisma.orderItem.groupBy({
+      by: ["categoryName"],
+      where: { order: approvedOrderWhere },
+      _sum: { subtotal: true },
+    }),
+  ]);
+
+  return {
+    spent: totals._sum.totalPrice ?? 0,
+    productAmount: totals._sum.productAmount ?? 0,
+    shippingFee: totals._sum.shippingFee ?? 0,
+    categories: categories.map((category) => ({
+      name: category.categoryName.trim() || "기타",
+      amount: category._sum.subtotal ?? 0,
+    })),
+  };
+}
+
 // 같은 회사의 지출 확정을 직렬화해 예산 검증이 경쟁 조건에 뚫리지 않게 한다
 async function lockCompanyForApproval(
   tx: Prisma.TransactionClient,
@@ -566,6 +606,7 @@ export default {
   countOrders,
   findOrderDetailById,
   sumApprovedOrderTotal,
+  aggregateApprovedMonthlySpending,
   createDirectOrder,
   createPurchaseRequest,
   cancelPurchaseRequest,

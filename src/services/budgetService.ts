@@ -74,6 +74,90 @@ async function updateBudgetSettings(params: {
   return getBudgetSettings(companyId);
 }
 
+// 선택한 연월의 예산과 카테고리별 지출 통계
+async function getMonthlyBudgetSummary(
+  companyId: string,
+  yearMonth: string,
+) {
+  const [year, month] = yearMonth.split("-").map(Number);
+  const monthRange = getKstMonthRange({ year, month: month - 1 });
+
+  const [monthlyBudget, defaultMonthlyBudget, spending] = await Promise.all([
+    budgetRepository.findBudgetAmount(companyId, yearMonth),
+    budgetRepository.findDefaultMonthlyBudget(companyId),
+    orderRepository.aggregateApprovedMonthlySpending({
+      companyId,
+      from: monthRange.from,
+      to: monthRange.to,
+    }),
+  ]);
+
+  const budget = monthlyBudget ?? defaultMonthlyBudget;
+  const isUnlimited = budget <= 0;
+  const percentageOfProductAmount = (amount: number) =>
+    spending.productAmount === 0
+      ? 0
+      : Number(((amount / spending.productAmount) * 100).toFixed(2));
+
+  const categoryMap = new Map<
+    string,
+    {
+      name: string;
+      amount: number;
+      children: Map<string, { name: string; amount: number }>;
+    }
+  >();
+
+  for (const category of spending.categories) {
+    const [parent, ...childParts] = category.name.split(">");
+    const parentName = parent.trim() || "기타";
+    const childName = childParts.join(">").trim();
+    const parentCategory = categoryMap.get(parentName) ?? {
+      name: parentName,
+      amount: 0,
+      children: new Map<string, { name: string; amount: number }>(),
+    };
+
+    parentCategory.amount += category.amount;
+
+    if (childName) {
+      const childCategory = parentCategory.children.get(childName) ?? {
+        name: childName,
+        amount: 0,
+      };
+      childCategory.amount += category.amount;
+      parentCategory.children.set(childName, childCategory);
+    }
+
+    categoryMap.set(parentName, parentCategory);
+  }
+
+  const categories = Array.from(categoryMap.values())
+    .sort((a, b) => b.amount - a.amount)
+    .map((category) => ({
+      name: category.name,
+      amount: category.amount,
+      percentage: percentageOfProductAmount(category.amount),
+      children: Array.from(category.children.values())
+        .sort((a, b) => b.amount - a.amount)
+        .map((child) => ({
+          ...child,
+          percentage: percentageOfProductAmount(child.amount),
+        })),
+    }));
+
+  return {
+    yearMonth,
+    budget,
+    spent: spending.spent,
+    productAmount: spending.productAmount,
+    shippingFee: spending.shippingFee,
+    remaining: isUnlimited ? null : budget - spending.spent,
+    isUnlimited,
+    categories,
+  };
+}
+
 // 예산/지출 현황 조회
 async function getBudgetSummary(companyId: string) {
   const currentMonth = toKstYearMonth(new Date());
@@ -182,5 +266,6 @@ export default {
   getCurrentMonthBudget,
   getBudgetSettings,
   updateBudgetSettings,
+  getMonthlyBudgetSummary,
   getBudgetSummary,
 };

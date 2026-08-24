@@ -21,3 +21,13 @@ export const updateBudgetSettingsSchema = z
       data.monthlyBudget !== undefined,
     { message: "변경할 예산 값을 하나 이상 보내주세요." },
   );
+
+// 월별 통계 조회 query
+export const getMonthlyBudgetSummarySchema = z.object({
+  yearMonth: z
+    .string()
+    .regex(
+      /^[1-9]\d{3}-(0[1-9]|1[0-2])$/,
+      "조회 연월은 YYYY-MM 형식이어야 합니다.",
+    ),
+});

@@ -3,12 +3,16 @@ import { UserRole } from "@prisma/client";
 import {
   getBudgetSummary,
   getBudgetSettings,
+  getMonthlyBudgetSummary,
   updateBudgetSettings,
 } from "../controllers/budgetController";
 import { authenticate } from "../middlewares/authenticate";
 import { authorize } from "../middlewares/authorize";
 import { validate } from "../middlewares/zodValidate";
-import { updateBudgetSettingsSchema } from "../schemas/budgetSchema";
+import {
+  getMonthlyBudgetSummarySchema,
+  updateBudgetSettingsSchema,
+} from "../schemas/budgetSchema";
 
 const budgetRouter = express.Router();
 
@@ -19,6 +23,14 @@ budgetRouter.get(
   authenticate,
   authorize(...adminUp),
   getBudgetSummary,
+);
+
+budgetRouter.get(
+  "/monthly-summary",
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN),
+  validate(getMonthlyBudgetSummarySchema, "query"),
+  getMonthlyBudgetSummary,
 );
 
 budgetRouter.get(

@@ -35,6 +35,24 @@ export const updateBudgetSettings = asyncHandler(
   },
 );
 
+export const getMonthlyBudgetSummary = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { companyId } = req.user!;
+    const yearMonth = req.query.yearMonth as string;
+
+    const data = await budgetService.getMonthlyBudgetSummary(
+      companyId,
+      yearMonth,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "월별 예산 및 지출 통계 조회 성공",
+      data,
+    });
+  },
+);
+
 export const getBudgetSummary = asyncHandler(
   async (req: Request, res: Response) => {
     const { companyId } = req.user!;

@@ -53,6 +53,14 @@ userRouter.patch(
   userController.updateUserRole,
 );
 
+userRouter.patch(
+  "/:userId/restore",
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN),
+  validate(userIdParamSchema, "params"),
+  userController.restoreUser,
+);
+
 userRouter.delete(
   "/:userId",
   authenticate,

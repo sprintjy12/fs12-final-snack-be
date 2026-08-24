@@ -2,6 +2,10 @@ import { UserRole, UserStatus } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { ErrorCodes } from "../constants/errorCodes";
 import {
+  DAY_IN_MS,
+  WITHDRAWAL_RECOVERY_DAYS,
+} from "../constants/user";
+import {
   findMyProfile,
   findUserForRoleUpdate,
   findUserPasswordById,
@@ -11,6 +15,7 @@ import {
   updatePasswordAndDeleteRefreshTokens,
   updateCompanyName,
   withdrawUser as withdrawUserInRepository,
+  restoreUser as restoreUserInRepository,
 } from "../repositories/userRepository";
 import {
   UpdateUserRoleInput,
@@ -227,6 +232,62 @@ export const withdrawUser = async ({
 
   if (targetUser.status === UserStatus.WITHDRAWN) {
     throw new AppError(ErrorCodes.USER.ALREADY_WITHDRAWN);
+  }
+
+  throw new AppError(ErrorCodes.AUTH.FORBIDDEN);
+};
+
+type RestoreUserParams = {
+  actorCompanyId: string;
+  targetUserId: string;
+};
+
+/**
+ * 회원 복구
+ * 조건부 update로 회사/상태/SUPER_ADMIN/복구 기한 제약을 원자적으로 보장한다.
+ */
+export const restoreUser = async ({
+  actorCompanyId,
+  targetUserId,
+}: RestoreUserParams) => {
+  const restoreAvailableFrom = new Date(
+    Date.now() - WITHDRAWAL_RECOVERY_DAYS * DAY_IN_MS,
+  );
+
+  const restored = await restoreUserInRepository({
+    userId: targetUserId,
+    companyId: actorCompanyId,
+    restoreAvailableFrom,
+  });
+
+  if (restored) {
+    return;
+  }
+
+  const targetUser = await findUserForRoleUpdate(targetUserId);
+
+  if (!targetUser) {
+    throw new AppError(ErrorCodes.USER.NOT_FOUND);
+  }
+
+  if (targetUser.companyId !== actorCompanyId) {
+    throw new AppError(ErrorCodes.USER.UNAUTHORIZED_ACCESS);
+  }
+
+  if (targetUser.role === UserRole.SUPER_ADMIN) {
+    throw new AppError(ErrorCodes.USER.CANNOT_RESTORE_SUPER_ADMIN);
+  }
+
+  if (targetUser.status === UserStatus.ACTIVE) {
+    throw new AppError(ErrorCodes.USER.ALREADY_ACTIVE);
+  }
+
+  if (!targetUser.withdrawnAt) {
+    throw new AppError(ErrorCodes.USER.INVALID_RESTORE_STATE);
+  }
+
+  if (targetUser.withdrawnAt < restoreAvailableFrom) {
+    throw new AppError(ErrorCodes.USER.RESTORE_PERIOD_EXPIRED);
   }
 
   throw new AppError(ErrorCodes.AUTH.FORBIDDEN);

@@ -45,6 +45,7 @@ export const findUserForRoleUpdate = async (userId: string) => {
       email: true,
       role: true,
       status: true,
+      withdrawnAt: true,
     },
   });
 };
@@ -289,4 +290,40 @@ export const withdrawUser = async ({
 
     return true;
   });
+};
+
+type RestoreUserParams = {
+  userId: string;
+  companyId: string;
+  restoreAvailableFrom: Date;
+};
+
+/**
+ * 회원 복구
+ * 같은 회사 / WITHDRAWN / SUPER_ADMIN 아닌 경우 / 복구 기한 내일 때만 복구한다.
+ */
+export const restoreUser = async ({
+  userId,
+  companyId,
+  restoreAvailableFrom,
+}: RestoreUserParams) => {
+  const updateResult = await prisma.user.updateMany({
+    where: {
+      id: userId,
+      companyId,
+      status: UserStatus.WITHDRAWN,
+      role: {
+        not: UserRole.SUPER_ADMIN,
+      },
+      withdrawnAt: {
+        gte: restoreAvailableFrom,
+      },
+    },
+    data: {
+      status: UserStatus.ACTIVE,
+      withdrawnAt: null,
+    },
+  });
+
+  return updateResult.count === 1;
 };

@@ -84,6 +84,11 @@ export const ErrorCodes = {
       statusCode: 400,
       message: "이미 탈퇴한 회원입니다.",
     },
+    ALREADY_ACTIVE: {
+      code: "USER_ALREADY_ACTIVE",
+      statusCode: 400,
+      message: "이미 활성 상태인 회원입니다.",
+    },
     UNAUTHORIZED_ACCESS: {
       code: "USER_UNAUTHORIZED_ACCESS",
       statusCode: 403,
@@ -98,6 +103,21 @@ export const ErrorCodes = {
       code: "USER_CANNOT_WITHDRAW_SUPER_ADMIN",
       statusCode: 403,
       message: "최고 관리자는 탈퇴 처리할 수 없습니다.",
+    },
+    CANNOT_RESTORE_SUPER_ADMIN: {
+      code: "USER_CANNOT_RESTORE_SUPER_ADMIN",
+      statusCode: 403,
+      message: "최고 관리자는 복구 처리할 수 없습니다.",
+    },
+    RESTORE_PERIOD_EXPIRED: {
+      code: "USER_RESTORE_PERIOD_EXPIRED",
+      statusCode: 400,
+      message: "회원 복구 가능 기간이 만료되었습니다.",
+    },
+    INVALID_RESTORE_STATE: {
+      code: "USER_INVALID_RESTORE_STATE",
+      statusCode: 409,
+      message: "복구할 수 없는 회원 상태입니다.",
     },
     CURRENT_PASSWORD_MISMATCH: {
       code: "CURRENT_PASSWORD_MISMATCH",

@@ -176,7 +176,6 @@ const buildCompanyUsersWhere = ({
   name,
 }: Pick<FindUsersByCompanyParams, "companyId" | "name">) => ({
   companyId,
-  status: UserStatus.ACTIVE,
   role: {
     not: UserRole.SUPER_ADMIN,
   },
@@ -191,7 +190,7 @@ const buildCompanyUsersWhere = ({
 });
 
 /**
- * 같은 회사 회원 목록 조회 (ACTIVE, SUPER_ADMIN 제외, 이름 부분 검색 지원)
+ * 같은 회사 회원 목록 조회 (SUPER_ADMIN 제외, 이름 부분 검색 지원)
  */
 export const findUsersByCompany = async ({
   companyId,
@@ -212,6 +211,8 @@ export const findUsersByCompany = async ({
       name: true,
       email: true,
       role: true,
+      status: true,
+      withdrawnAt: true,
     },
   });
 };

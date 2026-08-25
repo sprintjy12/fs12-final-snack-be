@@ -696,6 +696,28 @@ async function main() {
         ),
       );
 
+      const parentCategoryNameById = new Map(
+        parentCategoryDefs.map((def) => [
+          parentCategoryId(def.id),
+          def.name,
+        ]),
+      );
+      const categoryPathById = new Map(
+        childCategories.map((category) => {
+          const parentName = parentCategoryNameById.get(
+            category.parentId ?? "",
+          );
+
+          if (!parentName) {
+            throw new Error(
+              `Seed aborted: parent category not found for ${category.name}`,
+            );
+          }
+
+          return [category.id, `${parentName}>${category.name}`];
+        }),
+      );
+
       const categoryByName = Object.fromEntries(
         childCategories.map((category) => [category.name, category]),
       ) as Record<(typeof childCategoryDefs)[number]["name"], (typeof childCategories)[number]>;
@@ -1724,7 +1746,7 @@ async function main() {
           price: def.price,
           imageUrl: def.imageUrl,
         },
-        categoryName: def.categoryName,
+        categoryName: categoryPathById.get(def.categoryId) ?? def.categoryName,
       }));
 
       const productsByCompanyId = new Map<string, ProductMeta[]>();

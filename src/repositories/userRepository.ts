@@ -1,9 +1,7 @@
 import { OrderStatus, UserRole, UserStatus } from "@prisma/client";
 
 import prisma from "../config/db";
-// ===해당부분 현재 수정===
 import { DAY_IN_MS, WITHDRAWAL_RECOVERY_DAYS } from "../constants/user";
-// ==================
 
 /**
  * 내 정보 조회
@@ -183,7 +181,6 @@ const buildCompanyUsersWhere = ({
   role: {
     not: UserRole.SUPER_ADMIN,
   },
-  // ===해당부분 현재 수정===
   OR: [
     { status: UserStatus.ACTIVE },
     {
@@ -193,7 +190,6 @@ const buildCompanyUsersWhere = ({
       },
     },
   ],
-  // ==================
   ...(name
     ? {
         name: {

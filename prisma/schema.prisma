@@ -8,17 +8,18 @@ datasource db {
 }
 
 model Company {
-  id                   String       @id @default(uuid()) @db.Uuid
-  name                 String       @db.VarChar
-  businessNumber       String       @unique @db.VarChar
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
-  defaultMonthlyBudget Int          @default(0)
-  budgets              Budget[]
-  invitations          Invitation[]
-  orders               Order[]
-  products             Product[]
-  users                User[]
+  id                       String                    @id @default(uuid()) @db.Uuid
+  name                     String                    @db.VarChar
+  businessNumber           String                    @unique @db.VarChar
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  defaultMonthlyBudget     Int                       @default(0)
+  budgets                  Budget[]
+  invitations              Invitation[]
+  monthlySpendingSnapshots MonthlySpendingSnapshot[]
+  orders                   Order[]
+  products                 Product[]
+  users                    User[]
 
   @@map("companies")
 }
@@ -159,6 +160,35 @@ model Budget {
 
   @@unique([companyId, yearMonth])
   @@map("budgets")
+}
+
+model MonthlySpendingSnapshot {
+  id            String                            @id @default(uuid()) @db.Uuid
+  companyId     String                            @db.Uuid
+  yearMonth     String                            @db.VarChar
+  productAmount Int
+  shippingFee   Int
+  spent         Int
+  createdAt     DateTime                          @default(now())
+  updatedAt     DateTime                          @updatedAt
+  company       Company                           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  categories    MonthlyCategorySpendingSnapshot[]
+
+  @@unique([companyId, yearMonth])
+  @@map("monthly_spending_snapshots")
+}
+
+model MonthlyCategorySpendingSnapshot {
+  id           String                  @id @default(uuid()) @db.Uuid
+  snapshotId   String                  @db.Uuid
+  categoryName String                  @db.VarChar
+  amount       Int
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  snapshot     MonthlySpendingSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@unique([snapshotId, categoryName])
+  @@map("monthly_category_spending_snapshots")
 }
 
 model RefreshToken {

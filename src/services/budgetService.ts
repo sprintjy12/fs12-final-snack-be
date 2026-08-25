@@ -1,4 +1,5 @@
 import budgetRepository from "../repositories/budgetRepository";
+import monthlyStatisticsRepository from "../repositories/monthlyStatisticsRepository";
 import orderRepository from "../repositories/orderRepository";
 import {
   formatYearMonth,
@@ -74,6 +75,50 @@ async function updateBudgetSettings(params: {
   return getBudgetSettings(companyId);
 }
 
+async function getMonthlySpending(params: {
+  companyId: string;
+  yearMonth: string;
+  from: Date;
+  to: Date;
+}) {
+  const { companyId, yearMonth, from, to } = params;
+  const currentYearMonth = formatYearMonth(toKstYearMonth(new Date()));
+
+  // 이번 달과 미래 월은 항상 원본 주문을 조회한다
+  if (yearMonth >= currentYearMonth) {
+    return orderRepository.aggregateApprovedMonthlySpending({
+      companyId,
+      from,
+      to,
+    });
+  }
+
+  const snapshot =
+    await monthlyStatisticsRepository.findMonthlySpendingSnapshot(
+      companyId,
+      yearMonth,
+    );
+
+  if (snapshot) {
+    return snapshot;
+  }
+
+  // 과거 월 스냅샷이 없으면 원본을 집계하고 다음 조회를 위해 저장한다
+  const spending = await orderRepository.aggregateApprovedMonthlySpending({
+    companyId,
+    from,
+    to,
+  });
+
+  await monthlyStatisticsRepository.upsertMonthlySpendingSnapshot({
+    companyId,
+    yearMonth,
+    spending,
+  });
+
+  return spending;
+}
+
 // 선택한 연월의 예산과 카테고리별 지출 통계
 async function getMonthlyBudgetSummary(
   companyId: string,
@@ -85,8 +130,9 @@ async function getMonthlyBudgetSummary(
   const [monthlyBudget, defaultMonthlyBudget, spending] = await Promise.all([
     budgetRepository.findBudgetAmount(companyId, yearMonth),
     budgetRepository.findDefaultMonthlyBudget(companyId),
-    orderRepository.aggregateApprovedMonthlySpending({
+    getMonthlySpending({
       companyId,
+      yearMonth,
       from: monthRange.from,
       to: monthRange.to,
     }),

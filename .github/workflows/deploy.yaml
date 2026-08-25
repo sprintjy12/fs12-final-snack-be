@@ -7,16 +7,25 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            /home/ec2-user/snack/scripts/deploy-backend.sh
+          role-to-assume: arn:aws:iam::823633849268:role/snack-backend-github-actions-role
+          aws-region: ap-northeast-2
+
+      - name: Deploy with CodeDeploy
+        run: |
+          aws deploy create-deployment \
+            --application-name snack-backend \
+            --deployment-group-name snack-backend-group \
+            --github-location repository=sprintjy12/fs12-final-snack-be,commitId=${{ github.sha }} \
+            --file-exists-behavior OVERWRITE

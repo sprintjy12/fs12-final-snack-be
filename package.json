@@ -2,11 +2,15 @@
   "name": "fs12-final-snack-be",
   "version": "1.0.0",
   "scripts": {
+    "build": "tsc",
     "dev": "nodemon --exec tsx src/app.ts",
     "start": "tsc && node dist/app.js",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:seed:allow": "dotenv -v ALLOW_DB_SEED=true -- prisma db seed",
+    "job:statistics:create": "tsx src/jobs/runMonthlyStatisticsJob.ts CREATE_PREVIOUS_MONTH_SNAPSHOT",
+    "job:statistics:verify": "tsx src/jobs/runMonthlyStatisticsJob.ts VERIFY_PREVIOUS_MONTH_SNAPSHOT",
+    "package:lambda:statistics": "prisma generate && node scripts/package-monthly-statistics-lambda.mjs",
     "ssh": "dotenv -- bash -c 'ssh -i \"$SSH_KEY_PATH\" -L 5432:$DB_HOST:5432 $EC2_USER@$EC2_HOST -N'"
   },
   "prisma": {
@@ -36,6 +40,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.1.1",
     "dotenv-cli": "^11.0.0",
+    "esbuild": "^0.28.2",
     "nodemon": "^3.1.7",
     "prisma": "^6.10.1",
     "tsx": "^4.23.0",

@@ -1,5 +1,6 @@
 import budgetRepository from "../repositories/budgetRepository";
 import orderRepository from "../repositories/orderRepository";
+import monthlyStatisticsService from "./monthlyStatisticsService";
 import {
   formatYearMonth,
   getKstMonthRange,
@@ -79,17 +80,10 @@ async function getMonthlyBudgetSummary(
   companyId: string,
   yearMonth: string,
 ) {
-  const [year, month] = yearMonth.split("-").map(Number);
-  const monthRange = getKstMonthRange({ year, month: month - 1 });
-
   const [monthlyBudget, defaultMonthlyBudget, spending] = await Promise.all([
     budgetRepository.findBudgetAmount(companyId, yearMonth),
     budgetRepository.findDefaultMonthlyBudget(companyId),
-    orderRepository.aggregateApprovedMonthlySpending({
-      companyId,
-      from: monthRange.from,
-      to: monthRange.to,
-    }),
+    monthlyStatisticsService.getMonthlySpending(companyId, yearMonth),
   ]);
 
   const budget = monthlyBudget ?? defaultMonthlyBudget;

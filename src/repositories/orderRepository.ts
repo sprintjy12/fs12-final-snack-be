@@ -2,6 +2,7 @@ import prisma from "../config/db";
 import { OrderStatus, OrderType, Prisma } from "@prisma/client";
 import budgetRepository from "./budgetRepository";
 import { calculateShippingFee } from "../constants/order";
+import { formatCategoryName } from "../utils/formatCategoryName";
 
 const orderItemWithProductInclude = {
   product: {
@@ -18,16 +19,6 @@ type OrderItemWithProduct = Prisma.OrderItemGetPayload<{
 }>;
 
 type MonthRange = { yearMonth: string; from: Date; to: Date };
-
-// 카테고리 스냅샷은 "상위>하위" 형태로 저장한다
-function formatCategoryName(category: {
-  name: string;
-  parent: { name: string } | null;
-}) {
-  return category.parent
-    ? `${category.parent.name}>${category.name}`
-    : category.name;
-}
 
 async function findOrderById(orderId: string) {
   return prisma.order.findUnique({

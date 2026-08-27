@@ -8,6 +8,7 @@ import {
   changePassword,
   changeCompanyName,
   withdrawUser,
+  restoreUser,
 } from "../services/userService";
 import { GetUsersQuery, UpdateUserRoleInput } from "../schemas/userSchema";
 import asyncHandler from "../utils/asyncHandler";
@@ -133,6 +134,25 @@ const handleWithdrawUser = asyncHandler(
   },
 );
 
+/**
+ * 회원 복구
+ */
+const handleRestoreUser = asyncHandler(
+  async (req: Request, res: Response) => {
+    const actor = req.user!;
+    const userId = req.params.userId as string;
+
+    await restoreUser({
+      actorCompanyId: actor.companyId,
+      targetUserId: userId,
+    });
+
+    res.status(200).json({
+      message: "회원 복구에 성공했습니다.",
+    });
+  },
+);
+
 export default {
   getUsers: handleGetUsers,
   getMyProfile: handleGetMyProfile,
@@ -140,4 +160,5 @@ export default {
   changePassword: handleChangePassword,
   changeCompanyName: handleChangeCompanyName,
   withdrawUser: handleWithdrawUser,
+  restoreUser: handleRestoreUser,
 };

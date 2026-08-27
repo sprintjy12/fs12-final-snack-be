@@ -1,6 +1,7 @@
 import { OrderStatus, UserRole, UserStatus } from "@prisma/client";
 
 import prisma from "../config/db";
+import { DAY_IN_MS, WITHDRAWAL_RECOVERY_DAYS } from "../constants/user";
 
 /**
  * 내 정보 조회
@@ -45,6 +46,7 @@ export const findUserForRoleUpdate = async (userId: string) => {
       email: true,
       role: true,
       status: true,
+      withdrawnAt: true,
     },
   });
 };
@@ -176,10 +178,18 @@ const buildCompanyUsersWhere = ({
   name,
 }: Pick<FindUsersByCompanyParams, "companyId" | "name">) => ({
   companyId,
-  status: UserStatus.ACTIVE,
   role: {
     not: UserRole.SUPER_ADMIN,
   },
+  OR: [
+    { status: UserStatus.ACTIVE },
+    {
+      status: UserStatus.WITHDRAWN,
+      withdrawnAt: {
+        gte: new Date(Date.now() - WITHDRAWAL_RECOVERY_DAYS * DAY_IN_MS),
+      },
+    },
+  ],
   ...(name
     ? {
         name: {
@@ -191,7 +201,7 @@ const buildCompanyUsersWhere = ({
 });
 
 /**
- * 같은 회사 회원 목록 조회 (ACTIVE, SUPER_ADMIN 제외, 이름 부분 검색 지원)
+ * 같은 회사 회원 목록 조회 (SUPER_ADMIN 제외, 이름 부분 검색 지원)
  */
 export const findUsersByCompany = async ({
   companyId,
@@ -212,6 +222,8 @@ export const findUsersByCompany = async ({
       name: true,
       email: true,
       role: true,
+      status: true,
+      withdrawnAt: true,
     },
   });
 };
@@ -288,4 +300,40 @@ export const withdrawUser = async ({
 
     return true;
   });
+};
+
+type RestoreUserParams = {
+  userId: string;
+  companyId: string;
+  restoreAvailableFrom: Date;
+};
+
+/**
+ * 회원 복구
+ * 같은 회사 / WITHDRAWN / SUPER_ADMIN 아닌 경우 / 복구 기한 내일 때만 복구한다.
+ */
+export const restoreUser = async ({
+  userId,
+  companyId,
+  restoreAvailableFrom,
+}: RestoreUserParams) => {
+  const updateResult = await prisma.user.updateMany({
+    where: {
+      id: userId,
+      companyId,
+      status: UserStatus.WITHDRAWN,
+      role: {
+        not: UserRole.SUPER_ADMIN,
+      },
+      withdrawnAt: {
+        gte: restoreAvailableFrom,
+      },
+    },
+    data: {
+      status: UserStatus.ACTIVE,
+      withdrawnAt: null,
+    },
+  });
+
+  return updateResult.count === 1;
 };

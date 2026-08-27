@@ -11,6 +11,8 @@ import {
 } from "@prisma/client";
 import bcrypt from "bcrypt";
 
+import { formatCategoryName } from "../src/utils/formatCategoryName";
+
 const prisma = new PrismaClient();
 
 const PASSWORD_HASH_ROUNDS = 12;
@@ -228,6 +230,8 @@ async function main() {
       await tx.cartItem.deleteMany();
       await tx.orderItem.deleteMany();
       await tx.order.deleteMany();
+      await tx.monthlyCategorySpendingSnapshot.deleteMany();
+      await tx.monthlySpendingSnapshot.deleteMany();
       await tx.product.deleteMany();
       await tx.category.deleteMany();
       await tx.budget.deleteMany();
@@ -714,9 +718,26 @@ async function main() {
             );
           }
 
-          return [category.id, `${parentName}>${category.name}`];
+          return [
+            category.id,
+            formatCategoryName({
+              name: category.name,
+              parent: { name: parentName },
+            }),
+          ];
         }),
       );
+
+      // 주문 스냅샷은 실제 주문과 같이 "대분류>카테고리"로 저장한다
+      const snapshotCategoryName = (categoryId: string) => {
+        const path = categoryPathById.get(categoryId);
+        if (!path) {
+          throw new Error(
+            `Seed aborted: category snapshot path not found for ${categoryId}`,
+          );
+        }
+        return path;
+      };
 
       const categoryByName = Object.fromEntries(
         childCategories.map((category) => [category.name, category]),
@@ -731,6 +752,15 @@ async function main() {
       const catSoda = categoryByName["청량/탄산음료"];
       const catBagRamen = categoryByName["봉지라면"];
       const catCupMeal = categoryByName["컵밥류"];
+      const catSalad = categoryByName["샐러드"];
+      const catBread = categoryByName["빵"];
+      const catSandwich = categoryByName["햄버거/샌드위치"];
+      const catGimbap = categoryByName["주먹밥/김밥"];
+      const catLunchbox = categoryByName["도시락"];
+      const catOfficeCoffee = categoryByName["커피/차류"];
+      const catHousehold = categoryByName["생활용품"];
+      const catDisposable = categoryByName["일회용품"];
+      const catStationery = categoryByName["사무용품"];
 
       const leafCategories = childCategories.map((cat) => ({
         cat,
@@ -744,7 +774,7 @@ async function main() {
       const namedProductDefsA = [
         {
           categoryId: catSnack.id,
-          categoryName: catSnack.name,
+          categoryName: snapshotCategoryName(catSnack.id),
           createdById: adminA.id,
           name: "포카칩 오리지널",
           price: 1500,
@@ -755,7 +785,7 @@ async function main() {
         },
         {
           categoryId: catSnack.id,
-          categoryName: catSnack.name,
+          categoryName: snapshotCategoryName(catSnack.id),
           createdById: adminA.id,
           name: "허니버터칩",
           price: 1800,
@@ -766,7 +796,7 @@ async function main() {
         },
         {
           categoryId: catPie.id,
-          categoryName: catPie.name,
+          categoryName: snapshotCategoryName(catPie.id),
           createdById: adminA.id,
           name: "초코파이",
           price: 4000,
@@ -777,7 +807,7 @@ async function main() {
         },
         {
           categoryId: catBiscuit.id,
-          categoryName: catBiscuit.name,
+          categoryName: snapshotCategoryName(catBiscuit.id),
           createdById: superAdminA.id,
           name: "오리온 고소미",
           price: 2500,
@@ -788,7 +818,7 @@ async function main() {
         },
         {
           categoryId: catJelly.id,
-          categoryName: catJelly.name,
+          categoryName: snapshotCategoryName(catJelly.id),
           createdById: adminA.id,
           name: "마이구미 포도",
           price: 1200,
@@ -799,7 +829,7 @@ async function main() {
         },
         {
           categoryId: catCoffee.id,
-          categoryName: catCoffee.name,
+          categoryName: snapshotCategoryName(catCoffee.id),
           createdById: adminA.id,
           name: "칸타타 아메리카노",
           price: 2200,
@@ -810,7 +840,7 @@ async function main() {
         },
         {
           categoryId: catCoffee.id,
-          categoryName: catCoffee.name,
+          categoryName: snapshotCategoryName(catCoffee.id),
           createdById: adminA.id,
           name: "맥심 모카골드",
           price: 8000,
@@ -821,7 +851,7 @@ async function main() {
         },
         {
           categoryId: catSoda.id,
-          categoryName: catSoda.name,
+          categoryName: snapshotCategoryName(catSoda.id),
           createdById: adminA.id,
           name: "코카콜라 355ml",
           price: 1600,
@@ -832,7 +862,7 @@ async function main() {
         },
         {
           categoryId: catBagRamen.id,
-          categoryName: catBagRamen.name,
+          categoryName: snapshotCategoryName(catBagRamen.id),
           createdById: adminA.id,
           name: "신라면",
           price: 1100,
@@ -843,7 +873,7 @@ async function main() {
         },
         {
           categoryId: catCupMeal.id,
-          categoryName: catCupMeal.name,
+          categoryName: snapshotCategoryName(catCupMeal.id),
           createdById: adminA.id,
           name: "햇반 210g",
           price: 1900,
@@ -851,6 +881,105 @@ async function main() {
           purchaseCount: 40,
           imageUrl: seedProductImageUrl("hetbahn"),
           productUrl: "https://example.com/products/hetbahn",
+        },
+        {
+          categoryId: catSalad.id,
+          categoryName: snapshotCategoryName(catSalad.id),
+          createdById: adminA.id,
+          name: "치킨샐러드",
+          price: 5200,
+          stock: 40,
+          purchaseCount: 28,
+          imageUrl: seedProductImageUrl("chickensalad"),
+          productUrl: "https://example.com/products/chickensalad",
+        },
+        {
+          categoryId: catBread.id,
+          categoryName: snapshotCategoryName(catBread.id),
+          createdById: adminA.id,
+          name: "크로와상",
+          price: 2800,
+          stock: 55,
+          purchaseCount: 34,
+          imageUrl: seedProductImageUrl("croissant"),
+          productUrl: "https://example.com/products/croissant",
+        },
+        {
+          categoryId: catSandwich.id,
+          categoryName: snapshotCategoryName(catSandwich.id),
+          createdById: adminA.id,
+          name: "에그샌드위치",
+          price: 3900,
+          stock: 45,
+          purchaseCount: 31,
+          imageUrl: seedProductImageUrl("eggsandwich"),
+          productUrl: "https://example.com/products/eggsandwich",
+        },
+        {
+          categoryId: catGimbap.id,
+          categoryName: snapshotCategoryName(catGimbap.id),
+          createdById: adminA.id,
+          name: "참치마요주먹밥",
+          price: 2500,
+          stock: 70,
+          purchaseCount: 42,
+          imageUrl: seedProductImageUrl("tunariceball"),
+          productUrl: "https://example.com/products/tunariceball",
+        },
+        {
+          categoryId: catLunchbox.id,
+          categoryName: snapshotCategoryName(catLunchbox.id),
+          createdById: adminA.id,
+          name: "불고기도시락",
+          price: 6500,
+          stock: 35,
+          purchaseCount: 26,
+          imageUrl: seedProductImageUrl("bulgogilunch"),
+          productUrl: "https://example.com/products/bulgogilunch",
+        },
+        {
+          categoryId: catOfficeCoffee.id,
+          categoryName: snapshotCategoryName(catOfficeCoffee.id),
+          createdById: adminA.id,
+          name: "카누 미니",
+          price: 8900,
+          stock: 50,
+          purchaseCount: 19,
+          imageUrl: seedProductImageUrl("kanu"),
+          productUrl: "https://example.com/products/kanu",
+        },
+        {
+          categoryId: catHousehold.id,
+          categoryName: snapshotCategoryName(catHousehold.id),
+          createdById: adminA.id,
+          name: "물티슈",
+          price: 3200,
+          stock: 80,
+          purchaseCount: 24,
+          imageUrl: seedProductImageUrl("wettissue"),
+          productUrl: "https://example.com/products/wettissue",
+        },
+        {
+          categoryId: catDisposable.id,
+          categoryName: snapshotCategoryName(catDisposable.id),
+          createdById: adminA.id,
+          name: "종이컵 50입",
+          price: 2800,
+          stock: 90,
+          purchaseCount: 21,
+          imageUrl: seedProductImageUrl("papercup"),
+          productUrl: "https://example.com/products/papercup",
+        },
+        {
+          categoryId: catStationery.id,
+          categoryName: snapshotCategoryName(catStationery.id),
+          createdById: adminA.id,
+          name: "볼펜 12색",
+          price: 4500,
+          stock: 60,
+          purchaseCount: 17,
+          imageUrl: seedProductImageUrl("pens"),
+          productUrl: "https://example.com/products/pens",
         },
       ];
 
@@ -1533,7 +1662,7 @@ async function main() {
             id: randomUUID(),
             companyId,
             categoryId: leaf.cat.id,
-            categoryName: leaf.name,
+            categoryName: snapshotCategoryName(leaf.cat.id),
             createdById: creatorIds[i % creatorIds.length],
             name,
             price: 900 + (i % 25) * 150,
@@ -1548,7 +1677,7 @@ async function main() {
       };
 
       // 하위 카테고리마다 기본 상품을 채운 뒤, 회사당 300개로 패딩
-      const PRODUCTS_PER_CATEGORY_A = 10;
+      const PRODUCTS_PER_CATEGORY_A = 6;
       const usedProductNamesA = new Set(
         namedProductDefsA.map((def) => def.name),
       );
@@ -1573,7 +1702,7 @@ async function main() {
           const n = current + i + 1;
           return {
             categoryId: leaf.cat.id,
-            categoryName: leaf.name,
+            categoryName: snapshotCategoryName(leaf.cat.id),
             createdById:
               (leafIndex + i) % 3 === 0 ? superAdminA.id : adminA.id,
             name,
@@ -1597,7 +1726,7 @@ async function main() {
       const namedProductDefsB = [
         {
           categoryId: catSnack.id,
-          categoryName: catSnack.name,
+          categoryName: snapshotCategoryName(catSnack.id),
           createdById: adminB.id,
           name: "새우깡",
           price: 1400,
@@ -1608,7 +1737,7 @@ async function main() {
         },
         {
           categoryId: catCookie.id,
-          categoryName: catCookie.name,
+          categoryName: snapshotCategoryName(catCookie.id),
           createdById: adminB.id,
           name: "홈런볼 초코",
           price: 2800,
@@ -1619,7 +1748,7 @@ async function main() {
         },
         {
           categoryId: catCoffee.id,
-          categoryName: catCoffee.name,
+          categoryName: snapshotCategoryName(catCoffee.id),
           createdById: superAdminB.id,
           name: "스타벅스 더블샷",
           price: 2900,
@@ -1630,7 +1759,7 @@ async function main() {
         },
         {
           categoryId: catSoda.id,
-          categoryName: catSoda.name,
+          categoryName: snapshotCategoryName(catSoda.id),
           createdById: adminB.id,
           name: "스프라이트 355ml",
           price: 1500,
@@ -1641,7 +1770,7 @@ async function main() {
         },
         {
           categoryId: catBagRamen.id,
-          categoryName: catBagRamen.name,
+          categoryName: snapshotCategoryName(catBagRamen.id),
           createdById: adminB.id,
           name: "진라면 매운맛",
           price: 1000,
@@ -1652,7 +1781,7 @@ async function main() {
         },
         {
           categoryId: catCupMeal.id,
-          categoryName: catCupMeal.name,
+          categoryName: snapshotCategoryName(catCupMeal.id),
           createdById: adminB.id,
           name: "컵밥 불고기",
           price: 3500,
@@ -1660,6 +1789,50 @@ async function main() {
           purchaseCount: 15,
           imageUrl: seedProductImageUrl("cupbap"),
           productUrl: "https://example.com/products/cupbap",
+        },
+        {
+          categoryId: catSalad.id,
+          categoryName: snapshotCategoryName(catSalad.id),
+          createdById: adminB.id,
+          name: "리코타샐러드",
+          price: 5400,
+          stock: 30,
+          purchaseCount: 12,
+          imageUrl: seedProductImageUrl("ricottasalad"),
+          productUrl: "https://example.com/products/ricottasalad",
+        },
+        {
+          categoryId: catLunchbox.id,
+          categoryName: snapshotCategoryName(catLunchbox.id),
+          createdById: adminB.id,
+          name: "제육도시락",
+          price: 6200,
+          stock: 28,
+          purchaseCount: 14,
+          imageUrl: seedProductImageUrl("jeyuklunch"),
+          productUrl: "https://example.com/products/jeyuklunch",
+        },
+        {
+          categoryId: catHousehold.id,
+          categoryName: snapshotCategoryName(catHousehold.id),
+          createdById: adminB.id,
+          name: "핸드워시",
+          price: 3900,
+          stock: 40,
+          purchaseCount: 11,
+          imageUrl: seedProductImageUrl("handwash"),
+          productUrl: "https://example.com/products/handwash",
+        },
+        {
+          categoryId: catStationery.id,
+          categoryName: snapshotCategoryName(catStationery.id),
+          createdById: adminB.id,
+          name: "포스트잇",
+          price: 1800,
+          stock: 75,
+          purchaseCount: 16,
+          imageUrl: seedProductImageUrl("postit"),
+          productUrl: "https://example.com/products/postit",
         },
       ];
 
@@ -1676,7 +1849,7 @@ async function main() {
         usedProductNamesB.add(name);
         return {
           categoryId: leaf.cat.id,
-          categoryName: leaf.name,
+          categoryName: snapshotCategoryName(leaf.cat.id),
           createdById: i % 4 === 0 ? superAdminB.id : adminB.id,
           name,
           price: 900 + (i % 18) * 150,
@@ -1707,7 +1880,7 @@ async function main() {
             [
               {
                 categoryId: leaf.cat.id,
-                categoryName: leaf.name,
+                categoryName: snapshotCategoryName(leaf.cat.id),
                 createdById: superAdmin.id,
                 name,
                 price: 1500 + (index % 10) * 100,
@@ -1746,8 +1919,17 @@ async function main() {
           price: def.price,
           imageUrl: def.imageUrl,
         },
-        categoryName: categoryPathById.get(def.categoryId) ?? def.categoryName,
+        categoryName: snapshotCategoryName(def.categoryId),
       }));
+
+      const invalidSnapshotCategory = productMeta.find(
+        (meta) => !meta.categoryName.includes(">"),
+      );
+      if (invalidSnapshotCategory) {
+        throw new Error(
+          `Seed aborted: order item categoryName must be 대분류>카테고리, got ${invalidSnapshotCategory.categoryName}`,
+        );
+      }
 
       const productsByCompanyId = new Map<string, ProductMeta[]>();
       for (const meta of productMeta) {
@@ -1761,12 +1943,24 @@ async function main() {
       counts.products = allProductDefs.length;
 
       for (const company of companies) {
-        const companyProductCount =
-          productsByCompanyId.get(company.id)?.length ?? 0;
-        if (companyProductCount !== PRODUCTS_PER_COMPANY) {
+        const companyProducts = productsByCompanyId.get(company.id) ?? [];
+        if (companyProducts.length !== PRODUCTS_PER_COMPANY) {
           throw new Error(
-            `Seed aborted: ${company.name} products=${companyProductCount}, expected ${PRODUCTS_PER_COMPANY}`,
+            `Seed aborted: ${company.name} products=${companyProducts.length}, expected ${PRODUCTS_PER_COMPANY}`,
           );
+        }
+
+        const parentNames = new Set(
+          companyProducts.map(
+            (meta) => meta.categoryName.split(">")[0]?.trim() ?? "",
+          ),
+        );
+        for (const parent of parentCategoryDefs) {
+          if (!parentNames.has(parent.name)) {
+            throw new Error(
+              `Seed aborted: ${company.name} missing products for ${parent.name}`,
+            );
+          }
         }
       }
 

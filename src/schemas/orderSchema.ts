@@ -20,7 +20,7 @@ export const createPurchaseRequestSchema = z.object({
   requestMessage: z
     .string()
     .trim()
-    .max(1000, "요청 메시지는 1000자 이하여야 합니다.")
+    .max(500, "요청 메시지는 500자 이하여야 합니다.")
     .optional(),
 });
 
@@ -30,7 +30,7 @@ export const processOrderSchema = z.object({
     .string()
     .trim()
     .min(10, "처리 메시지는 10자 이상이어야 합니다.")
-    .max(100, "처리 메시지는 100자 이하여야 합니다."),
+    .max(500, "처리 메시지는 500자 이하여야 합니다."),
 });
 
 // 목록 조회 쿼리

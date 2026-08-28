@@ -4055,66 +4055,104 @@
                 display: grid;
                 grid-template-columns: 1fr 1fr;
                 gap: 18px;
+                min-height: 0;
               "
             >
               <div
-                class="card reveal d1"
                 style="
-                  padding: 24px;
-                  display: flex;
-                  flex-direction: column;
-                  color: #172033;
+                  display: grid;
+                  grid-template-rows: auto 1fr;
+                  gap: 14px;
+                  min-height: 0;
                 "
               >
-                <div class="struct-kicker">01 · Background</div>
-                <h3 style="font-size: 26px; margin: 8px 0 16px" data-edit>
-                  배경 및 문제 상황
-                </h3>
-                <ul
+                <div
+                  class="card reveal d1"
                   style="
-                    list-style: none;
-                    font-size: 21px;
-                    line-height: 1.5;
+                    padding: 24px;
                     display: flex;
                     flex-direction: column;
-                    gap: 16px;
-                    flex: 1;
-                    justify-content: flex-start;
+                    color: #172033;
                   "
                 >
-                  <li style="padding-left: 22px; position: relative" data-edit>
-                    <span
-                      style="
-                        position: absolute;
-                        left: 0;
-                        top: 0.55em;
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background: var(--primary);
-                      "
-                    ></span>
-                    <strong>기존 한계</strong><br />
-                    상품 수 증가에 따른 일일이 스크롤해야 하는 불편함 (정확한
-                    상품명 인지 시에도 빠른 탐색 불가)
-                  </li>
-                  <li style="padding-left: 22px; position: relative" data-edit>
-                    <span
-                      style="
-                        position: absolute;
-                        left: 0;
-                        top: 0.55em;
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background: var(--primary);
-                      "
-                    ></span>
-                    <strong>검색 대상</strong><br />
-                    상품 등록 시 별도 설명 항목이 없어 상품명(name) 기준 검색으로
-                    한정
-                  </li>
-                </ul>
+                  <div class="struct-kicker">01 · Background</div>
+                  <h3 style="font-size: 26px; margin: 8px 0 16px" data-edit>
+                    배경 및 문제 상황
+                  </h3>
+                  <ul
+                    style="
+                      list-style: none;
+                      font-size: 21px;
+                      line-height: 1.5;
+                      display: flex;
+                      flex-direction: column;
+                      gap: 16px;
+                    "
+                  >
+                    <li
+                      style="padding-left: 22px; position: relative"
+                      data-edit
+                    >
+                      <span
+                        style="
+                          position: absolute;
+                          left: 0;
+                          top: 0.55em;
+                          width: 8px;
+                          height: 8px;
+                          border-radius: 50%;
+                          background: var(--primary);
+                        "
+                      ></span>
+                      <strong>기존 한계</strong><br />
+                      상품 수 증가에 따른 일일이 스크롤해야 하는 불편함 (정확한
+                      상품명 인지 시에도 빠른 탐색 불가)
+                    </li>
+                    <li
+                      style="padding-left: 22px; position: relative"
+                      data-edit
+                    >
+                      <span
+                        style="
+                          position: absolute;
+                          left: 0;
+                          top: 0.55em;
+                          width: 8px;
+                          height: 8px;
+                          border-radius: 50%;
+                          background: var(--primary);
+                        "
+                      ></span>
+                      <strong>검색 대상</strong><br />
+                      상품 등록 시 별도 설명 항목이 없어 상품명(name) 기준
+                      검색으로 한정
+                    </li>
+                  </ul>
+                </div>
+                <div
+                  class="card reveal d3"
+                  style="
+                    min-height: 0;
+                    padding: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: hidden;
+                  "
+                >
+                  <img
+                    src="assets/product-search.png"
+                    alt="상품 검색 결과 화면 — 옥수수 검색"
+                    style="
+                      display: block;
+                      width: 100%;
+                      height: 100%;
+                      object-fit: contain;
+                      object-position: top center;
+                      border-radius: 10px;
+                    "
+                  />
+                </div>
               </div>
               <div
                 class="card reveal d2"
@@ -4208,7 +4246,7 @@
                   </div>
                   <div>
                     <h3 style="font-size: 22px; margin-bottom: 8px" data-edit>
-                      개선 방식 (Server-side · 멘토 피드백 반영)
+                      개선 방식 (Server-side)
                     </h3>
                     <ul
                       style="
@@ -4868,84 +4906,125 @@
                 />
               </div>
               <div
-                class="card reveal d2"
                 style="
-                  padding: 22px 24px;
-                  color: #172033;
-                  display: flex;
-                  flex-direction: column;
-                  justify-content: flex-start;
+                  display: grid;
+                  grid-template-rows: auto 1fr;
                   gap: 14px;
+                  min-height: 0;
                 "
               >
-                <div class="struct-kicker">
-                  적용 코드: monthlyStatisticsHandler &amp;
-                  monthlyStatisticsJob
-                </div>
-                <p
-                  style="font-size: 22px; font-weight: 800; line-height: 1.4"
-                  data-edit
-                >
-                  핵심 로직
-                </p>
-                <ul
+                <div
+                  class="card reveal d2"
                   style="
-                    list-style: none;
-                    font-size: 22px;
-                    line-height: 1.5;
+                    padding: 22px 24px;
+                    color: #172033;
                     display: flex;
                     flex-direction: column;
+                    justify-content: flex-start;
                     gap: 14px;
                   "
                 >
-                  <li style="padding-left: 22px; position: relative" data-edit>
-                    <span
-                      style="
-                        position: absolute;
-                        left: 0;
-                        top: 0.55em;
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background: var(--primary);
-                      "
-                    ></span>
-                    <strong>EventBridge + Lambda</strong><br />
-                    크론 스케줄링을 통해 매월 전월 통계를 자동 생성 및 검증
-                  </li>
-                  <li style="padding-left: 22px; position: relative" data-edit>
-                    <span
-                      style="
-                        position: absolute;
-                        left: 0;
-                        top: 0.55em;
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background: var(--primary);
-                      "
-                    ></span>
-                    <strong>CREATE_PREVIOUS_MONTH_SNAPSHOT</strong><br />
-                    회사별 전월 통계 집계 후 스냅샷 테이블에 upsert (총지출,
-                    상품금액, 배송비, 카테고리 통계 저장)
-                  </li>
-                  <li style="padding-left: 22px; position: relative" data-edit>
-                    <span
-                      style="
-                        position: absolute;
-                        left: 0;
-                        top: 0.55em;
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background: var(--primary);
-                      "
-                    ></span>
-                    <strong>VERIFY_PREVIOUS_MONTH_SNAPSHOT</strong><br />
-                    원본 주문 데이터와 스냅샷을 주기적으로 대조하여 불일치 발생
-                    시 자동 보정(Self-Healing)
-                  </li>
-                </ul>
+                  <div class="struct-kicker">
+                    적용 코드: monthlyStatisticsHandler &amp;
+                    monthlyStatisticsJob
+                  </div>
+                  <p
+                    style="font-size: 22px; font-weight: 800; line-height: 1.4"
+                    data-edit
+                  >
+                    핵심 로직
+                  </p>
+                  <ul
+                    style="
+                      list-style: none;
+                      font-size: 22px;
+                      line-height: 1.5;
+                      display: flex;
+                      flex-direction: column;
+                      gap: 14px;
+                    "
+                  >
+                    <li
+                      style="padding-left: 22px; position: relative"
+                      data-edit
+                    >
+                      <span
+                        style="
+                          position: absolute;
+                          left: 0;
+                          top: 0.55em;
+                          width: 8px;
+                          height: 8px;
+                          border-radius: 50%;
+                          background: var(--primary);
+                        "
+                      ></span>
+                      <strong>EventBridge + Lambda</strong><br />
+                      크론 스케줄링을 통해 매월 전월 통계를 자동 생성 및 검증
+                    </li>
+                    <li
+                      style="padding-left: 22px; position: relative"
+                      data-edit
+                    >
+                      <span
+                        style="
+                          position: absolute;
+                          left: 0;
+                          top: 0.55em;
+                          width: 8px;
+                          height: 8px;
+                          border-radius: 50%;
+                          background: var(--primary);
+                        "
+                      ></span>
+                      <strong>CREATE_PREVIOUS_MONTH_SNAPSHOT</strong><br />
+                      회사별 전월 통계 집계 후 스냅샷 테이블에 upsert (총지출,
+                      상품금액, 배송비, 카테고리 통계 저장)
+                    </li>
+                    <li
+                      style="padding-left: 22px; position: relative"
+                      data-edit
+                    >
+                      <span
+                        style="
+                          position: absolute;
+                          left: 0;
+                          top: 0.55em;
+                          width: 8px;
+                          height: 8px;
+                          border-radius: 50%;
+                          background: var(--primary);
+                        "
+                      ></span>
+                      <strong>VERIFY_PREVIOUS_MONTH_SNAPSHOT</strong><br />
+                      원본 주문 데이터와 스냅샷을 주기적으로 대조하여 불일치
+                      발생 시 자동 보정(Self-Healing)
+                    </li>
+                  </ul>
+                </div>
+                <div
+                  class="card reveal d3"
+                  style="
+                    min-height: 0;
+                    padding: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: hidden;
+                  "
+                >
+                  <img
+                    src="assets/monthly-statistics-scheduler.png"
+                    alt="EventBridge Scheduler monthly-statistics-create 크론 일정"
+                    style="
+                      display: block;
+                      width: 100%;
+                      height: 100%;
+                      object-fit: contain;
+                      border-radius: 10px;
+                    "
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -5172,7 +5251,7 @@
                 <ul
                   style="
                     list-style: none;
-                    font-size: 19px;
+                    font-size: 22px;
                     line-height: 1.5;
                     display: flex;
                     flex-direction: column;

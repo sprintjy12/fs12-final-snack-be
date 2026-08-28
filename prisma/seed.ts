@@ -90,6 +90,25 @@ const yearMonthOffset = (monthsAgo: number) => {
   return `${year}-${month}`;
 };
 
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/** 한국 달력 기준 N개월 전 연월의 하루. 이번 달은 오늘 이후 날짜를 쓰지 않는다. */
+const kstDayInMonthAgo = (monthsAgo: number, daySeed: number) => {
+  const nowKst = new Date(Date.now() + KST_OFFSET_MS);
+  const target = new Date(
+    Date.UTC(nowKst.getUTCFullYear(), nowKst.getUTCMonth() - monthsAgo, 1),
+  );
+  const year = target.getUTCFullYear();
+  const month = target.getUTCMonth();
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const maxDay =
+    monthsAgo === 0
+      ? Math.max(1, Math.min(lastDay, nowKst.getUTCDate()))
+      : lastDay;
+  const day = 1 + (Math.abs(daySeed) % maxDay);
+  return new Date(Date.UTC(year, month, day, 12, 0, 0) - KST_OFFSET_MS);
+};
+
 const padBiz = (n: number) => {
   const raw = String(1000000000 + n).slice(0, 10);
   return `${raw.slice(0, 3)}-${raw.slice(3, 5)}-${raw.slice(5)}`;
@@ -2117,6 +2136,29 @@ async function main() {
           );
         }
 
+        let approvedSeq = 0;
+        const categoryCursors = [0, 0, 0];
+        const productsByParent = new Map<string, ProductMeta[]>();
+        for (const meta of ctx.products) {
+          const parent = meta.categoryName.split(">")[0]?.trim() || "기타";
+          const list = productsByParent.get(parent) ?? [];
+          list.push(meta);
+          productsByParent.set(parent, list);
+        }
+        const parentKeys = [
+          "스낵",
+          "음료",
+          "생수",
+          "간편식",
+          "신선식품",
+          "비품",
+        ].filter((name) => (productsByParent.get(name)?.length ?? 0) > 0);
+        if (parentKeys.length === 0) {
+          throw new Error(
+            `Seed aborted: no categorized products for company ${ctx.companyId}`,
+          );
+        }
+
         for (let i = 0; i < ORDERS_PER_COMPANY; i++) {
           const status = statusesCycle[i % statusesCycle.length];
           const isDirect = i % 11 === 0;
@@ -2134,9 +2176,17 @@ async function main() {
                 ctx.requesters[0]);
 
           const itemCount = 1 + (i % 4);
+          const isApprovedPreview =
+            (isDirect ? OrderStatus.APPROVED : status) === OrderStatus.APPROVED;
+          const monthAgoPreview = isApprovedPreview ? approvedSeq % 3 : 0;
+          const catCursor = isApprovedPreview
+            ? categoryCursors[monthAgoPreview]
+            : i;
           const items = Array.from({ length: itemCount }, (_, j) => {
-            const meta = ctx.products[(i + j * 3) % ctx.products.length];
-            return toOrderItem(meta, 1 + ((i + j) % 12));
+            const parent = parentKeys[(catCursor + j) % parentKeys.length];
+            const pool = productsByParent.get(parent) ?? ctx.products;
+            const meta = pool[(catCursor + i + j) % pool.length];
+            return toOrderItem(meta, 2 + ((i + j) % 5));
           });
 
           const { orderItems, productAmount } = buildOrderItems(items);
@@ -2146,7 +2196,17 @@ async function main() {
             finalStatus === OrderStatus.REJECTED
               ? 0
               : shippingFee;
-          const createdAt = daysAgo(i % 90);
+          const isApproved = finalStatus === OrderStatus.APPROVED;
+          const approvedMonthAgo = isApproved ? approvedSeq++ % 3 : 0;
+          if (isApproved) {
+            categoryCursors[approvedMonthAgo] += 1;
+          }
+          const approvedAt = isApproved
+            ? kstDayInMonthAgo(approvedMonthAgo, i * 7 + 3)
+            : null;
+          const createdAt = approvedAt
+            ? new Date(approvedAt.getTime() - ((i % 5) + 1) * 60 * 60 * 1000)
+            : daysAgo(i % 90);
           const orderId = randomUUID();
 
           orderRows.push({
@@ -2171,10 +2231,7 @@ async function main() {
                 : finalStatus === OrderStatus.REJECTED
                   ? "이번 달 예산이 부족합니다."
                   : null,
-            approvedAt:
-              finalStatus === OrderStatus.APPROVED || isDirect
-                ? daysAgo(Math.max(0, (i % 20) - 1))
-                : null,
+            approvedAt,
             createdAt,
             updatedAt: createdAt,
           });

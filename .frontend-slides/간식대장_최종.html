@@ -2227,7 +2227,7 @@
                 <div class="agenda-item reveal d4">
                   <span class="num">04</span>
                   <div>
-                    <h3 data-edit>핵심기능 (팀원별 핵심기능)</h3>
+                    <h3 data-edit>핵심 기능 및 추가기능</h3>
                     <p data-edit>인프라 · 인증 · 검색 · 예산 · 403페이지</p>
                   </div>
                 </div>
@@ -2244,7 +2244,7 @@
                   <span class="num">06</span>
                   <div>
                     <h3 data-edit>트러블슈팅</h3>
-                    <p data-edit>권한은 DB 가 진실</p>
+                    <p data-edit>장바구니 수량 · SSR 인증</p>
                   </div>
                 </div>
                 <div class="agenda-item reveal d3">
@@ -2577,64 +2577,6 @@
                   확정된 설계 문서와 API 명세를 바탕으로 파트별 기능 개발과 통합
                   구현에 들어갑니다.
                 </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- === SLIDE 09 DB DESIGN === -->
-        <section class="slide">
-          <div class="slide-inner">
-            <div class="slide-header reveal">
-              <div class="eyebrow">
-                <span class="accent-line"></span>데이터 설계
-              </div>
-              <span class="tag-pill">SSOT</span>
-            </div>
-            <h2
-              class="reveal"
-              style="font-size: 40px; margin-bottom: 22px"
-              data-edit
-            >
-              핵심 DB 설계 및 아키텍처
-            </h2>
-            <div class="db-grid grow">
-              <div class="card db-row reveal d1">
-                <div class="db-left">
-                  <div class="db-num">01</div>
-                  <div>
-                    <h3 data-edit>지출 관리</h3>
-                    <p data-edit>Budget = 월 한도만<br />지출 = 승인 주문 합</p>
-                  </div>
-                </div>
-                <div class="db-mid">
-                  <div class="db-arrow">➔</div>
-                </div>
-                <div class="db-right">
-                  <div class="db-gain">장점</div>
-                  <div class="db-kw" data-edit>숫자가 안 어긋남</div>
-                  <p data-edit>캐시 컬럼이 없어 승인·취소와 항상 같음</p>
-                </div>
-              </div>
-              <div class="card db-row reveal d2">
-                <div class="db-left">
-                  <div class="db-num">02</div>
-                  <div>
-                    <h3 data-edit>주문 · 이력</h3>
-                    <p data-edit>
-                      OrderItem 스냅샷 · Cart는 참조<br />REQUEST / DIRECT 한
-                      Order
-                    </p>
-                  </div>
-                </div>
-                <div class="db-mid">
-                  <div class="db-arrow">➔</div>
-                </div>
-                <div class="db-right">
-                  <div class="db-gain">장점</div>
-                  <div class="db-kw" data-edit>영수증 불변 · 로직 공유</div>
-                  <p data-edit>가격이 바뀌어도 이력 유지, 예산 검사 한곳</p>
-                </div>
               </div>
             </div>
           </div>
@@ -3023,7 +2965,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>2 핵심 기능
+                <span class="accent-line"></span>2 인증 · 인가
               </div>
               <span class="tag-pill">01 · Auth</span>
             </div>
@@ -3275,7 +3217,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>2 핵심 기능
+                <span class="accent-line"></span>2 인증 · 인가
               </div>
               <span class="tag-pill">01 · Auth</span>
             </div>
@@ -3628,7 +3570,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>2 핵심 기능
+                <span class="accent-line"></span>2 인증 · 인가
               </div>
               <span class="tag-pill">02 · Member</span>
             </div>
@@ -4055,7 +3997,7 @@
         <section class="slide">
           <div class="slide-inner" style="padding: 24px 32px 64px">
             <div class="eyebrow reveal" style="margin-bottom: 8px">
-              <span class="accent-line"></span>2
+              <span class="accent-line"></span>2 인증 · 인가
             </div>
             <h2
               class="reveal"
@@ -4096,7 +4038,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>3 핵심 기능
+                <span class="accent-line"></span>3 추가기능
               </div>
               <span class="tag-pill">03 · Search</span>
             </div>
@@ -4113,66 +4055,104 @@
                 display: grid;
                 grid-template-columns: 1fr 1fr;
                 gap: 18px;
+                min-height: 0;
               "
             >
               <div
-                class="card reveal d1"
                 style="
-                  padding: 24px;
-                  display: flex;
-                  flex-direction: column;
-                  color: #172033;
+                  display: grid;
+                  grid-template-rows: auto 1fr;
+                  gap: 14px;
+                  min-height: 0;
                 "
               >
-                <div class="struct-kicker">01 · Background</div>
-                <h3 style="font-size: 26px; margin: 8px 0 16px" data-edit>
-                  배경 및 문제 상황
-                </h3>
-                <ul
+                <div
+                  class="card reveal d1"
                   style="
-                    list-style: none;
-                    font-size: 21px;
-                    line-height: 1.5;
+                    padding: 24px;
                     display: flex;
                     flex-direction: column;
-                    gap: 16px;
-                    flex: 1;
-                    justify-content: flex-start;
+                    color: #172033;
                   "
                 >
-                  <li style="padding-left: 22px; position: relative" data-edit>
-                    <span
-                      style="
-                        position: absolute;
-                        left: 0;
-                        top: 0.55em;
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background: var(--primary);
-                      "
-                    ></span>
-                    <strong>기존 한계</strong><br />
-                    상품 수 증가에 따른 일일이 스크롤해야 하는 불편함 (정확한
-                    상품명 인지 시에도 빠른 탐색 불가)
-                  </li>
-                  <li style="padding-left: 22px; position: relative" data-edit>
-                    <span
-                      style="
-                        position: absolute;
-                        left: 0;
-                        top: 0.55em;
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background: var(--primary);
-                      "
-                    ></span>
-                    <strong>검색 대상</strong><br />
-                    상품 등록 시 별도 설명 항목이 없어 상품명(name) 기준 검색으로
-                    한정
-                  </li>
-                </ul>
+                  <div class="struct-kicker">01 · Background</div>
+                  <h3 style="font-size: 26px; margin: 8px 0 16px" data-edit>
+                    배경 및 문제 상황
+                  </h3>
+                  <ul
+                    style="
+                      list-style: none;
+                      font-size: 21px;
+                      line-height: 1.5;
+                      display: flex;
+                      flex-direction: column;
+                      gap: 16px;
+                    "
+                  >
+                    <li
+                      style="padding-left: 22px; position: relative"
+                      data-edit
+                    >
+                      <span
+                        style="
+                          position: absolute;
+                          left: 0;
+                          top: 0.55em;
+                          width: 8px;
+                          height: 8px;
+                          border-radius: 50%;
+                          background: var(--primary);
+                        "
+                      ></span>
+                      <strong>기존 한계</strong><br />
+                      상품 수 증가에 따른 일일이 스크롤해야 하는 불편함 (정확한
+                      상품명 인지 시에도 빠른 탐색 불가)
+                    </li>
+                    <li
+                      style="padding-left: 22px; position: relative"
+                      data-edit
+                    >
+                      <span
+                        style="
+                          position: absolute;
+                          left: 0;
+                          top: 0.55em;
+                          width: 8px;
+                          height: 8px;
+                          border-radius: 50%;
+                          background: var(--primary);
+                        "
+                      ></span>
+                      <strong>검색 대상</strong><br />
+                      상품 등록 시 별도 설명 항목이 없어 상품명(name) 기준
+                      검색으로 한정
+                    </li>
+                  </ul>
+                </div>
+                <div
+                  class="card reveal d3"
+                  style="
+                    min-height: 0;
+                    padding: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: hidden;
+                  "
+                >
+                  <img
+                    src="assets/product-search.png"
+                    alt="상품 검색 결과 화면 — 옥수수 검색"
+                    style="
+                      display: block;
+                      width: 100%;
+                      height: 100%;
+                      object-fit: contain;
+                      object-position: top center;
+                      border-radius: 10px;
+                    "
+                  />
+                </div>
               </div>
               <div
                 class="card reveal d2"
@@ -4266,7 +4246,7 @@
                   </div>
                   <div>
                     <h3 style="font-size: 22px; margin-bottom: 8px" data-edit>
-                      개선 방식 (Server-side · 멘토 피드백 반영)
+                      개선 방식 (Server-side)
                     </h3>
                     <ul
                       style="
@@ -4326,7 +4306,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>3 핵심 기능
+                <span class="accent-line"></span>3 추가기능
               </div>
               <span class="tag-pill">03 · Search</span>
             </div>
@@ -4497,7 +4477,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>4 핵심 기능
+                <span class="accent-line"></span>4 추가기능
               </div>
               <span class="tag-pill">04 · Budget</span>
             </div>
@@ -4506,7 +4486,7 @@
               style="font-size: 38px; margin-bottom: 14px"
               data-edit
             >
-              예산 관리 통계 성능 최적화 및 정합성 확보
+              예산 통계 페이지
             </h2>
             <div
               class="grow"
@@ -4533,7 +4513,7 @@
                   <ul
                     style="
                       list-style: none;
-                      font-size: 19px;
+                      font-size: 22px;
                       line-height: 1.45;
                       display: flex;
                       flex-direction: column;
@@ -4592,7 +4572,7 @@
                   <ul
                     style="
                       list-style: none;
-                      font-size: 19px;
+                      font-size: 22px;
                       line-height: 1.45;
                       display: flex;
                       flex-direction: column;
@@ -4680,7 +4660,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>4 핵심 기능
+                <span class="accent-line"></span>4 추가기능
               </div>
               <span class="tag-pill">04 · Budget</span>
             </div>
@@ -4715,7 +4695,7 @@
                   <ul
                     style="
                       list-style: none;
-                      font-size: 20px;
+                      font-size: 22px;
                       line-height: 1.45;
                       display: flex;
                       flex-direction: column;
@@ -4783,7 +4763,7 @@
                 >
                   <div class="struct-kicker">적용 코드: getMonthlySpending</div>
                   <p
-                    style="font-size: 20px; font-weight: 800; line-height: 1.4"
+                    style="font-size: 22px; font-weight: 800; line-height: 1.4"
                     data-edit
                   >
                     핵심 로직
@@ -4791,7 +4771,7 @@
                   <ul
                     style="
                       list-style: none;
-                      font-size: 18px;
+                      font-size: 22px;
                       line-height: 1.45;
                       display: flex;
                       flex-direction: column;
@@ -4882,7 +4862,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>4 핵심 기능
+                <span class="accent-line"></span>4 추가기능
               </div>
               <span class="tag-pill">04 · Budget</span>
             </div>
@@ -4926,84 +4906,125 @@
                 />
               </div>
               <div
-                class="card reveal d2"
                 style="
-                  padding: 22px 24px;
-                  color: #172033;
-                  display: flex;
-                  flex-direction: column;
-                  justify-content: flex-start;
+                  display: grid;
+                  grid-template-rows: auto 1fr;
                   gap: 14px;
+                  min-height: 0;
                 "
               >
-                <div class="struct-kicker">
-                  적용 코드: monthlyStatisticsHandler &amp;
-                  monthlyStatisticsJob
-                </div>
-                <p
-                  style="font-size: 22px; font-weight: 800; line-height: 1.4"
-                  data-edit
-                >
-                  핵심 로직
-                </p>
-                <ul
+                <div
+                  class="card reveal d2"
                   style="
-                    list-style: none;
-                    font-size: 19px;
-                    line-height: 1.5;
+                    padding: 22px 24px;
+                    color: #172033;
                     display: flex;
                     flex-direction: column;
+                    justify-content: flex-start;
                     gap: 14px;
                   "
                 >
-                  <li style="padding-left: 22px; position: relative" data-edit>
-                    <span
-                      style="
-                        position: absolute;
-                        left: 0;
-                        top: 0.55em;
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background: var(--primary);
-                      "
-                    ></span>
-                    <strong>EventBridge + Lambda</strong><br />
-                    크론 스케줄링을 통해 매월 전월 통계를 자동 생성 및 검증
-                  </li>
-                  <li style="padding-left: 22px; position: relative" data-edit>
-                    <span
-                      style="
-                        position: absolute;
-                        left: 0;
-                        top: 0.55em;
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background: var(--primary);
-                      "
-                    ></span>
-                    <strong>CREATE_PREVIOUS_MONTH_SNAPSHOT</strong><br />
-                    회사별 전월 통계 집계 후 스냅샷 테이블에 upsert (총지출,
-                    상품금액, 배송비, 카테고리 통계 저장)
-                  </li>
-                  <li style="padding-left: 22px; position: relative" data-edit>
-                    <span
-                      style="
-                        position: absolute;
-                        left: 0;
-                        top: 0.55em;
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background: var(--primary);
-                      "
-                    ></span>
-                    <strong>VERIFY_PREVIOUS_MONTH_SNAPSHOT</strong><br />
-                    원본 주문 데이터와 스냅샷을 주기적으로 대조하여 불일치 발생
-                    시 자동 보정(Self-Healing)
-                  </li>
-                </ul>
+                  <div class="struct-kicker">
+                    적용 코드: monthlyStatisticsHandler &amp;
+                    monthlyStatisticsJob
+                  </div>
+                  <p
+                    style="font-size: 22px; font-weight: 800; line-height: 1.4"
+                    data-edit
+                  >
+                    핵심 로직
+                  </p>
+                  <ul
+                    style="
+                      list-style: none;
+                      font-size: 22px;
+                      line-height: 1.5;
+                      display: flex;
+                      flex-direction: column;
+                      gap: 14px;
+                    "
+                  >
+                    <li
+                      style="padding-left: 22px; position: relative"
+                      data-edit
+                    >
+                      <span
+                        style="
+                          position: absolute;
+                          left: 0;
+                          top: 0.55em;
+                          width: 8px;
+                          height: 8px;
+                          border-radius: 50%;
+                          background: var(--primary);
+                        "
+                      ></span>
+                      <strong>EventBridge + Lambda</strong><br />
+                      크론 스케줄링을 통해 매월 전월 통계를 자동 생성 및 검증
+                    </li>
+                    <li
+                      style="padding-left: 22px; position: relative"
+                      data-edit
+                    >
+                      <span
+                        style="
+                          position: absolute;
+                          left: 0;
+                          top: 0.55em;
+                          width: 8px;
+                          height: 8px;
+                          border-radius: 50%;
+                          background: var(--primary);
+                        "
+                      ></span>
+                      <strong>CREATE_PREVIOUS_MONTH_SNAPSHOT</strong><br />
+                      회사별 전월 통계 집계 후 스냅샷 테이블에 upsert (총지출,
+                      상품금액, 배송비, 카테고리 통계 저장)
+                    </li>
+                    <li
+                      style="padding-left: 22px; position: relative"
+                      data-edit
+                    >
+                      <span
+                        style="
+                          position: absolute;
+                          left: 0;
+                          top: 0.55em;
+                          width: 8px;
+                          height: 8px;
+                          border-radius: 50%;
+                          background: var(--primary);
+                        "
+                      ></span>
+                      <strong>VERIFY_PREVIOUS_MONTH_SNAPSHOT</strong><br />
+                      원본 주문 데이터와 스냅샷을 주기적으로 대조하여 불일치
+                      발생 시 자동 보정(Self-Healing)
+                    </li>
+                  </ul>
+                </div>
+                <div
+                  class="card reveal d3"
+                  style="
+                    min-height: 0;
+                    padding: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: hidden;
+                  "
+                >
+                  <img
+                    src="assets/monthly-statistics-scheduler.png"
+                    alt="EventBridge Scheduler monthly-statistics-create 크론 일정"
+                    style="
+                      display: block;
+                      width: 100%;
+                      height: 100%;
+                      object-fit: contain;
+                      border-radius: 10px;
+                    "
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -5014,7 +5035,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>4 핵심 기능
+                <span class="accent-line"></span>4 추가기능
               </div>
               <span class="tag-pill">04 · Budget</span>
             </div>
@@ -5157,7 +5178,7 @@
                 <div class="struct-kicker">결론</div>
                 <p
                   style="
-                    font-size: 20px;
+                    font-size: 22px;
                     font-weight: 800;
                     margin: 8px 0 10px;
                   "
@@ -5168,7 +5189,7 @@
                 <ul
                   style="
                     list-style: none;
-                    font-size: 19px;
+                    font-size: 22px;
                     line-height: 1.45;
                     display: grid;
                     grid-template-columns: 1fr 1fr;
@@ -5196,7 +5217,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>5 핵심 기능
+                <span class="accent-line"></span>5 추가기능
               </div>
               <span class="tag-pill">05 · 403</span>
             </div>
@@ -5230,7 +5251,7 @@
                 <ul
                   style="
                     list-style: none;
-                    font-size: 19px;
+                    font-size: 22px;
                     line-height: 1.5;
                     display: flex;
                     flex-direction: column;
@@ -5299,22 +5320,6 @@
                     ></span>
                     3~6: USER면 Forbidden (ADMIN·SUPER_ADMIN은 통과)
                   </li>
-                  <li style="padding-left: 22px; position: relative" data-edit>
-                    <span
-                      style="
-                        position: absolute;
-                        left: 0;
-                        top: 0.55em;
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 50%;
-                        background: var(--primary);
-                      "
-                    ></span>
-                    랜딩 페이지는 다양한 화면 크기에 자연스럽게 대응하고,
-                    인증·권한 처리에서는 사용자가 현재 위치와 접근 제한 사유를
-                    명확히 알 수 있도록 개선.
-                  </li>
                 </ul>
               </div>
               <div
@@ -5376,7 +5381,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>트러블슈팅
+                <span class="accent-line"></span>트러블슈팅 1
               </div>
               <span class="tag-pill">01 · Cart</span>
             </div>
@@ -5603,7 +5608,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>트러블슈팅
+                <span class="accent-line"></span>트러블슈팅 2
               </div>
               <span class="tag-pill">02 · Auth</span>
             </div>
@@ -5944,7 +5949,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>트러블슈팅
+                <span class="accent-line"></span>트러블슈팅 2
               </div>
               <span class="tag-pill">02 · Auth</span>
             </div>
@@ -6347,7 +6352,7 @@
           <div class="slide-inner">
             <div class="slide-header reveal">
               <div class="eyebrow">
-                <span class="accent-line"></span>트러블슈팅
+                <span class="accent-line"></span>트러블슈팅 2
               </div>
               <span class="tag-pill">02 · Auth</span>
             </div>
